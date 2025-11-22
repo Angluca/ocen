@@ -1,0 +1,248 @@
+
+import std::mui::{ this, Rect }
+import std::sdl
+import std::image::{Image, Color}
+import std::vec::{ Vec2i }
+import std::ogui::atlas
+
+let window: &sdl::Window
+let renderer: &sdl::Renderer
+let atlas_texture: &sdl::Texture
+
+// We need to keep track of the window size for mui
+let current_width: i32
+let current_height: i32
+
+def text_width_callback(font: mui::Font, text: str, len: i32): i32 {
+    return atlas::calculate_text_width(text, len)
+}
+
+def text_height_callback(font: mui::Font): i32 {
+    return atlas::get_text_height()
+}
+
+// Helper to convert Image to SDL Texture
+def load_texture_from_image(img: &Image): &sdl::Texture {
+    let tex = renderer.create_texture(
+        sdl::PIXELFORMAT_ABGR8888, 
+        sdl::TEXTUREACCESS_STREAMING, 
+        img.width as i32, img.height as i32
+    )
+    tex.set_blend_mode(sdl::BlendMode::Blend)
+    tex.write_image(img)
+    return tex
+}
+
+let base_title: str
+let should_quit: bool = false
+let frames: i32 = 0
+let last_time: i32 = 0
+
+def init(width: u32, height: u32, title: str = "mui"): &mui::Context {
+    sdl::init(sdl::INIT_EVERYTHING)
+    
+    base_title = title
+    should_quit = false
+    frames = 0
+    last_time = sdl::get_ticks()
+
+    // Create window and renderer
+    sdl::create_window_renderer(
+        width as i32, height as i32, 
+        sdl::WINDOW_RESIZABLE, 
+        &window, &renderer
+    )
+    
+    window.set_title(title)
+    renderer.set_blend_mode(sdl::BlendMode::Blend)
+
+    let ctx = mui::init()
+    ctx.text_height = text_height_callback
+    ctx.text_width = text_width_callback
+    ctx.screen_rect = Rect(0, 0, width as i32, height as i32)
+    
+    current_width = width as i32
+    current_height = height as i32
+
+    // Load atlas texture
+    let atlas_img = atlas::load_atlas_texture()
+    
+    // Create texture for atlas manually to handle alpha
+    atlas_texture = renderer.create_texture(
+        sdl::PIXELFORMAT_ABGR8888, 
+        sdl::TEXTUREACCESS_STREAMING, 
+        atlas_img.width as i32, atlas_img.height as i32
+    )
+    atlas_texture.set_blend_mode(sdl::BlendMode::Blend)
+    
+    let pixels: &u8
+    let pitch: i32
+    atlas_texture.lock(null, (&pixels) as &untyped_ptr, &pitch)
+    
+    for let y = 0; y < atlas_img.height; y++ {
+        for let x = 0; x < atlas_img.width; x++ {
+            let c = atlas_img.get(x, y)
+            let offset = y * pitch as u32 + x * 4
+            pixels[offset + 0] = 255
+            pixels[offset + 1] = 255
+            pixels[offset + 2] = 255
+            pixels[offset + 3] = c.r // Use red channel as alpha
+        }
+    }
+    atlas_texture.unlock()
+    
+    atlas_img.free()
+    
+    return ctx
+}
+
+def set_title(title: str) {
+    window.set_title(title)
+}
+
+def sdl_scancode_to_mui_key(key: sdl::Key): mui::Key => match key {
+    LShift | RShift => Shift,
+    LCtrl | RCtrl => Ctrl,
+    LAlt | RAlt => Alt,
+    Backspace => Backspace,
+    Return => Return,
+    Escape => Escape,
+    Left => Left,
+    Right => Right,
+    Up => Up,
+    Down => Down,
+    else => 0
+}
+
+def handle_mui_inputs(ctx: &mui::Context) {
+    let e: sdl::Event
+    while sdl::poll_event(&e) {
+        match e.type {
+            Quit => {
+                should_quit = true
+            }
+            Window => {
+                if e.window.event == sdl::WindowEventID::Resized {
+                    let w = e.window.data1
+                    let h = e.window.data2
+                    current_width = w
+                    current_height = h
+                    ctx.screen_rect = Rect(0, 0, w, h)
+                }
+            }
+            MouseUp | MouseDown => {
+                let btn = match e.button.button {
+                    Left => mui::Mouse::Left
+                    Right => mui::Mouse::Right
+                    Middle => mui::Mouse::Middle
+                    else => 0 as mui::Mouse
+                }
+                if e.type == sdl::EventType::MouseDown {
+                    ctx.input_mousedown(e.button.x, e.button.y, btn)
+                } else {
+                    ctx.input_mouseup(e.button.x, e.button.y, btn)
+                }
+            }
+            Wheel => {
+                ctx.input_scroll(e.wheel.x * 10, e.wheel.y * -10) // Scale up a bit
+            }
+            KeyDown | KeyUp => {
+                let key = sdl_scancode_to_mui_key(e.key.keysym.scancode)
+                if key != 0 {
+                    if e.type == sdl::EventType::KeyDown {
+                        ctx.input_keydown(key)
+                    } else {
+                        ctx.input_keyup(key)
+                    }
+                }
+            }
+            TextInput => {
+                ctx.input_text(e.text.text)
+            }
+            else => {}
+        }
+    }
+    
+    // Update mouse position always (in case it moved without clicking)
+    let mx = 0i32
+    let my = 0i32
+    sdl::get_mouse_state(&mx, &my)
+    ctx.input_mousemove(mx, my)
+}
+
+let clear_color: Color = Color(0, 0, 0)
+
+def set_clear_color(color: Color) {
+    clear_color = color
+}
+
+def is_running(): bool => not should_quit
+
+def draw(ctx: &mui::Context) {
+    renderer.set_draw_color(clear_color.r as i32, clear_color.g as i32, clear_color.b as i32, 255)
+    renderer.clear()
+
+    ctx.for_each_command(|cmd| => match *cmd {
+        Clip(rect) => {
+            let r = sdl::Rect(rect.x, rect.y, rect.width, rect.height)
+            renderer.set_clip_rect(&r)
+        }
+        Rect(rect, color) => {
+            renderer.set_draw_color(color.r as i32, color.g as i32, color.b as i32, 255)
+            let r = sdl::Rect(rect.x, rect.y, rect.width, rect.height)
+            renderer.fill_rect(&r)
+        }
+        Text(font, pos, color, text, len) => {
+            let dst_x = pos.x
+            let dst_y = pos.y
+            // len is u32 in Command::Text
+            let text_len = if len == 0xffffffff then text.len() else len
+            
+            // Set texture color mod for text color
+            atlas_texture.set_color_mod(color.r, color.g, color.b)
+            
+            for let i = 0u32; i < text_len; i++ {
+                let ch = text[i]
+                if ((ch as u8) & 0xc0u8) == 0x80u8 continue
+                
+                let rect = atlas::get_char_rect(ch)
+                let src = sdl::Rect(rect.x, rect.y, rect.width, rect.height)
+                let dst = sdl::Rect(dst_x, dst_y, rect.width, rect.height)
+                
+                renderer.copy(atlas_texture, &src, &dst)
+                dst_x += rect.width
+            }
+        }
+        Icon(id, color, rect) => {
+            let src_rect = atlas::get_atlas_rect(id as i32)
+            let x = rect.x + (rect.width - src_rect.width) / 2
+            let y = rect.y + (rect.height - src_rect.height) / 2
+            
+            let src = sdl::Rect(src_rect.x, src_rect.y, src_rect.width, src_rect.height)
+            let dst = sdl::Rect(x, y, src_rect.width, src_rect.height)
+            
+            atlas_texture.set_color_mod(color.r, color.g, color.b)
+            renderer.copy(atlas_texture, &src, &dst)
+        }
+        Image(image: src_img, rect) => {
+            let tex = load_texture_from_image(src_img)
+            let dst = sdl::Rect(rect.x, rect.y, rect.width, rect.height)
+            renderer.copy(tex, null, &dst)
+            tex.destroy()
+        }
+    })
+    
+    renderer.present()
+
+    // FPS Calculation
+    let current_time = sdl::get_ticks()
+    frames++
+    if current_time > last_time + 1000 {
+        let fps = frames as f32 / ((current_time - last_time) as f32 / 1000.0)
+        let title_buf: [char; 256]
+        std::libc::sprintf(title_buf, "%s | FPS: %.2f", base_title, fps)
+        window.set_title(title_buf)
+        last_time = current_time
+        frames = 0
+    }
+}
