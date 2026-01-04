@@ -1,0 +1,56 @@
+import std::vec::Vec3f
+import std::matrix::Matrix4f
+
+struct Camera3f {
+    origin: Vec3f
+    direction: Vec3f
+
+    horizontal: Vec3f
+    vertical: Vec3f
+    ll_corner: Vec3f
+
+    u: Vec3f
+    v: Vec3f
+    w: Vec3f
+
+    transform: Matrix4f
+    inverse: Matrix4f
+}
+
+def Camera3f::make(
+    width: u32,
+    height: u32,
+    origin: Vec3f,
+    direction: Vec3f,
+): Camera3f {
+
+    let cam: Camera3f
+    let aspect_ratio = width as f32 / height as f32
+
+    let viewport_height = 2.0
+    let viewport_width = aspect_ratio * viewport_height
+    let focal_length = 1.0
+
+    let up = Vec3f(0.0, 1.0, 0.0)
+
+    cam.origin = origin
+    cam.direction = direction.normalized()
+
+    cam.w = cam.direction.mults(-1.0)
+    cam.u = up.cross(cam.w).normalized()
+    cam.v = cam.w.cross(cam.u)
+
+    cam.horizontal = cam.u * -viewport_width
+    cam.vertical = cam.v * viewport_height
+    cam.ll_corner = cam.origin - cam.horizontal / 2.0 - cam.vertical / 2.0 - cam.w
+
+    cam.transform = Matrix4f::make(
+        cam.u.x, cam.u.y, cam.u.z, origin.x,
+        cam.v.x, cam.v.y, cam.v.z, origin.y,
+        cam.w.x, cam.w.y, cam.w.z, origin.z,
+        0.0,     0.0,     0.0,     1.0,
+    )
+
+    cam.inverse = cam.transform.invert()
+    return cam
+}

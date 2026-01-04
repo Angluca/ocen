@@ -1,0 +1,118 @@
+
+import std::cparse::{ Lexer, Parser, CType, CAst, CStruct, CEnum, CFunc, CMacro }
+import std::vector::{ Vector }
+import std::sv::{ SV }
+import std::fs
+
+def print_type(t: &CType) {
+    match *t {
+        Void => print("void")
+        Bool => print("bool")
+        Char => print("char")
+        Int(is_signed, size) => {
+            if is_signed {
+                print("i%d", size*8)
+            } else {
+                print("u%d", size*8)
+            }
+        }
+        Float(size) => print("f%d", size*8)
+        Ptr(inner) => {
+            print_type(inner)
+            print("*")
+        }
+        Array(inner, size) => {
+            print_type(inner)
+            print(`[{size}]`)
+        }
+        Struct(name) => print(`struct {name}`)
+        Union(name) => print(`union {name}`)
+        Enum(name) => print(`enum {name}`)
+        Typedef(name) => print("%s", name)
+        Unknown(name) => print("%s", name)
+        else => print("???")
+    }
+}
+
+def main(argc: i32, argv: &str) {
+    if argc < 2 {
+        println("Usage: gen_bindings <header_file>")
+        std::exit(1)
+    }
+
+    let filename: str = ""
+    let include_paths = Vector<str>::new()
+
+    for let i: i32 = 1; i < argc; i++ {
+        let arg = SV::from_str(argv[i])
+        if arg.starts_with_str("-I") {
+            arg.chop_left(2)
+            let path = arg.copy_data_to_cstr()
+            include_paths.push(path)
+        } else {
+            filename = argv[i]
+        }
+    }
+
+    if filename.len() == 0 {
+        println("Usage: gen_bindings <header_file> [-I<include_path>]...")
+        std::exit(1)
+    }
+
+    let content = std::fs::read_file(filename)
+    let sv = SV::from_buf(content)
+    let lexer = Lexer::make(sv, filename)
+    
+    for let i = 0; i < include_paths.size; i++ {
+        lexer.add_include_path(include_paths.at(i))
+    }
+    let parser = Parser::make(lexer)
+    let ast = parser.parse()
+
+    println("--- Macros ---")
+    for m in ast.macros.iter() {
+        println(`{m.name} = {m.body}`)
+    }
+
+    println("\n--- Enums ---")
+    for e in ast.enums.iter() {
+        println(`enum {e.name} \{`)
+        for v in e.values.iter() {
+            println(`  {v.name} = {v.value}`)
+        }
+        println("}")
+    }
+
+    println("\n--- Structs ---")
+    for s in ast.structs.iter() {
+        if s.is_union {
+            print("union %s {", s.name)
+        } else {
+            print("struct %s {", s.name)
+        }
+        println("")
+        for f in s.fields.iter() {
+            print("  ")
+            print_type(f.type)
+            println(` {f.name};`)
+        }
+        println("}")
+    }
+
+    println("\n--- Functions ---")
+    for f in ast.funcs.iter() {
+        print_type(f.ret_type)
+        print(` {f.name}(`)
+        for let i = 0; i < f.args.size; i += 1 {
+            if i > 0 then print(", ")
+            let arg = f.args.at(i)
+            print_type(arg.type)
+            print(` {arg.name}`)
+        }
+        if f.is_variadic {
+            if f.args.size > 0 then print(", ")
+            print("...")
+        }
+        println(");")
+    }
+}

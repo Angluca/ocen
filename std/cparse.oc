@@ -1,0 +1,823 @@
+
+import std::sv::{ SV }
+import std::map::{ Map }
+import std::vector::{ Vector }
+import std::buffer::{ Buffer }
+import std::fs
+import std::libc::{ isdigit, isalpha, isalnum }
+
+enum CType {
+    Void
+    Bool
+    Char
+    Int(is_signed: bool, size: u32)
+    Float(size: u32)
+    Ptr(inner: &CType)
+    Array(inner: &CType, size: u32)
+    Struct(name: str)
+    Union(name: str)
+    Enum(name: str)
+    Func(ret: &CType, args: &Vector<&CField>)
+    Typedef(name: str)
+    Unknown(name: str)
+}
+
+struct CField {
+    name: str
+    type: &CType
+}
+
+struct CStruct {
+    name: str
+    fields: &Vector<&CField>
+    is_union: bool
+}
+
+struct CEnumVal {
+    name: str
+    value: i32
+}
+
+struct CEnum {
+    name: str
+    values: &Vector<&CEnumVal>
+}
+
+struct CFunc {
+    name: str
+    ret_type: &CType
+    args: &Vector<&CField>
+    is_variadic: bool
+}
+
+struct CMacro {
+    name: str
+    args: &Vector<str>
+    body: str
+}
+
+struct CAst {
+    structs: &Vector<&CStruct>
+    enums: &Vector<&CEnum>
+    funcs: &Vector<&CFunc>
+    macros: &Vector<&CMacro>
+    typedefs: &Map<str, &CType>
+}
+
+def CAst::new(): &CAst {
+    let ast = std::mem::alloc<CAst>()
+    ast.structs = Vector<&CStruct>::new()
+    ast.enums = Vector<&CEnum>::new()
+    ast.funcs = Vector<&CFunc>::new()
+    ast.macros = Vector<&CMacro>::new()
+    ast.typedefs = Map<str, &CType>::new()
+    return ast
+}
+
+enum TokenType {
+    Identifier
+    Number
+    String
+    Char
+    Operator
+    Keyword
+    EOF
+    Unknown
+}
+
+struct Token {
+    type: TokenType
+    text: SV
+    line: u32
+    col: u32
+}
+
+struct LexerSource {
+    text: SV
+    filename: str
+    line: u32
+    col: u32
+    is_macro: bool
+    saved_peek: Token
+    has_peek: bool
+}
+
+struct Lexer {
+    sources: Vector<&LexerSource>
+    cur: Token
+    peek: Token
+    macros: Map<str, str>
+    buffers: Vector<Buffer> // Keep file contents alive
+    include_paths: Vector<str>
+    expand_macros: bool
+}
+
+def Lexer::make(source: SV, filename: str = "<stdin>"): Lexer {
+    let lexer: Lexer
+    lexer.sources = *Vector<&LexerSource>::new()
+    lexer.macros = *Map<str, str>::new()
+    lexer.buffers = *Vector<Buffer>::new()
+    lexer.include_paths = *Vector<str>::new()
+    lexer.expand_macros = true
+    
+    let src = std::mem::alloc<LexerSource>()
+    src.text = source
+    src.filename = filename
+    src.line = 1
+    src.col = 1
+    src.is_macro = false
+    lexer.sources.push(src)
+    
+    lexer.advance() // Load first token
+    lexer.advance() // Load second token (peek)
+    return lexer
+}
+
+def Lexer::push_source(&this, text: SV, filename: str, is_macro: bool) {
+    // Save current peek to the current source if it exists
+    if .sources.size > 0 {
+        let curr = .sources.back()
+        curr.saved_peek = .peek
+        curr.has_peek = true
+    }
+
+    let src = std::mem::alloc<LexerSource>()
+    src.text = text
+    src.filename = filename
+    src.line = 1
+    src.col = 1
+    src.is_macro = is_macro
+    src.has_peek = false
+    .sources.push(src)
+    
+    // Reload tokens from the new source
+    .cur = .read_token()
+    .peek = .read_token()
+}
+
+def Lexer::push_file(&this, filename: str) {
+    if std::fs::file_exists(filename) {
+        let buf = std::fs::read_file(filename)
+        .buffers.push(buf)
+        .push_source(SV::from_buf(buf), filename, false)
+        return
+    }
+    
+    for let i = 0; i < .include_paths.size; i++ {
+        let path = `{.include_paths.at(i)}/{filename}`
+        if std::fs::file_exists(path) {
+            let buf = std::fs::read_file(path)
+            .buffers.push(buf)
+            .push_source(SV::from_buf(buf), path, false)
+            return
+        }
+    }
+    
+    println(`[Warning] Could not find include file: {filename}`)
+}
+
+def Lexer::add_include_path(&this, path: str) {
+    .include_paths.push(path)
+}
+
+def Lexer::skip_line(&this) {
+    if .sources.size > 0 {
+        .sources.back().text.chop_line()
+    }
+}
+
+def Lexer::add_macro(&this, name: str, body: str) {
+    .macros.insert(name, body)
+}
+
+def Lexer::skip_whitespace(&this) {
+    while .sources.size > 0 {
+        let src = .sources.back()
+        if src.text.len == 0 {
+            .sources.pop()
+            continue
+        }
+        
+        let c = src.text.data[0]
+        if c.is_space() {
+            if c == '\n' {
+                src.line += 1
+                src.col = 1
+            } else {
+                src.col += 1
+            }
+            src.text.chop_left(1)
+        } else if c == '/' and src.text.len > 1 {
+            if src.text.data[1] == '/' {
+                src.text.chop_line()
+                src.line += 1
+                src.col = 1
+            } else if src.text.data[1] == '*' {
+                src.text.chop_left(2)
+                src.col += 2
+                while src.text.len > 0 {
+                    if src.text.starts_with_str("*/") {
+                        src.text.chop_left(2)
+                        src.col += 2
+                        break
+                    }
+                    if src.text.data[0] == '\n' {
+                        src.line += 1
+                        src.col = 1
+                    } else {
+                        src.col += 1
+                    }
+                    src.text.chop_left(1)
+                }
+            } else {
+                break
+            }
+        } else {
+            break
+        }
+    }
+}
+
+def Lexer::read_token(&this): Token {
+    // Check if we have a saved peek token in the current source
+    if .sources.size > 0 {
+        let src = .sources.back()
+        if src.has_peek {
+            src.has_peek = false
+            return src.saved_peek
+        }
+    }
+
+    .skip_whitespace()
+    if .sources.size == 0 {
+        return Token(TokenType::EOF, SV::from_str(""), 0, 0)
+    }
+    
+    let src = .sources.back()
+    let start_line = src.line
+    let start_col = src.col
+
+    let c = src.text.data[0]
+    if isalpha(c) or c == '_' {
+        let start = src.text
+        let len = 0
+        while len < src.text.len {
+            let c = src.text.data[len]
+            if isalnum(c) or c == '_' {
+                len += 1
+            } else {
+                break
+            }
+        }
+        let text = src.text.chop_left(len)
+        src.col += len
+        
+        // Check for macro expansion
+        let name = text.copy_data_to_cstr()
+        if .expand_macros and .macros.contains(name) {
+            let body = .macros.get(name, "")
+            .push_source(SV::from_str(body), name, true)
+            return .read_token()
+        }
+        
+        return Token(TokenType::Identifier, text, start_line, start_col)
+    }
+
+    if isdigit(c) {
+        let start = src.text
+        let len = 0
+        // Hex
+        if c == '0' and src.text.len > 1 and (src.text.data[1] == 'x' or src.text.data[1] == 'X') {
+            len += 2
+            len += 2
+            while len < src.text.len {
+                let c = src.text.data[len]
+                if isdigit(c) or (c >= 'a' and c <= 'f') or (c >= 'A' and c <= 'F') {
+                    len += 1
+                } else {
+                    break
+                }
+            }
+        } else {
+            while len < src.text.len {
+                let c = src.text.data[len]
+                if isdigit(c) or c == '.' or c == 'f' or c == 'u' or c == 'l' or c == 'U' or c == 'L' {
+                    len += 1
+                } else {
+                    break
+                }
+            }
+        }
+        let text = src.text.chop_left(len)
+        src.col += len
+        return Token(TokenType::Number, text, start_line, start_col)
+    }
+
+    if c == '"' {
+        src.text.chop_left(1)
+        let start = src.text
+        let len = 0
+        while len < src.text.len {
+            if src.text.data[len] == '"' and (len == 0 or src.text.data[len-1] != '\\') {
+                break
+            }
+            len += 1
+        }
+        let text = src.text.chop_left(len)
+        src.text.chop_left(1) // closing quote
+        src.col += len + 2
+        return Token(TokenType::String, text, start_line, start_col)
+    }
+
+    if c == '\'' {
+        src.text.chop_left(1)
+        let start = src.text
+        let len = 0
+        while len < src.text.len {
+            if src.text.data[len] == '\'' and (len == 0 or src.text.data[len-1] != '\\') {
+                break
+            }
+            len += 1
+        }
+        let text = src.text.chop_left(len)
+        src.text.chop_left(1) // closing quote
+        src.col += len + 2
+        return Token(TokenType::Char, text, start_line, start_col)
+    }
+
+    // Operators
+    let ops = ["...", ">>=", "<<=", "->", "++", "--", "&&", "||", "<=", ">=", "==", "!=", "+=", "-=", "*=", "/=", "%=", "&=", "|=", "^=", "<<", ">>", "::"]
+    for let i = 0; i < 23; i += 1 {
+        let op = ops[i]
+        if src.text.starts_with_str(op) {
+            src.col += op.len()
+            return Token(TokenType::Operator, src.text.chop_left(op.len()), start_line, start_col)
+        }
+    }
+
+    // Single char operators
+    let single_ops = "+-*/%&|^!~<>=?:.,;(){}[]#"
+    for let i = 0; i < single_ops.len(); i += 1 {
+        if single_ops[i] == c {
+            src.col += 1
+            return Token(TokenType::Operator, src.text.chop_left(1), start_line, start_col)
+        }
+    }
+
+    src.col += 1
+    return Token(TokenType::Unknown, src.text.chop_left(1), start_line, start_col)
+}
+
+def Lexer::advance(&this) {
+    .cur = .peek
+    .peek = .read_token()
+}
+
+def Lexer::matches(&this, type: TokenType): bool {
+    if .cur.type == type {
+        .advance()
+        return true
+    }
+    return false
+}
+
+def Lexer::match_str(&this, s: str): bool {
+    if .cur.text.eq_str(s) {
+        .advance()
+        return true
+    }
+    return false
+}
+
+def Lexer::expect_str(&this, s: str) {
+    if not .match_str(s) {
+        let src = .sources.back()
+        println(`Expected '{s}' but got '{.cur.text}' at {src.filename}:{src.line}:{src.col}`)
+        std::exit(1)
+    }
+}
+
+struct Parser {
+    lexer: Lexer
+    ast: &CAst
+}
+
+def Parser::make(lexer: Lexer): Parser {
+    let parser: Parser
+    parser.lexer = lexer
+    parser.ast = CAst::new()
+    return parser
+}
+
+def Parser::skip_until_else_or_endif(&this) {
+    let depth = 1
+    while depth > 0 {
+        if .lexer.cur.type == TokenType::EOF { break }
+        if .lexer.match_str("#") {
+            if .lexer.match_str("ifdef") or .lexer.match_str("ifndef") or .lexer.match_str("if") {
+                depth += 1
+            } else if .lexer.match_str("endif") {
+                depth -= 1
+                if depth == 0 { return }
+            } else if .lexer.match_str("else") or .lexer.match_str("elif") {
+                if depth == 1 { return }
+            }
+        } else {
+            .lexer.advance()
+        }
+    }
+}
+
+def Parser::new_type(&this, t: CType): &CType {
+    let p = std::mem::alloc<CType>()
+    *p = t
+    return p
+}
+
+def Parser::parse_type(&this): &CType {
+    let is_const = false
+    let is_unsigned = false
+    
+    while true {
+        if .lexer.cur.text.eq_str("const") {
+            .lexer.advance()
+            is_const = true
+        } else if .lexer.cur.text.eq_str("unsigned") {
+            .lexer.advance()
+            is_unsigned = true
+        } else if .lexer.cur.text.eq_str("signed") {
+            .lexer.advance()
+            // ignore
+        } else {
+            break
+        }
+    }
+
+    let type: &CType = null
+
+    if .lexer.match_str("void") {
+        type = .new_type(CType::Void)
+    } else if .lexer.match_str("char") {
+        type = .new_type(CType::Char)
+    } else if .lexer.match_str("int") {
+        type = .new_type(CType::Int(is_signed: not is_unsigned, size: 4))
+    } else if .lexer.match_str("short") {
+        type = .new_type(CType::Int(is_signed: not is_unsigned, size: 2))
+    } else if .lexer.match_str("long") {
+        type = .new_type(CType::Int(is_signed: not is_unsigned, size: 8))
+    } else if .lexer.match_str("float") {
+        type = .new_type(CType::Float(size: 4))
+    } else if .lexer.match_str("double") {
+        type = .new_type(CType::Float(size: 8))
+    } else if .lexer.match_str("bool") or .lexer.match_str("_Bool") {
+        type = .new_type(CType::Bool)
+    } else if .lexer.cur.text.eq_str("struct") {
+        let name = .parse_struct()
+        type = .new_type(CType::Struct(name))
+    } else if .lexer.cur.text.eq_str("union") {
+        let name = .parse_struct()
+        type = .new_type(CType::Union(name))
+    } else if .lexer.cur.text.eq_str("enum") {
+        let name = .parse_enum()
+        type = .new_type(CType::Enum(name))
+    } else {
+        // Typedef or unknown
+        if .lexer.cur.type == TokenType::Identifier {
+            let name = .lexer.cur.text.copy_data_to_cstr()
+            .lexer.advance()
+            type = .new_type(CType::Unknown(name))
+        } else {
+            return null
+        }
+    }
+
+    while .lexer.match_str("*") {
+        type = .new_type(CType::Ptr(type))
+    }
+
+    return type
+}
+
+def Parser::parse_struct(&this): str {
+    let is_union = .lexer.cur.text.eq_str("union")
+    .lexer.advance() // skip struct/union
+
+    let name = ""
+    if .lexer.cur.type == TokenType::Identifier {
+        name = .lexer.cur.text.copy_data_to_cstr()
+        .lexer.advance()
+    }
+
+    if .lexer.match_str("{") {
+        let fields = Vector<&CField>::new()
+        while not .lexer.match_str("}") {
+            let type = .parse_type()
+            let field_name = .lexer.cur.text.copy_data_to_cstr()
+            .lexer.advance()
+            
+            // Array
+            if .lexer.match_str("[") {
+                let size = 0
+                if .lexer.cur.type == TokenType::Number {
+                    size = .lexer.cur.text.chop_u32()
+                    .lexer.advance()
+                }
+                .lexer.expect_str("]")
+                type = .new_type(CType::Array(type, size))
+            }
+
+            let field = std::mem::alloc<CField>()
+            field.name = field_name
+            field.type = type
+            fields.push(field)
+
+            while .lexer.match_str(",") {
+                let next_field_name = .lexer.cur.text.copy_data_to_cstr()
+                .lexer.advance()
+                let next_type = type
+                // Handle array for next field if present (simplified, assumes same type base)
+                 if .lexer.match_str("[") {
+                    let size = 0
+                    if .lexer.cur.type == TokenType::Number {
+                        size = .lexer.cur.text.chop_u32()
+                        .lexer.advance()
+                    }
+                    .lexer.expect_str("]")
+                    next_type = .new_type(CType::Array(type, size))
+                }
+                
+                let next_field = std::mem::alloc<CField>()
+                next_field.name = next_field_name
+                next_field.type = next_type
+                fields.push(next_field)
+            }
+
+            .lexer.expect_str(";")
+        }
+        
+        let s = std::mem::alloc<CStruct>()
+        s.name = name
+        s.fields = fields
+        s.is_union = is_union
+        .ast.structs.push(s)
+    }
+    return name
+}
+
+def Parser::parse_enum(&this): str {
+    .lexer.expect_str("enum")
+    
+    let name = ""
+    if .lexer.cur.type == TokenType::Identifier {
+        name = .lexer.cur.text.copy_data_to_cstr()
+        .lexer.advance()
+    }
+    if .lexer.cur.type == TokenType::Identifier {
+        name = .lexer.cur.text.copy_data_to_cstr()
+        .lexer.advance()
+    }
+
+    if .lexer.match_str("{") {
+        let values = Vector<&CEnumVal>::new()
+        let val: i32 = 0
+        while not .lexer.match_str("}") {
+            let val_name = .lexer.cur.text.copy_data_to_cstr()
+            .lexer.advance()
+            
+            if .lexer.match_str("=") {
+        // Skip until , or }
+        while .lexer.cur.type != TokenType::EOF {
+            if .lexer.peek.text.eq_str(",") or .lexer.peek.text.eq_str("}") {
+                .lexer.advance() // consume the last token of the value
+                break
+            }
+            .lexer.advance()
+        }
+            }
+            
+            let ev = std::mem::alloc<CEnumVal>()
+            ev.name = val_name
+            ev.value = val
+            values.push(ev)
+            val += 1
+            
+            .lexer.match_str(",")
+        }
+        
+        let e = std::mem::alloc<CEnum>()
+        e.name = name
+        e.values = values
+        .ast.enums.push(e)
+    }
+    return name
+}
+
+def Parser::parse_typedef(&this) {
+    .lexer.expect_str("typedef")
+    let type = .parse_type()
+    
+    // Function pointer typedef: typedef void (*name)(args);
+    if .lexer.match_str("(") {
+        .lexer.expect_str("*")
+        let name = .lexer.cur.text.copy_data_to_cstr()
+        .lexer.advance()
+        .lexer.expect_str(")")
+        .lexer.expect_str("(")
+        // Skip args for now
+        while not .lexer.match_str(")") {
+            .lexer.advance()
+        }
+        .lexer.expect_str(";")
+        // Store as unknown for now or function ptr
+        .ast.typedefs.insert(name, .new_type(CType::Ptr(.new_type(CType::Func(type, null)))))
+        return
+    }
+
+    let name = .lexer.cur.text.copy_data_to_cstr()
+    .lexer.advance()
+    
+    // Array typedef
+    if .lexer.match_str("[") {
+        let size = 0
+        if .lexer.cur.type == TokenType::Number {
+            size = .lexer.cur.text.chop_u32()
+            .lexer.advance()
+        }
+        .lexer.expect_str("]")
+        type = .new_type(CType::Array(type, size))
+    }
+    
+    .lexer.expect_str(";")
+    .ast.typedefs.insert(name, type)
+}
+
+def Parser::parse_top_level(&this) {
+    if .lexer.match_str("#") {
+        let directive_line = .lexer.cur.line
+        if .lexer.match_str("define") {
+            let name = .lexer.cur.text.copy_data_to_cstr()
+            .lexer.advance()
+            
+            let body_buf = Buffer::make()
+            while .lexer.cur.type != TokenType::EOF {
+                // Handle line continuation
+                if .lexer.cur.text.eq_str("\\") {
+                    .lexer.advance()
+                    directive_line = .lexer.cur.line
+                    continue
+                }
+                
+                if .lexer.cur.line != directive_line {
+                    break
+                }
+                
+                if body_buf.size > 0 {
+                    body_buf.write_str(" ")
+                }
+                body_buf.write_sv(.lexer.cur.text)
+                .lexer.advance()
+            }
+            let body = body_buf.str()
+            
+            let m = std::mem::alloc<CMacro>()
+            m.name = name
+            m.body = body
+            .ast.macros.push(m)
+            .lexer.add_macro(name, body)
+
+        } else if .lexer.match_str("include") {
+            if .lexer.cur.type == TokenType::String {
+                let filename = .lexer.cur.text.copy_data_to_cstr()
+                .lexer.advance()
+                .lexer.push_file(filename)
+            } else {
+                // Skip system includes <...>
+                .lexer.skip_line()
+            }
+        } else if .lexer.match_str("ifdef") {
+            let name = .lexer.cur.text.copy_data_to_cstr()
+            .lexer.advance()
+            if not .lexer.macros.contains(name) {
+                .skip_until_else_or_endif()
+            }
+        } else if .lexer.match_str("ifndef") {
+            let name = .lexer.cur.text.copy_data_to_cstr()
+            .lexer.advance()
+            if .lexer.macros.contains(name) {
+                .skip_until_else_or_endif()
+            }
+        } else if .lexer.match_str("else") or .lexer.match_str("elif") {
+            .skip_until_else_or_endif()
+        } else if .lexer.match_str("endif") {
+            // Done
+        } else {
+            // Skip other directives
+            .lexer.expand_macros = false
+            while .lexer.cur.line == directive_line and .lexer.cur.type != TokenType::EOF {
+                println(`Skipping {.lexer.cur.text} at {.lexer.cur.line} (directive: {directive_line})`)
+                .lexer.advance()
+            }
+            .lexer.expand_macros = true
+        }
+        return
+    }
+
+    if .lexer.cur.text.eq_str("typedef") {
+        .parse_typedef()
+        return
+    }
+
+    if .lexer.cur.text.eq_str("struct") or .lexer.cur.text.eq_str("union") {
+        // Check if it's a forward decl or definition
+        if .lexer.peek.text.eq_str(";") {
+            .lexer.advance()
+            .lexer.advance()
+            .lexer.advance()
+            return
+        }
+        .parse_struct()
+        .lexer.match_str(";")
+        return
+    }
+
+    if .lexer.cur.text.eq_str("enum") {
+        .parse_enum()
+        .lexer.match_str(";")
+        return
+    }
+
+    // Function or Variable
+    // Simplified: Assume function if ( follows name
+    let type = .parse_type()
+    // If type is null (e.g. extern "C"), skip
+    if not type? {
+        .lexer.advance()
+        return
+    }
+    
+    let name = .lexer.cur.text.copy_data_to_cstr()
+    .lexer.advance()
+
+    if .lexer.match_str("(") {
+        let args = Vector<&CField>::new()
+        let is_variadic = false
+        while not .lexer.match_str(")") {
+            if .lexer.match_str("...") {
+                is_variadic = true
+                .lexer.match_str(")")
+                break
+            }
+            let arg_type = .parse_type()
+            let arg_name = ""
+            if .lexer.cur.type == TokenType::Identifier {
+                arg_name = .lexer.cur.text.copy_data_to_cstr()
+                .lexer.advance()
+            }
+            let field = std::mem::alloc<CField>()
+            field.name = arg_name
+            field.type = arg_type
+            args.push(field)
+            .lexer.match_str(",")
+        }
+        
+        let f = std::mem::alloc<CFunc>()
+        f.name = name
+        f.ret_type = type
+        f.args = args
+        f.is_variadic = is_variadic
+        .ast.funcs.push(f)
+        
+        if .lexer.match_str(";") {
+            // Prototype
+        } else if .lexer.match_str("{") {
+            // Body - skip
+            let depth = 1
+            while depth > 0 {
+                if .lexer.match_str("{") {
+                    depth += 1
+                } else if .lexer.match_str("}") {
+                    depth -= 1
+                } else {
+                    .lexer.advance()
+                }
+            }
+        }
+    } else {
+        // Variable - skip
+        // Handle initializers: int x = 5;
+        if .lexer.match_str("=") {
+             while not .lexer.match_str(";") {
+                 .lexer.advance()
+             }
+        } else {
+            .lexer.expect_str(";")
+        }
+    }
+}
+
+def Parser::parse(&this): &CAst {
+    while .lexer.cur.type != TokenType::EOF {
+        .parse_top_level()
+    }
+    return .ast
+}

@@ -445,6 +445,7 @@ struct compiler_passes_code_generator_CodeGenerator {
   std_buffer_Buffer out;
   std_vector_Vector__5 *yield_vars;
   u32 indent;
+  bool is_global_scope;
 };
 
 struct compiler_passes_reorder_symbols_ReorderSymbols {
@@ -13299,9 +13300,9 @@ void compiler_passes_code_generator_CodeGenerator_gen_format_string(compiler_pas
 }
 
 void compiler_passes_code_generator_CodeGenerator_gen_vector_literal(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_nodes_AST *node) {
-  if(!(node->type==compiler_ast_nodes_ASTType_VectorLiteral)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:283:12: Assertion failed: `node.type == VectorLiteral`", NULL); }
+  if(!(node->type==compiler_ast_nodes_ASTType_VectorLiteral)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:284:12: Assertion failed: `node.type == VectorLiteral`", NULL); }
   compiler_ast_nodes_VectorLiteral vec_lit = node->u.vec_literal;
-  if(!(((bool)vec_lit.vec_type))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:285:12: Assertion failed: `vec_lit.vec_type?`", NULL); }
+  if(!(((bool)vec_lit.vec_type))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:286:12: Assertion failed: `vec_lit.vec_type?`", NULL); }
   compiler_ast_nodes_Function *new_method = std_map_Map__8_at(vec_lit.vec_type->methods, "new");
   compiler_ast_nodes_Function *push_method = std_map_Map__8_at(vec_lit.vec_type->methods, "push");
   char *var = std_format("_vc%u", this->o->program->uid++);
@@ -13335,9 +13336,9 @@ void compiler_passes_code_generator_CodeGenerator_gen_vector_literal(compiler_pa
 }
 
 void compiler_passes_code_generator_CodeGenerator_gen_map_literal(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_nodes_AST *node) {
-  if(!(node->type==compiler_ast_nodes_ASTType_MapLiteral)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:320:12: Assertion failed: `node.type == MapLiteral`", NULL); }
+  if(!(node->type==compiler_ast_nodes_ASTType_MapLiteral)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:321:12: Assertion failed: `node.type == MapLiteral`", NULL); }
   compiler_ast_nodes_MapLiteral map_lit = node->u.map_literal;
-  if(!(((bool)map_lit.map_type))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:322:12: Assertion failed: `map_lit.map_type?`", NULL); }
+  if(!(((bool)map_lit.map_type))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:323:12: Assertion failed: `map_lit.map_type?`", NULL); }
   compiler_ast_nodes_Function *new_method = std_map_Map__8_at(map_lit.map_type->methods, "new");
   compiler_ast_nodes_Function *insert_method = std_map_Map__8_at(map_lit.map_type->methods, "insert");
   char *var = std_format("_mc%u", this->o->program->uid++);
@@ -13416,6 +13417,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_constants(compiler_passes_
 }
 
 void compiler_passes_code_generator_CodeGenerator_gen_global_variables(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_program_Namespace *ns) {
+  this->is_global_scope=true;
   for (std_vector_Iterator__17 _i133 = std_vector_Vector__17_iter(ns->variables); std_vector_Iterator__17_has_value(&_i133); std_vector_Iterator__17_next(&_i133)) {
     compiler_ast_nodes_AST *node = std_vector_Iterator__17_cur(&_i133);
     {
@@ -13435,6 +13437,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_global_variables(compiler_
       compiler_passes_code_generator_CodeGenerator_gen_global_variables(this, child);
     }
   }
+  this->is_global_scope=false;
 }
 
 void compiler_passes_code_generator_CodeGenerator_gen_control_body(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_nodes_AST *node, compiler_ast_nodes_AST *body) {
@@ -13516,9 +13519,9 @@ void compiler_passes_code_generator_CodeGenerator_gen_constructor(compiler_passe
   std_vector_Vector__8 *fields = struc->fields;
   std_vector_Vector__13 *args = node->u.call.args;
   if (struc->is_union) {
-    if(!(args->size==1)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:501:16: Assertion failed: `args.size == 1`", "Should have been checked in the type checker"); }
+    if(!(args->size==1)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:504:16: Assertion failed: `args.size == 1`", "Should have been checked in the type checker"); }
     compiler_ast_nodes_Argument *arg = std_vector_Vector__13_at(args, 0);
-    if(!(((bool)arg->label))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:503:16: Assertion failed: `arg.label?`", "Should have been checked in the type checker"); }
+    if(!(((bool)arg->label))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:506:16: Assertion failed: `arg.label?`", "Should have been checked in the type checker"); }
     compiler_ast_nodes_Variable *field = NULL;
     for (std_vector_Iterator__8 _i135 = std_vector_Vector__8_iter(fields); std_vector_Iterator__8_has_value(&_i135); std_vector_Iterator__8_next(&_i135)) {
       compiler_ast_nodes_Variable *f = std_vector_Iterator__8_cur(&_i135);
@@ -13529,7 +13532,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_constructor(compiler_passe
         }
       }
     }
-    if(!(((bool)field))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:512:16: Assertion failed: `field?`", "Should have been checked in the type checker"); }
+    if(!(((bool)field))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:515:16: Assertion failed: `field?`", "Should have been checked in the type checker"); }
     std_buffer_Buffer_write_str_f(&this->out, std_format(".%s=", compiler_ast_scopes_Symbol_out_name(field->sym)));
     compiler_passes_code_generator_CodeGenerator_gen_expression(this, arg->expr, false, false);
   } else {
@@ -13547,7 +13550,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_constructor(compiler_passe
 }
 
 void compiler_passes_code_generator_CodeGenerator_gen_create_new(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_nodes_AST *node) {
-  if(!(node->type==compiler_ast_nodes_ASTType_CreateNew)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:530:12: Assertion failed: `node.type == CreateNew`", std_format("Expected CreateNew, got %s", compiler_ast_nodes_ASTType_dbg(node->type))); }
+  if(!(node->type==compiler_ast_nodes_ASTType_CreateNew)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:533:12: Assertion failed: `node.type == CreateNew`", std_format("Expected CreateNew, got %s", compiler_ast_nodes_ASTType_dbg(node->type))); }
   compiler_ast_nodes_AST *child = node->u.child;
   char *var_name = std_format("_new_%u", this->o->program->uid++);
   compiler_passes_code_generator_CodeGenerator_gen_start_expr_statement(this);
@@ -13596,7 +13599,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_closure_call(compiler_pass
 void compiler_passes_code_generator_CodeGenerator_gen_call(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_nodes_AST *node, bool is_expr) {
   compiler_ast_nodes_AST *callee = node->u.call.callee;
   bool ret_is_void = node->etype->base==compiler_types_BaseType_Void;
-  if (this->o->program->backtrace) {
+  if (this->o->program->backtrace && !(this->is_global_scope)) {
     char *s = std_format("%s \\t(%s:%u:%u)", callee->resolved_symbol->display, (node->span.start).filename, (node->span.start).line, (node->span.start).col);
     std_buffer_Buffer_write_str(&this->out, std_format("({_WITH_BT(\"%s\",", s));
     if (is_expr && !(ret_is_void)) {
@@ -13630,7 +13633,7 @@ _l___yv_515:
     __yv_515;});
     if (matched) {
       /* defers */
-      if (this->o->program->backtrace) {
+      if (this->o->program->backtrace && !(this->is_global_scope)) {
         std_buffer_Buffer_write_str(&this->out, ");");
         if (is_expr && !(ret_is_void)) {
           std_buffer_Buffer_write_str(&this->out, " _ret;");
@@ -13646,10 +13649,10 @@ switch ((node->u.call.call_type)) {
       case compiler_ast_nodes_CallType_StructConstructor:
       m_517_0:
         {
-          if(!(sym->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:624:24: Assertion failed: `sym.type == Structure`", NULL); }
+          if(!(sym->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:627:24: Assertion failed: `sym.type == Structure`", NULL); }
           compiler_passes_code_generator_CodeGenerator_gen_constructor(this, node, sym->u.struc);
           /* defers */
-          if (this->o->program->backtrace) {
+          if (this->o->program->backtrace && !(this->is_global_scope)) {
             std_buffer_Buffer_write_str(&this->out, ");");
             if (is_expr && !(ret_is_void)) {
               std_buffer_Buffer_write_str(&this->out, " _ret;");
@@ -13661,10 +13664,10 @@ switch ((node->u.call.call_type)) {
       case compiler_ast_nodes_CallType_EnumConstructor:
       m_517_1:
         {
-          if(!(sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:629:24: Assertion failed: `sym.type == EnumVariant`", NULL); }
+          if(!(sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:632:24: Assertion failed: `sym.type == EnumVariant`", NULL); }
           compiler_passes_code_generator_CodeGenerator_gen_enum_constructor(this, sym->u.enum_var, node->u.call.args);
           /* defers */
-          if (this->o->program->backtrace) {
+          if (this->o->program->backtrace && !(this->is_global_scope)) {
             std_buffer_Buffer_write_str(&this->out, ");");
             if (is_expr && !(ret_is_void)) {
               std_buffer_Buffer_write_str(&this->out, " _ret;");
@@ -13678,7 +13681,7 @@ switch ((node->u.call.call_type)) {
         {
           compiler_passes_code_generator_CodeGenerator_gen_closure_call(this, node, sym);
           /* defers */
-          if (this->o->program->backtrace) {
+          if (this->o->program->backtrace && !(this->is_global_scope)) {
             std_buffer_Buffer_write_str(&this->out, ");");
             if (is_expr && !(ret_is_void)) {
               std_buffer_Buffer_write_str(&this->out, " _ret;");
@@ -13697,7 +13700,7 @@ switch ((node->u.call.call_type)) {
   compiler_passes_code_generator_CodeGenerator_gen_call_args(this, node->u.call.args, is_variadic_format);
   std_buffer_Buffer_write_str(&this->out, ")");
   /* defers */
-  if (this->o->program->backtrace) {
+  if (this->o->program->backtrace && !(this->is_global_scope)) {
     std_buffer_Buffer_write_str(&this->out, ");");
     if (is_expr && !(ret_is_void)) {
       std_buffer_Buffer_write_str(&this->out, " _ret;");
@@ -13898,7 +13901,7 @@ switch ((sym->type)) {
             } break;
           default:
             {
-              if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:804:32: Assertion failed: `false`", std_format("Unhandled symbol type: %s", compiler_ast_scopes_SymbolType_dbg(sym->type))); exit(1); }
+              if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:807:32: Assertion failed: `false`", std_format("Unhandled symbol type: %s", compiler_ast_scopes_SymbolType_dbg(sym->type))); exit(1); }
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_Call:
@@ -14093,7 +14096,7 @@ switch ((node->u.binary.op)) {
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, node->u.binary.lhs, false, false);
               std_buffer_Buffer_write_str(&this->out, ").tag == ");
               compiler_ast_scopes_Symbol *rhs_sym = node->u.binary.rhs->resolved_symbol;
-              if(!(((bool)rhs_sym) && rhs_sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:946:24: Assertion failed: `rhs_sym? and rhs_sym.type == EnumVariant`", NULL); }
+              if(!(((bool)rhs_sym) && rhs_sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:949:24: Assertion failed: `rhs_sym? and rhs_sym.type == EnumVariant`", NULL); }
               std_buffer_Buffer_write_str(&this->out, compiler_ast_scopes_Symbol_out_name(rhs_sym));
             } break;
           default:
@@ -14233,7 +14236,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_custom_match(compiler_pass
 }
 
 char *compiler_passes_code_generator_CodeGenerator_gen_match_enum_switch_line(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_nodes_AST *expr) {
-  if(!(((bool)expr->etype) && expr->etype->base==compiler_types_BaseType_Enum)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1090:12: Assertion failed: `expr.etype? and expr.etype.base == Enum`", NULL); }
+  if(!(((bool)expr->etype) && expr->etype->base==compiler_types_BaseType_Enum)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1093:12: Assertion failed: `expr.etype? and expr.etype.base == Enum`", NULL); }
   compiler_ast_nodes_Enum *enom = expr->etype->u.enom;
   std_vector_Vector__8 *shared_fields = enom->shared_fields;
   char *var_name = "";
@@ -14278,7 +14281,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_match_enum_cases_body(comp
   for (u32 j = 0; j < conds->size; j++) {
     compiler_ast_nodes_MatchCond *cond = std_vector_Vector__1_at(conds, j);
     compiler_ast_scopes_Symbol *resolved = cond->expr->resolved_symbol;
-    if(!(((bool)resolved) && resolved->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1146:16: Assertion failed: `resolved? and resolved.type == EnumVariant`", NULL); }
+    if(!(((bool)resolved) && resolved->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1149:16: Assertion failed: `resolved? and resolved.type == EnumVariant`", NULL); }
     compiler_ast_nodes_EnumVariant *variant = resolved->u.enum_var;
     compiler_passes_code_generator_CodeGenerator_gen_indent(this);
     std_buffer_Buffer_write_str(&this->out, "case ");
@@ -14358,7 +14361,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_match_bool(compiler_passes
   compiler_ast_nodes_MatchCase true_case = std_vector_Vector__27_at(stmt.cases, 0);
   compiler_ast_nodes_MatchCase false_case = std_vector_Vector__27_at(stmt.cases, 1);
   compiler_ast_nodes_AST *true_expr = std_vector_Vector__1_at(true_case.conds, 0)->expr;
-  if(!(true_expr->type==compiler_ast_nodes_ASTType_BoolLiteral)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1247:12: Assertion failed: `true_expr.type == BoolLiteral`", "Expected a boolean literal in gen_match_bool"); }
+  if(!(true_expr->type==compiler_ast_nodes_ASTType_BoolLiteral)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1250:12: Assertion failed: `true_expr.type == BoolLiteral`", "Expected a boolean literal in gen_match_bool"); }
   if (!(true_expr->u.bool_literal)) {
     compiler_ast_nodes_MatchCase tmp = true_case;
     true_case=false_case;
@@ -14445,7 +14448,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_if_is_expr_body(compiler_p
 }
 
 void compiler_passes_code_generator_CodeGenerator_gen_if_is_expr_branch(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_nodes_AST *node, compiler_ast_nodes_IfBranch *branch) {
-  if(!(branch->cond->type==compiler_ast_nodes_ASTType_Is)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1390:12: Assertion failed: `branch.cond.type == Is`", NULL); }
+  if(!(branch->cond->type==compiler_ast_nodes_ASTType_Is)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1393:12: Assertion failed: `branch.cond.type == Is`", NULL); }
   compiler_ast_nodes_IsExpression *is_expr = &branch->cond->u.is_expr;
   compiler_types_Type *lhs_type = is_expr->lhs->etype;
   if (lhs_type->base != compiler_types_BaseType_Enum) {
@@ -14863,7 +14866,7 @@ switch ((cur->base)) {
 }
 
 char *compiler_passes_code_generator_CodeGenerator_get_type_name_string(compiler_passes_code_generator_CodeGenerator *this, compiler_types_Type *type, char *name, bool is_func_def) {
-  if(!(type != NULL)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1769:12: Assertion failed: `type != null`", NULL); }
+  if(!(type != NULL)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1772:12: Assertion failed: `type != null`", NULL); }
   char *final = compiler_passes_code_generator_CodeGenerator_helper_gen_type(this, type, type, strdup(name), is_func_def);
   str_strip_trailing_whitespace(final);
   return final;
@@ -14941,7 +14944,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_functions(compiler_passes_
           compiler_ast_scopes_TemplateInstance *instance = std_vector_Iterator__9_cur(&_i144);
           {
             compiler_ast_scopes_Symbol *sym = instance->resolved;
-            if(!(sym->type==compiler_ast_scopes_SymbolType_Function)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1842:24: Assertion failed: `sym.type == Function`", NULL); }
+            if(!(sym->type==compiler_ast_scopes_SymbolType_Function)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1845:24: Assertion failed: `sym.type == Function`", NULL); }
             compiler_ast_nodes_Function *func = sym->u.func;
             compiler_passes_code_generator_CodeGenerator_gen_function(this, func);
           }
@@ -14975,7 +14978,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_function_decl_toplevel(com
       compiler_ast_scopes_TemplateInstance *instance = std_vector_Iterator__9_cur(&_i146);
       {
         compiler_ast_scopes_Symbol *sym = instance->resolved;
-        if(!(sym->type==compiler_ast_scopes_SymbolType_Function)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1869:20: Assertion failed: `sym.type == Function`", NULL); }
+        if(!(sym->type==compiler_ast_scopes_SymbolType_Function)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:1872:20: Assertion failed: `sym.type == Function`", NULL); }
         compiler_ast_nodes_Function *func = sym->u.func;
         if (func->sym->is_dead) {
           continue;
@@ -15110,7 +15113,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_closure_def(compiler_passe
     std_compact_map_Item__2 it = std_compact_map_Iterator__2_cur(&_i150);
     {
       compiler_ast_scopes_Symbol *sym = it.value;
-      if(!(sym->type==compiler_ast_scopes_SymbolType_ClosedVariable)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:2001:16: Assertion failed: `sym.type == ClosedVariable`", NULL); }
+      if(!(sym->type==compiler_ast_scopes_SymbolType_ClosedVariable)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:2004:16: Assertion failed: `sym.type == ClosedVariable`", NULL); }
       std_buffer_Buffer_write_str(&this->out, "  ");
       compiler_ast_nodes_Variable *var = sym->u.closed_var.orig;
       dummy_ptr_type.u.ptr=var->type;
@@ -15172,7 +15175,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_sym_typedef(compiler_passe
       } break;
     default:
       {
-        if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:2058:20: Assertion failed: `false`", std_format("Unhandled symbol type in CodeGenerator::gen_typedef: %s", compiler_ast_scopes_SymbolType_dbg(sym->type))); exit(1); }
+        if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:2061:20: Assertion failed: `false`", std_format("Unhandled symbol type in CodeGenerator::gen_typedef: %s", compiler_ast_scopes_SymbolType_dbg(sym->type))); exit(1); }
       } break;
   }}
 
@@ -15200,7 +15203,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_sym_def(compiler_passes_co
       } break;
     default:
       {
-        if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:2066:20: Assertion failed: `false`", std_format("Unhandled symbol type in CodeGenerator::gen_def: %s", compiler_ast_scopes_SymbolType_dbg(sym->type))); exit(1); }
+        if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:2069:20: Assertion failed: `false`", std_format("Unhandled symbol type in CodeGenerator::gen_def: %s", compiler_ast_scopes_SymbolType_dbg(sym->type))); exit(1); }
       } break;
   }}
 
@@ -15388,7 +15391,7 @@ char *compiler_passes_code_generator_CodeGenerator_generate(compiler_passes_code
 }
 
 compiler_passes_code_generator_CodeGenerator compiler_passes_code_generator_CodeGenerator_make(compiler_ast_program_Program *program) {
-  return (compiler_passes_code_generator_CodeGenerator){.o=compiler_passes_generic_pass_GenericPass_new(program), .out=std_buffer_Buffer_make(16), .yield_vars=std_vector_Vector__5_new(16), .indent=0};
+  return (compiler_passes_code_generator_CodeGenerator){.o=compiler_passes_generic_pass_GenericPass_new(program), .out=std_buffer_Buffer_make(16), .yield_vars=std_vector_Vector__5_new(16), .indent=0, .is_global_scope=true};
 }
 
 char *compiler_passes_code_generator_CodeGenerator_run(compiler_ast_program_Program *program) {

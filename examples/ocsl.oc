@@ -1,0 +1,390 @@
+import std::image::{ Image, Color, bilinear_interp }
+import std::video_renderer::{ VideoRenderer }
+import std::argparse::{ Parser }
+import std::sv::SV
+import std::vec::{ Vec3f, Vec2f, Vec2, Vec3 }
+
+def main(argc: i32, argv: &str) {
+    let parser = Parser::make("OCSL")
+    let res = parser.add_str("-r", defolt:"640x480", help:"Resolution")
+    let out = parser.add_str("-o", defolt:null, help:"Output file")
+    let frames = parser.add_int("-f", defolt:1, help:"Number of frames to render (1 for single image)")
+    parser.parse(argc, argv)
+
+    let res_sv = SV::from_str(*res)
+    let first_part = res_sv.chop_by_delim('x')
+    let width = first_part.chop_u32()
+    let height = if {
+        res_sv.is_empty() => width
+        else => res_sv.chop_u32()
+    }
+
+    if not (*out)? {
+        if *frames > 1 {
+            *out = "out.mp4"
+        } else {
+            *out = "out.png"
+        }
+    }
+
+    let img = Image::new(width, height)
+    if *frames > 1 {
+        render_video(img, *out, *frames as u32)
+    } else {
+        render_frame(img, *out)
+    }
+    println(f" + Done. Rendered {*frames} frame(s) to {*out} at resolution {*res}")
+}
+
+def get_interpolated(img: &Image, xf: f32, yf: f32): Vec3f {
+    xf = xf.clamp01() * (img.width - 1) as f32
+    yf = yf.clamp01() * (img.height - 1) as f32
+
+    let x_fl = xf as u32
+    let y_fl = yf as u32
+
+    let x_cl = if xf != (x_fl as f32) then x_fl + 1 else x_fl
+    let y_cl = if yf != (y_fl as f32) then y_fl + 1 else y_fl
+
+    let a = img.get(x_fl, y_fl)
+    let b = img.get(x_cl, y_fl)
+    let c = img.get(x_fl, y_cl)
+    let d = img.get(x_cl, y_cl)
+
+    let x_ratio = xf - (x_fl as f32)
+    let y_ratio = yf - (y_fl as f32)
+
+    let col = Vec3f(
+        bilinear_interp(x_ratio, y_ratio, a.r as f32, b.r as f32, c.r as f32, d.r as f32),
+        bilinear_interp(x_ratio, y_ratio, a.g as f32, b.g as f32, c.g as f32, d.g as f32),
+        bilinear_interp(x_ratio, y_ratio, a.b as f32, b.b as f32, c.b as f32, d.b as f32),
+    )
+    return col / 255.0
+}
+
+namespace ocsl_impl {
+let iTime: f32         // Time in seconds
+let iTimeDelta: f32    // Time between frames (in seconds)
+let iResolution: Vec2f // Viewport resolution (in pixels)
+let iFrame: f32        // Current frame
+let iChannel0: &Image  // Input channel. XX = 2D/Cube
+
+def sin(x: f32): f32 => x.sin()
+def cos(x: f32): f32 => x.cos()
+def tan(x: f32): f32 => x.tan()
+def uint(x: f32): u32 => x as u32
+def exp(x: f32): f32 => x.exp()
+def pow(x: f32, y: f32): f32 => x.pow(y)
+def clamp(x: f32, a: f32, b: f32): f32 => x.clamp(a, b)
+
+def f32::sign(this): f32 => if this < 0.0 then -1.0 else if this > 0.0 then 1.0 else 0.0
+
+// Shader-toy smoothstep
+def smoothstep(edge0: f32, edge1: f32, x: f32): f32 {
+    let t = ((x - edge0) / (edge1 - edge0)).clamp(0.0, 1.0)
+    return t * t * (3.0 - 2.0 * t)
+}
+
+def hashf(x: f32): u32 => x.hash()
+def hashu(x: u32): u32 => x.hash()
+def hash3(x: Vec3f): u32 => (x.x.hash() ^ x.y.hash() ^ x.z.hash())
+def hash2(x: Vec2f): u32 => (x.x.hash() ^ x.y.hash())
+
+def normalize(v: Vec3f): Vec3f => v.normalized()
+def length(v: Vec3f): f32 => v.length()
+def cross(a: Vec3f, b: Vec3f): Vec3f => a.cross(b)
+def dot(a: Vec3f, b: Vec3f): f32 => a.dot(b)
+def normalize2(v: Vec2f): Vec2f => v.normalized()
+def length2(v: Vec2f): f32 => v.length()
+def cross2(a: Vec2f, b: Vec2f): f32 => a.cross(b)
+def dot2(a: Vec2f, b: Vec2f): f32 => a.dot(b)
+
+def mix(a: f32, b: f32, t: f32): f32 => a * (1.0 - t) + b * t
+def mix3(a: Vec3f, b: Vec3f, t: f32): Vec3f => a * (1.0 - t) + b * t
+
+struct Mat3 {
+    a: Vec3f
+    b: Vec3f
+    c: Vec3f
+}
+
+[operator "*"]
+def Mat3::mulv(this, v: Vec3f): Vec3f {
+    return Vec3f(
+        this.a.x*v.x + this.b.x*v.y + this.c.x*v.z,
+        this.a.y*v.x + this.b.y*v.y + this.c.y*v.z,
+        this.a.z*v.x + this.b.z*v.y + this.c.z*v.z
+    )
+}
+}
+
+import ::ocsl_impl::*
+
+
+def setCamera(ro: Vec3f, ta: Vec3f, cr: f32): Mat3
+{
+	let cw: Vec3f = normalize(ta-ro);
+	let cp: Vec3f = Vec3f(sin(cr), cos(cr),0.0);
+	let cu: Vec3f = normalize(cross(cw,cp));
+	let cv: Vec3f = normalize(cross(cu,cw));
+    return Mat3( cu, cv, cw );
+}
+
+def skyColor(ro: Vec3f, rd: Vec3f): Vec3f {
+    let col = Vec3f(0.3,0.4,0.5)*0.3 - 0.3*rd.y
+    col = mix3( col, Vec3f(0.2,0.25,0.30)*0.5, (-30.0*rd.y).exp() )
+    return col
+}
+
+def intersect(ro: Vec3f, rd: Vec3f): Vec3f
+{
+    let ma = Vec2f(0.0, 0.0)
+    let res = Vec3f(-1.0, -1.0, -1.0)
+    let tmax = 1000.0;
+
+    let t = 10.0;
+    for let i = 0; i < 256; i++ {
+        let pos = ro + t*rd;
+        let h = map( pos );
+        if( h.x<(0.0001*t) or t>tmax ) break;
+        t += h.x;
+
+        ma = Vec2f(h.y, h.x);
+    }
+
+    if t < tmax {
+    	res = Vec3f(t, ma.x, ma.y);
+    }
+
+    return res;
+}
+
+// vec4 textureBox( in sampler2D tex, in Vec3f pos, in Vec3f nor )
+// {
+//     vec4 cx = texture( tex, pos.yz );
+//     vec4 cy = texture( tex, pos.xz );
+//     vec4 cz = texture( tex, pos.xy );
+//     Vec3f m = nor*nor;
+//     return (cx*m.x + cy*m.y + cz*m.z)/(m.x+m.y+m.z);
+// }
+
+def textureBox(tex: &Image, pos: Vec3f, nor: Vec3f ): Vec3f
+{
+    let cx = get_interpolated(tex, pos.y, pos.z)
+    let cy = get_interpolated(tex, pos.x, pos.z)
+    let cz = get_interpolated(tex, pos.x, pos.y)
+    let m = nor*nor
+    return (cx*m.x + cy*m.y + cz*m.z)/(m.x+m.y+m.z)
+}
+
+def map(p: Vec3f): Vec2f
+{
+    let d = p.y + 1.0;
+    let m = 0.0;
+    if( p.y>-0.5 )
+    {
+        let q = Vec2f(length2(Vec2f(p.x, p.z)-Vec2f(0.0,4.0))-1.0,p.y-1.0);
+        let b = Vec2f( length2(Vec2f(p.x, p.z)-Vec2f(4.0,0.0))-1.0, p.y-3.0 );
+        if( q.x<d ) { d=q.x; m=1.0; }
+        if( b.x<d ) { d=b.x; m=2.0; }
+    }
+    return Vec2f(d,m);
+}
+
+def calcNormal( pos: Vec3f, t: f32 ): Vec3f
+{
+    let e = 0.001*t;
+    let n = Vec3f(0.0,0.0,0.0);
+    for let i = 0; i < 4; i += 1 {
+        let ex = 0.5773*(2.0*Vec3f((((i+3)>>1)&1) as f32,((i>>1)&1) as f32,(i&1) as f32)-1.0);
+        n =n + ex*map(pos+ex*e).x;
+    }
+    return normalize(n);
+}
+
+
+
+def sdRhombus( p: Vec2f, b: Vec2f, r: f32 ): f32
+{
+    let q = Vec2f( p.x.abs(), p.y.abs() )
+    let h = clamp( (-2.0*dot2(q,b) + dot2(b,b) )/dot2(b,b), -1.0, 1.0 )
+    let d = length2( q - 0.5*b*Vec2f(1.0-h,1.0+h) )
+    d *= ( q.x*b.y + q.y*b.x - b.x*b.y ).sign()
+    return d - r
+}
+
+
+def calcOcclusion( pos: Vec3f, nor: Vec3f, ra: u32 ): f32 {
+    let occ = 0.0;
+    for let i = 0; i < 32; i += 1 {
+        let h = 0.01 + 4.0*pow( (i as f32)/31.0, 2.0);
+        let an = hashf( ra as f32 + (i as f32)*13.1 ) as f32 * Vec2f( 3.14159, 6.2831 );
+        let dir = Vec3f( sin(an.x)*sin(an.y), sin(an.x)*cos(an.y), cos(an.x) );
+        dir = dir * ( dot(dir,nor) ).sign();
+        occ += clamp( 5.0*map( pos + h*dir ).x/h, -1.0, 1.0);
+    }
+    return clamp( occ/32.0, 0.0, 1.0 );
+}
+
+def calcShadow( ro: Vec3f, rd: Vec3f, k: f32 ): f32
+{
+    let res = 1.0;
+
+    let t_step = 0.01;
+    let t_max = 150.0 * t_step;
+    let t_inc = t_step;
+    let t = t_step;
+    for let i = 0; i < 150; i += 1 {
+        let pos = ro + t*rd;
+        let h = map( pos ).x;
+        res = f32::min( res, k*f32::max(h,0.0)/t );
+        if res < 0.0001 { break; }
+        t += clamp(h,0.01,0.5);
+        if t > t_max { break; }
+    }
+
+    return res;
+}
+
+
+def pixel_shader(x: u32, y: u32): Vec3f {
+    let fragCoord = Vec2f(x as f32, y as f32)
+    let p = (2.0 * fragCoord - iResolution) / iResolution.y
+
+    let px = fragCoord.to_u32()
+    let ran = (px.x + 1920*px.y + (1920*1080)*(iFrame*0.0)as u32).hash()
+
+    let an = -0.96;
+    let ra = 25.0;
+    let fl = 3.0;
+    let ta = Vec3f(0.0,-2.0,0.0);
+    let ro = ta + Vec3f(ra*sin(an),6.0,ra*cos(an));
+    let ca = setCamera( ro, ta, 0.0 );
+    let rd = ca * normalize(Vec3f(p.x, p.y,fl));
+
+    let col = Vec3f(0.0,0.0,0.0);
+    col = skyColor( ro, rd );
+
+
+    let resT = 10000.0;
+    let res = intersect( ro, rd );
+    if( res.y>0.0 )
+    {
+        let t = res.x;
+        resT = t;
+        let pos = ro + t*rd;
+        let nor = calcNormal( pos, t );
+
+        let fre = pow( clamp( 1.0+dot(nor,rd), 0.0, 1.0), 5.0 );
+		let foc = 1.0;
+
+        let mate = Vec3f(0.2,0.2,0.2);
+        let mspe = Vec2f(0.0,0.0);
+        let mbou = 0.0;
+        let mter = 0.0;
+        if( res.y<1.5 )
+        {
+            let te = textureBox( iChannel0, pos*0.05, nor )
+            //mate = Vec3f(0.12,0.08,0.05) + 0.15*te;
+            mate = Vec3f(0.14,0.10,0.07) + 0.1*te;
+            mate = mate * 0.8 + 0.4*res.z;
+            mate = mate * 1.15;
+            mspe = Vec2f(1.0,8.0);
+            mbou = 1.0;
+
+            foc = 0.7 + 0.3*smoothstep(0.4,0.7,hash3( 3.0*pos ) as f32);
+
+            let ho = 1.0;
+            if( pos.y>-7.5 ) ho *= smoothstep( 0.0, 5.0, (pos.y+7.5)  );
+            ho = mix( 0.1+ho*0.3, 1.0, clamp( 0.6 + 0.4*dot2( normalize2(Vec2f(nor.x, nor.z)*Vec2f(0.5,1.0)), normalize2(Vec2f(pos.x, pos.z)*Vec2f(0.5,1.0)) ) + 1.0*nor.y*nor.y, 0.0, 1.0 ) );
+            foc *= ho;
+            foc *= 0.4 + 0.6*smoothstep( 2.0, 15.0, length(pos*Vec3f(0.5,0.25,1.0)) );
+            let rdis = clamp( -0.15*f32::max(sdRhombus( Vec2f(pos.y, pos.z)-Vec2f(8.3,0.0)+Vec2f(2.0,0.0), Vec2f(2.25,8.5), 0.05 ),-(pos.y-8.3+2.0)), 0.0, 1.0 );
+            if( rdis>0.0001 ) foc = 0.1 + f32::sqrt(rdis);
+			if( pos.y<5.8 ) foc *= 0.6 + 0.4*smoothstep( 0.0, 1.5, -(pos.y-5.8) );
+            if( pos.y<3.4 ) foc *= 0.6 + 0.4*smoothstep( 0.0, 2.5, -(pos.y-3.4)  );
+
+            foc *= 0.8;
+        }
+        else
+        {
+            mate = Vec3f(0.1,0.1,0.1);
+            mspe = Vec2f(2.5,4.0);
+            mter = 1.0;
+        }
+
+        let occ = 0.33 + 0.5*nor.y;
+        let sunLig = normalize(Vec3f(0.7,0.1,0.4));
+
+        occ = calcOcclusion(pos,nor,ran) * foc;
+
+        let lig = sunLig;
+        let ligbak = normalize(Vec3f(-lig.x,0.0,-lig.z));
+        let dif = clamp( dot( nor, lig ), 0.0, 1.0 );
+        let sha = calcShadow( pos+nor*0.001, lig, 32.0 );
+              dif *= sha;
+        let amb = (0.8 + 0.2*nor.y);
+              amb = mix( amb, amb*(0.5+0.5*smoothstep( -8.0,-1.0,pos.y)), mbou );
+
+        let qos = pos/1.5 - Vec3f(0.0,1.0,0.0);
+
+        let bak = clamp( 0.4+0.6*dot( nor, ligbak ), 0.0, 1.0 );
+        bak *= 0.6 + 0.4*smoothstep( -8.0,-1.0,qos.y);
+
+        let hal = normalize( lig -rd );
+        let spe = pow( clamp( dot(nor,hal), 0.0, 1.0), mspe.y )*(0.1+0.9*fre)*sha*(0.5+0.5*occ);
+
+        col = Vec3f(0.0,0.0,0.0);
+        col = col + amb*3.0*Vec3f(0.15,0.25,0.35)*occ*(1.0+mter);
+        col = col + dif*6.0*Vec3f(0.90,0.55,0.35);
+        col = col + bak*9.0*Vec3f(0.10,0.11,0.12)*occ*mbou;
+        col = col + spe*6.0*mspe.x*occ;
+
+        col = col * mate;
+
+        let fogcol = Vec3f(0.2,0.25,0.30)*0.5;
+
+        let fog = 1.0 - exp(-0.0013*t);
+        col = col * 1.0-0.5*fog;
+        col = mix3( col, fogcol, fog );
+    }
+
+    col = Vec3f(
+        col.x.max(0.0).sqrt(),
+        col.y.max(0.0).sqrt(),
+        col.z.max(0.0).sqrt(),
+    )
+    return col
+}
+
+def render_frame(img: &Image, out: str) {
+    // Draw something simple
+    for let y = 0; y < img.height; y += 1 {
+        for let x = 0; x < img.width; x += 1 {
+            let c = pixel_shader(x, y) * 255.0
+            println(f"Pixel {x},{y}: {c}")
+            img.set(x, y, Color(c.x as u8, c.y as u8, c.z as u8))
+        }
+    }
+    img.save(out)
+}
+
+def render_video(img: &Image, out: str, frames: u32) {
+    let vr_fmp = VideoRenderer::create(FFMPEG, img.width, img.height, 30, out_name: out)
+    let vr_sdl = VideoRenderer::create(SDL, img.width, img.height, 30)
+    for let f = 0; f < frames; f += 1 {
+        // Draw something simple
+        for let y = 0; y < img.height; y += 1 {
+            for let x = 0; x < img.width; x += 1 {
+                let r = (x * 255) / img.width
+                let g = (y * 255) / img.height
+                let b = ((f * 255) / frames) as u8
+                img.set(x, y, Color(r as u8, g as u8, b))
+            }
+        }
+        vr_fmp.send_frame(img)
+        vr_sdl.send_frame(img)
+    }
+    vr_fmp.finish()
+    vr_sdl.finish()
+}
