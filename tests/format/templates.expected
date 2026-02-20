@@ -1,0 +1,14 @@
+/// format
+
+struct Pair<T> {
+    first: T
+    second: T
+}
+
+def swap<T>(a: &T, b: &T) {
+    let tmp = *a
+    *a = *b
+    *b = tmp
+}
+
+def Pair::sum(this): T => .first + .second

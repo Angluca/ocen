@@ -1,0 +1,14 @@
+/// format
+
+def main() {
+    let x: u32 = 5
+    match x {
+        1 => println("one")
+        2 | 3 => println("two or three")
+        4 => {
+            println("four")
+            println("!")
+        }
+        else => println("other")
+    }
+}

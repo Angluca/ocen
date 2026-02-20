@@ -1,0 +1,12 @@
+/// format
+
+struct Foo{
+  x:u32
+  y:str
+    z:bool
+}
+
+struct Bar {
+      a,b,c:u32
+  d:str
+}

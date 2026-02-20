@@ -1,0 +1,11 @@
+/// format
+
+def main() {
+  let a=1+2
+  let b=a*3-1
+  let c=a==b
+  let d = a < b
+  let e=not c
+  let f=-a
+  let g=~a
+}

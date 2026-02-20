@@ -1,0 +1,5 @@
+/// format
+
+def add(a:u32,b:u32):u32=>a+b
+def greet(name:str)=>println("Hello %s",name)
+def identity(x:i32):i32 => x

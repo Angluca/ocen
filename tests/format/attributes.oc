@@ -1,0 +1,14 @@
+/// format
+
+[extern] def atoi(s:str):i32
+
+[extern "atoi"]
+def my_atoi(s:str):i32
+
+[exits]
+def die() {
+  std::exit(1)
+}
+
+[operator "+"]
+def Foo::add(this,other:Foo):Foo=>Foo(.x+other.x)

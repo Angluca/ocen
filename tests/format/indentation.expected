@@ -1,0 +1,15 @@
+/// format
+
+def main() {
+    if true {
+        if false {
+            println("nested")
+        }
+    }
+    while true {
+        break
+    }
+    for let i = 0; i < 10; i++ {
+        println("hi")
+    }
+}

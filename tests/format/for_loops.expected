@@ -1,0 +1,15 @@
+/// format
+
+def main() {
+    for let i = 0; i < 10; i++ {
+        println("%d", i)
+    }
+    let items = [1, 2, 3]
+    for x in items.iter() {
+        println("%d", x)
+    }
+    for let j = 0; j < 5; j++ {
+        if j == 3 then continue
+        println("%d", j)
+    }
+}

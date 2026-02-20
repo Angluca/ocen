@@ -1,0 +1,12 @@
+/// format
+
+def main() {
+    defer println("cleanup")
+    let x = foo()
+    return
+}
+
+def foo(): u32 {
+    defer println("defer in foo")
+    return 5
+}

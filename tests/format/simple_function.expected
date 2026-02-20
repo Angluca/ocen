@@ -1,0 +1,12 @@
+/// format
+
+def foo(a: u32, b: u32): u32 {
+    let c = a + b
+    return c
+}
+
+def bar(x: i32, y: i32): i32 {
+    return x * y + 1
+}
+
+def baz() => println("hello")

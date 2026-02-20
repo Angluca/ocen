@@ -1,0 +1,8 @@
+/// format
+
+def main() {
+    let x = 5 // this is inline
+    let y = 10 // another inline
+    // standalone comment
+    let z = x + y // result
+}

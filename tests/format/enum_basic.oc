@@ -1,0 +1,13 @@
+/// format
+
+enum Color{
+  Red
+    Green
+  Blue
+}
+
+enum Size{
+      Small
+  Medium
+      Big
+}

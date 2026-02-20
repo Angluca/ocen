@@ -1,0 +1,12 @@
+/// format
+
+namespace impl {
+  def helper():u32=>42
+  def other_helper():u32=>0
+}
+
+namespace foo {
+  namespace bar {
+    def baz()=>println("nested")
+  }
+}

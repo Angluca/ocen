@@ -1,0 +1,6 @@
+/// format
+
+let x: i32 = 0
+let y: str = "hello"
+const MAX: u32 = 100
+const MIN: u32 = 0

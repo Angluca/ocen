@@ -28,6 +28,7 @@ class Result(Enum):
     LSP = 8
     TEST_MODE_PASS = 9
     TEST_MODE_FAIL = 10
+    FORMAT = 11
 
 @dataclass(frozen=True)
 class LSPTest:
@@ -58,11 +59,13 @@ def get_expected(filename) -> Optional[Expected]:
                 return Expected(Result.COMPILE_SUCCESS, None)
             if line == "test_mode_pass":
                 return Expected(Result.TEST_MODE_PASS, None)
+            if line == "format":
+                return Expected(Result.FORMAT, None)
             if line == "":
                 continue
 
             if ":" not in line:
-                print(f'[-] Invalid parameters in {filename}: "{line}"')
+                print(f'[-] Invalid parameters in {filename}: "{line}"', flush=True)
                 break
 
             # Commands with arguments
@@ -83,22 +86,22 @@ def get_expected(filename) -> Optional[Expected]:
             if name == "test_mode_fail":
                 return Expected(Result.TEST_MODE_FAIL, value)
 
-            print(f'[-] Invalid parameter in {filename}: {line}')
+            print(f'[-] Invalid parameter in {filename}: {line}', flush=True)
             break
 
         if is_lsp:
             try:
                 value = next(file)
                 if not value.startswith("/// "):
-                    print(f'[-] Expected JSON in {filename} after LSP directive')
+                    print(f'[-] Expected JSON in {filename} after LSP directive', flush=True)
                     return Expected(Result.SKIP_REPORT, None)
                 data = json.loads(value[4:])
                 return Expected(Result.LSP, LSPTest(lsp_flags, data))
             except StopIteration:
-                print(f'[-] Expected JSON in {filename} after LSP directive')
+                print(f'[-] Expected JSON in {filename} after LSP directive', flush=True)
                 return Expected(Result.SKIP_REPORT, None)
             except json.JSONDecodeError:
-                print(f'[-] Failed to parse JSON in {filename} after LSP directive')
+                print(f'[-] Failed to parse JSON in {filename} after LSP directive', flush=True)
                 return Expected(Result.SKIP_REPORT, None)
 
 
@@ -183,7 +186,56 @@ def handle_test_mode(compiler: str, num: int, path: Path, expected: Expected, de
     except Exception as e:
         return False, f"Failed to parse test output. {e}\n  stdout: {stdout}\n  stderr: {stderr}", path
 
+def handle_format_test(compiler: str, num: int, path: Path, expected: Expected, debug: bool) -> Tuple[bool, str, Path]:
+    """Test the formatter: run `ocen format <file>` and compare output to <file>.expected"""
+    expected_path = path.with_suffix('.expected')
+    if not expected_path.exists():
+        return False, f"Expected output file not found: {expected_path}", path
+
+    with open(expected_path, encoding='utf-8') as f:
+        expected_output = f.read()
+
+    cmd = [compiler, "format", str(path)]
+    if debug:
+        print(f"[{num}] {path} || {' '.join(cmd)}", flush=True)
+
+    process = run(cmd, stdout=PIPE, stderr=PIPE)
+    if process.returncode != 0:
+        stderr = textwrap.indent(process.stderr.decode("utf-8"), " "*10).strip()
+        return False, f"Format command failed with code: {process.returncode}\n  stderr: {stderr}", path
+
+    actual_output = process.stdout.decode('utf-8')
+
+    if actual_output != expected_output:
+        # Show a useful diff
+        import difflib
+        diff = difflib.unified_diff(
+            expected_output.splitlines(keepends=True),
+            actual_output.splitlines(keepends=True),
+            fromfile=str(expected_path),
+            tofile="formatter output",
+            n=3
+        )
+        diff_str = ''.join(diff)
+        return False, f"Formatter output does not match expected\n{diff_str}", path
+
+    # Idempotency check: run formatter on the output and verify it's the same
+    process2 = run(cmd, input=actual_output.encode('utf-8'), stdout=PIPE, stderr=PIPE)
+    # Note: we can't pipe stdin to `ocen format` since it reads a file, not stdin.
+    # Instead, we run the formatter on the .expected file itself for idempotency.
+    cmd_idem = [compiler, "format", str(expected_path)]
+    process2 = run(cmd_idem, stdout=PIPE, stderr=PIPE)
+    if process2.returncode == 0:
+        idem_output = process2.stdout.decode('utf-8')
+        if idem_output != expected_output:
+            return False, f"Formatter is not idempotent: running on .expected file produces different output", path
+
+    return True, "(Success)", path
+
 def handle_test(compiler: str, num: int, path: Path, expected: Expected, debug: bool) -> Tuple[bool, str, Path]:
+    if expected.type == Result.FORMAT:
+        return handle_format_test(compiler, num, path, expected, debug)
+
     if expected.type == Result.LSP:
         return handle_lsp_test(compiler, num, path, expected, debug)
 
@@ -261,18 +313,18 @@ def pool_helper(args):
 def output_test_results(result, stats, debug):
     passed, message, path = result
     if sys.stdout.isatty() and not debug:
-        print(f" \33[2K[\033[92m{stats.passed:3d}\033[0m", end="")
-        print(f"/\033[91m{stats.failed:3d}\033[0m]", end="")
+        print(f" \33[2K[\033[92m{stats.passed:3d}\033[0m", end="", flush=True)
+        print(f"/\033[91m{stats.failed:3d}\033[0m]", end="", flush=True)
         print(f" Running tests, finished {stats.passed+stats.failed} / {stats.total}\r", end="", flush=True)
     if passed:
         stats.passed += 1
     else:
         stats.failed += 1
         if sys.stdout.isatty() and not debug:
-            print(f"\33[2K\033[91m[-] Failed {path}\033[0m")
+            print(f"\33[2K\033[91m[-] Failed {path}\033[0m", flush=True)
             print(f"  - {message}", flush=True)
         else:
-            print(f"[-] Failed {path}")
+            print(f"[-] Failed {path}", flush=True)
     if debug and not passed:
         exit(1)
 
@@ -313,11 +365,14 @@ def main():
             files.append(path)
 
         for file in files:
+            # Skip non-.oc files (e.g. .expected files for formatter tests)
+            if file.suffix != '.oc':
+                continue
             expected = get_expected(file)
             if expected.type == Result.SKIP_SILENTLY:
                 continue
             if expected.type == Result.SKIP_REPORT:
-                print(f'[-] Skipping {file}')
+                print(f'[-] Skipping {file}', flush=True)
                 continue
             tests_to_run.append((file, expected))
 
@@ -350,9 +405,13 @@ def main():
                 output_test_results(result, stats, False)
 
     if sys.stdout.isatty():
-        print("\33[2K")
-        print(f"Tests passed: \033[92m{stats.passed}\033[0m")
-        print(f"Tests failed: \033[91m{stats.failed}\033[0m")
+        print("\33[2K", flush=True)
+        print(f"Tests passed: \033[92m{stats.passed}\033[0m", flush=True)
+        print(f"Tests failed: \033[91m{stats.failed}\033[0m", flush=True)
+    else:
+        print(flush=True)
+        print(f"Tests passed: {stats.passed}", flush=True)
+        print(f"Tests failed: {stats.failed}", flush=True)
 
     if stats.failed > 0:
         exit(1)

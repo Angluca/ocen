@@ -3,6 +3,18 @@
 import std::span::{ Span, Location }
 import std::mem
 
+//* A comment from the source file, used by the formatter
+struct Comment {
+    //* The full text of the comment (including // prefix)
+    text: str
+    //* Span of the comment in source
+    span: Span
+    //* Was this a doc comment (///, //!, //*, //.)
+    is_doc: bool
+    //* Was there code before this comment on the same line
+    is_inline: bool
+}
+
 struct Token {
     type: TokenType
     span: Span

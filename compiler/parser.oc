@@ -14,7 +14,7 @@ import @ast::scopes::{ Symbol, SymbolType, Template, EnumField }
 import @attributes::{ Attribute, AttributeType }
 import @errors::Error
 import @lexer::Lexer
-import @tokens::{ Token, TokenType }
+import @tokens::{ Token, TokenType, Comment }
 import @types::{ Type, BaseType, FunctionType, ArrayType, MapShorthandType }
 import @utils::directory_exists
 
@@ -2751,6 +2751,11 @@ def Parser::load_file(&this, filename: str, contents: str = null) {
     let lexer = Lexer::make(contents, filename, .program.errors)
     .tokens = lexer.lex()
     .curr = 0
+
+    // Transfer comments from lexer to program (for formatter)
+    for c in lexer.comments.iter() {
+        .program.comments.push(c)
+    }
 
     .ns.is_a_file = true
 

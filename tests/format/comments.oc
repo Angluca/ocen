@@ -1,0 +1,23 @@
+/// format
+
+// This is a regular comment
+def foo():u32{
+    // Inside a function
+    let x=5 // inline comment
+    return x
+}
+
+/// This is a doc comment
+def bar() {
+    //! Another doc style
+    println("hello")
+}
+
+// Comment between functions
+
+def baz() {
+    // Multiple
+    // comment
+    // lines
+    let y = 10
+}

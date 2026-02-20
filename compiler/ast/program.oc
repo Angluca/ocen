@@ -13,6 +13,7 @@ import @errors::Error
 import @types::{ Type, BaseType }
 import @parser::Parser
 import @lexer::Lexer
+import @tokens::{ Comment }
 import @errors::{ display_error_messages }
 import @passes
 
@@ -193,6 +194,9 @@ struct Program {
 
     // State
     uid: u32  // For generating unique IDs
+
+    //* All comments from source files (for formatter)
+    comments: &Vector<Comment>
 }
 
 def Program::new(): &Program {
@@ -220,6 +224,7 @@ def Program::new(): &Program {
     prog.explicit_alive_symbols = Vector<&Symbol>::new()
     prog.closure_types = Vector<&Type>::new()
     prog.closures = Vector<&Function>::new()
+    prog.comments = Vector<Comment>::new()
     prog.uid = 0
     return prog
 }
