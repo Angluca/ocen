@@ -1,0 +1,6 @@
+/// format
+def add(a: i32, b: i32): i32 => a + b // Add two numbers
+
+def square(x: i32): i32 => x * x // Square
+
+def greet(): str => "hello" // Greeting

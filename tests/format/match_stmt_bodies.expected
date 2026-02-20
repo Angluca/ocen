@@ -1,0 +1,21 @@
+/// format
+//| Regression: match arms with return/break/continue/yield bodies
+
+def foo(): i32 {
+    match 5 {
+        1 => return 0
+        2 => return 1
+        3 => return 2
+        else => return 3
+    }
+}
+
+def bar() {
+    for let i = 0; i < 10; i++ {
+        match i {
+            3 => break
+            5 => continue
+            else => println("x")
+        }
+    }
+}

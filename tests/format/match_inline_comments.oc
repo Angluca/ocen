@@ -1,0 +1,10 @@
+/// format
+//| Regression: inline comments in match arms
+
+def foo(x: i32): str {
+    match x {
+        0 => "zero" // special case
+        1 => "one"
+        else => "other" // default
+    }
+}

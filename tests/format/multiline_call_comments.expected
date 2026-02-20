@@ -1,0 +1,20 @@
+/// format
+
+struct Point {
+    x: i32
+    y: i32
+    z: i32
+}
+
+def main() {
+    let p = Point(
+        x: 1, // horizontal
+        y: 2, // vertical
+        z: 3  // depth
+    )
+    let arr = [
+        10, // first
+        20, // second
+        30  // third
+    ]
+}

@@ -6,14 +6,14 @@ def foo(): u32 {
     let x = 5 // inline comment
     return x
 }
-/// This is a doc comment
 
+/// This is a doc comment
 def bar() {
     //! Another doc style
     println("hello")
 }
-// Comment between functions
 
+// Comment between functions
 def baz() {
     // Multiple
     // comment

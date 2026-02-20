@@ -1,0 +1,40 @@
+/// format
+//| Regression: error propagation and stdlib operators
+
+import std::result::{ Result }
+import std::option::{ Option }
+
+def get_result(ok: bool): Result<i32, str> => match ok {
+    true => Ok(42)
+    false => Error("fail")
+}
+
+def get_option(ok: bool): Option<i32> => match ok {
+    true => Some(42)
+    false => None
+}
+
+def use_error_prop() {
+    let x = get_result(true)!
+    let y = get_result(false)!
+}
+
+def use_error_unwrap() {
+    let x = get_result(true)!!
+    let y = get_option(true)!!
+}
+
+def use_vector_shorthand() {
+    let v = $[1, 2, 3]
+    let w: $[str] = $["hello", "world"]
+    let empty: $[u32] = $[]
+}
+
+def use_map_shorthand() {
+    let m = ${"a": 1, "b": 2}
+}
+
+def use_try_member() {
+    let x: $[u32] = null
+    let y = x?.data
+}

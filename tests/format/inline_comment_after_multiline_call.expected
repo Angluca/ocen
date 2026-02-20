@@ -1,0 +1,8 @@
+/// format
+
+def foo(a: str, b: str) {}
+
+def bar() {
+    foo("hello", "world")
+    let x = 5 // Inline comment
+}

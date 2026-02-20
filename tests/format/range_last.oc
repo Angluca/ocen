@@ -1,0 +1,15 @@
+/// format-range: 13:15
+
+import std::vector::{ Vector }
+
+def  foo(  x:  i32  ,   y : i32  ) : i32 {
+    return    x + y
+}
+
+def  bar(  a : str  ) {
+    println(  "hello %s" ,    a  )
+}
+
+def   baz(  ) : bool {
+    return    true
+}

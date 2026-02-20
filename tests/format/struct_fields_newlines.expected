@@ -1,0 +1,9 @@
+/// format
+
+struct Foo {
+    a: i32
+    b: str
+
+    // foo bar baz
+    c: bool
+}

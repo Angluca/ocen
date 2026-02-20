@@ -1,0 +1,12 @@
+/// format
+
+enum Color {
+    Red     // warm
+    Green   // cool
+    Blue    // cool
+}
+
+enum Shape {
+    Circle(radius: f32) // round
+    Rect(w: f32, h: f32) // rectangular
+}

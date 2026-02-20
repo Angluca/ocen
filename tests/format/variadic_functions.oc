@@ -1,0 +1,14 @@
+/// format
+//| Regression: variadic function parameters
+
+[variadic_format]
+def my_print(fmt: str, ...) {
+    println(fmt)
+}
+
+[extern "printf"]
+[variadic_format]
+def my_printf(fmt: str, ...): i32
+
+def normal_func(a: i32, b: i32) {
+}

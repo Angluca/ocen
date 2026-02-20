@@ -486,6 +486,7 @@ def Parser::parse_format_string(&this): &AST {
         let lexer = Lexer::make(part, fstr_start.filename, .program.errors)
         lexer.loc = fstr_start
         lexer.loc.col += start + 1
+        lexer.loc.index += start + 1
 
         let tokens = lexer.lex()
         let sub_parser = Parser::make(.program, .ns)
@@ -831,6 +832,7 @@ def Parser::parse_atom(&this, end_type: TokenType): &AST {
             node = .parse_expression(end_type: TokenType::CloseParen)
             let end = .consume(TokenType::CloseParen)
             node.span = start.span.join(end.span)
+            node.paren = true
         }
         TokenType::OpenSquare => {
             node = .parse_array_literal()
@@ -1359,6 +1361,7 @@ def Parser::parse_multi_if(&this, start_tok: &Token): &AST {
     let branches = Vector<IfBranch>::new()
     node.u.if_stmt.branches = branches
     node.u.if_stmt.if_span = start_span
+    node.u.if_stmt.is_multi_if = true
 
     while not .token_is_eof_or(TokenType::CloseCurly) {
         if .token_is(TokenType::Else) {
@@ -1639,7 +1642,7 @@ def Parser::parse_statement(&this): &AST {
         TokenType::Defer => {
             .consume(TokenType::Defer)
             let expr = .parse_expression(end_type: TokenType::Newline)
-            node = AST::new(Defer, start_span.join(.token().span))
+            node = AST::new(Defer, start_span.join(expr.span))
             node.u.child = expr
             .consume_end_of_statement()
         }
@@ -1741,6 +1744,7 @@ def Parser::parse_function_args(&this, func: &Function, end: TokenType, need_typ
             if seen_default {
                 .error(Error::new(.token().span, "Cannot have variadic parameters and default parameters"))
             }
+            func.variadic_span = .token().span
             .consume(TokenType::Ellipsis)
             func.is_variadic = true
             break
@@ -2483,9 +2487,12 @@ def Parser::parse_namespace_until(&this, end_type: TokenType) {
     .program.pop_error_context()
 
     // After we've parsed everything in this file, go ahead and perform the imports
-    while .ns.unhandled_imports.size > 0 {
-        let imp = .ns.unhandled_imports.pop()
-        .load_import_path(imp)
+    // In format mode, skip import resolution - formatter only needs the AST nodes
+    if not .program.format_mode {
+        while .ns.unhandled_imports.size > 0 {
+            let imp = .ns.unhandled_imports.pop()
+            .load_import_path(imp)
+        }
     }
 }
 
@@ -2512,6 +2519,14 @@ def Parser::parse_compiler_option(&this) {
         }
         "c_embed" => {
             let path = .consume(TokenType::StringLiteral)
+
+            // In format mode, skip c_embed resolution entirely
+            if .program.format_mode return
+
+            // Guard against null namespace parent (e.g. when formatting without stdlib)
+            if not .ns.is_dir_with_mod and (not .ns.parent?) {
+                return
+            }
 
             let cur_dir = if .ns.is_dir_with_mod {
                 yield .ns.path
@@ -2652,6 +2667,7 @@ def Parser::find_external_library(&this, name: str): LibraryInfo {
 
 def Parser::import_from_stdlib(&this, name: str, span: Span): &Namespace {
     let std_ns = .find_or_import_stdlib()
+    if not std_ns? then return null
     let ns = std_ns.namespaces.get(name, null)
     if not ns? {
         ns = .load_single_import_part(base: std_ns, name, span)

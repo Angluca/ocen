@@ -1,0 +1,23 @@
+/// format
+
+def foo() {
+    if true {
+        println("yes")
+    }
+
+    // The empty line above this must be preserved
+}
+
+def bar() {
+    // foo
+    // the empty line below this must be preserved
+
+    let variable = 1
+
+    defer println(f"var is {variable}")
+
+    // the empty line above should be preserved
+    for let i = 0; i < 10; i += 1 {
+        println("")
+    }
+}

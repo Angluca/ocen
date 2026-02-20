@@ -1,0 +1,10 @@
+/// format
+// Arrow functions are OK to not have extra empty lines between them, unless
+// The user has specifically added some. In this case, the gap between the first and second
+// should be preserved
+
+def Foo::u32(&this, err: &u32): u32 => 1
+def Foo::scope(&this): str => "hi"
+
+def Foo::get_base_type(&this): i32 => 4
+def Foo::get_type_by_name(&this): i32 => 5

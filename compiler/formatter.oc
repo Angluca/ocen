@@ -3,6 +3,7 @@
 import std::buffer::{ Buffer }
 import std::vector::{ Vector }
 import std::span::{ Span, Location }
+import std::sv::{ SV }
 import std::mem
 import std::fs
 import std::{ shift_args }
@@ -40,6 +41,7 @@ struct TypeDefInfo {
 struct Decl {
     type: DeclType
     line: u32
+    col: u32
     u: DeclUnion
 }
 
@@ -53,33 +55,22 @@ union DeclUnion {
     type_def: TypeDefInfo
 }
 
-//* Get operator string for attribute formatting
-def operator_str(op: Operator): str => match op {
-    Plus => "+"
-    Minus => "-"
-    Negate => "-"
-    Multiply => "*"
-    Divide => "/"
-    Equals => "=="
-    NotEquals => "!="
-    Index => "[]"
-    IndexAssign => "[]="
-    LeftShift => "<<"
-    RightShift => ">>"
-    BitwiseAnd => "&"
-    Address => "&"
-    BitwiseOr => "|"
-    PlusEquals => "+="
-    MinusEquals => "-="
-    MultiplyEquals => "*="
-    DivideEquals => "/="
-    LeftShiftEquals => "<<="
-    RightShiftEquals => ">>="
-    Modulus => "%"
-    In => "in"
-    Not => "not"
-    IsNotNull => "?"
-    else => "?"
+struct DeclMapping {
+    source_start: u32
+    source_end: u32
+    output_start: u32
+    output_end: u32
+}
+
+//* Get the end line of a declaration from its span
+def decl_end_line(d: &Decl): u32 => match d.type {
+    Function => d.u.func.span.end.line
+    Structure => d.u.struc.span.end.line
+    Enum => d.u.enom.span.end.line
+    Constant | Variable => d.u.var_node.span.end.line
+    Import => d.u.import_node.span.end.line
+    Namespace => d.u.ns.span.end.line
+    TypeDef => d.u.type_def.span.end.line
 }
 
 struct Formatter {
@@ -87,14 +78,41 @@ struct Formatter {
     indent: u32
     indent_size: u32
     source: str
+    line_offsets: &Vector<u32>
     filename: str
     comments: &Vector<Comment>
     comment_index: u32
     program: &Program
     ns: &Namespace
+
+    //| Range formatting fields
+    range_start: u32     //| Start line of range (0 = no range, format all)
+    range_end: u32       //| End line of range (0 = no range)
+    output_line: u32     //| Tracks current output line (1-based)
+    decl_mappings: &Vector<DeclMapping>
+
+    in_format_str: bool = false  //| Suppress multi-line formatting inside format strings
+    ic_lines: &Vector<u32>          //| Output line numbers of emitted inline comments
+    last_comment_request_line: u32
+    debug_cursor: bool
+    cursor_regressions: u32
+    comment_emitted: &Vector<bool>  //| Track which comments have been emitted
+}
+
+def build_line_offsets(source: str): &Vector<u32> {
+    let offsets = Vector<u32>::new()
+    offsets.push(0)
+    for let i = 0u32; source[i] != '\0'; i++ {
+        if source[i] == '\n' {
+            offsets.push(i + 1)
+        }
+    }
+    return offsets
 }
 
 def Formatter::make(program: &Program, ns: &Namespace, source: str, filename: str): Formatter {
+    let debug_cursor_env = std::libc::getenv("OCEN_FORMAT_DEBUG_CURSOR")
+    let debug_cursor = debug_cursor_env? and debug_cursor_env.len() > 0
     // Filter comments to only include those from the current file
     let filtered = Vector<Comment>::new()
     for c in program.comments.iter() {
@@ -102,27 +120,69 @@ def Formatter::make(program: &Program, ns: &Namespace, source: str, filename: st
             filtered.push(c)
         }
     }
+    let emitted = Vector<bool>::new()
+    for let i = 0u32; i < filtered.size; i++ {
+        emitted.push(false)
+    }
     return Formatter(
         output: Buffer::make(),
         indent: 0,
         indent_size: 4,
         source,
+        line_offsets: build_line_offsets(source),
         filename,
         comments: filtered,
         comment_index: 0,
         program,
         ns,
+        range_start: 0,
+        range_end: 0,
+        output_line: 1,
+        decl_mappings: Vector<DeclMapping>::new(),
+        ic_lines: Vector<u32>::new(),
+        last_comment_request_line: 0,
+        debug_cursor: debug_cursor,
+        cursor_regressions: 0,
+        comment_emitted: emitted,
     )
+}
+
+def Formatter::note_cursor_regression(&this, kind: str, requested: u32) {
+    .cursor_regressions++
+    if .debug_cursor {
+        eprintln(
+            "[formatter] comment cursor regression (%s): requested=%u, last=%u, file=%s",
+            kind,
+            requested,
+            .last_comment_request_line,
+            .filename
+        )
+    }
 }
 
 //* Write raw string to output
 def Formatter::write(&this, s: str) {
     .output += s
+    // Track output lines for strings that contain embedded newlines
+    // (e.g., multi-line format string parts)
+    for let i = 0u32; i < s.len(); i++ {
+        if s[i] == '\n' then .output_line++
+    }
 }
 
 //* Write a newline
 def Formatter::newline(&this) {
     .output += '\n'
+    .output_line++
+}
+
+def Formatter::push_indent(&this) {
+    .indent++
+}
+
+def Formatter::pop_indent(&this) {
+    assert .indent > 0, "Formatter indent underflow"
+    .indent--
 }
 
 //* Write indentation at current level
@@ -134,23 +194,46 @@ def Formatter::write_indent(&this) {
 
 //* Get source text for a span
 def Formatter::source_text(&this, span: Span): str {
-    return .program.get_source_text(span)
+    let text = .program.get_source_text(span)
+    if not text? then return ""
+    return text
 }
 
 //* Check if a function has an explicitly written return type.
 //* The parser synthesizes return types for functions without explicit ones,
-//* using the function name span. We detect this by checking if the source
-//* text of the return type span matches the function name.
+//* using the function name span. We detect this by checking if the return
+//* type span location matches the function name span location.
 def Formatter::has_explicit_return_type(&this, func: &Function): bool {
     if not func.parsed_return_type? then return false
     if func.parsed_return_type.base == BaseType::Void then return false
-    let rt_text = .source_text(func.parsed_return_type.span)
-    if rt_text.eq(func.sym.name) then return false
+    // When no explicit return type is given, the parser synthesizes one using
+    // the function name span. Check if the spans share the same position.
+    let rt = func.parsed_return_type.span.start
+    let nm = func.sym.span.start
+    if rt.line == nm.line and rt.col == nm.col then return false
     return true
 }
 
-//* Emit any comments that appear before the given line number
-def Formatter::emit_comments_before(&this, line: u32) {
+def Formatter::is_implicit_void_function_type(&this, type: &Type): bool {
+    if not type? or not type.u.func.return_type? then return false
+    let rt = type.u.func.return_type
+    if rt.base != BaseType::Unresolved then return false
+    if not rt.u.unresolved? or rt.u.unresolved.type != Identifier then return false
+    if not rt.u.unresolved.u.ident.name.eq("void") then return false
+    return rt.span.start.line == type.span.start.line and rt.span.start.col == type.span.start.col
+}
+
+//* Emit comments that appear before `line`.
+//* When preserve_blanks is true, preserve source blank lines between emitted comments.
+//* Returns end line of the last emitted non-inline comment, or prev_end_line when none.
+def Formatter::emit_comments_before(&this, line: u32, preserve_blanks: bool = false, prev_end_line: u32 = 0): u32 {
+    if line < .last_comment_request_line {
+        .note_cursor_regression("before", line)
+    }
+    if line > .last_comment_request_line {
+        .last_comment_request_line = line
+    }
+    let comment_end = prev_end_line
     while .comment_index < .comments.size {
         let c = .comments.at(.comment_index)
         if c.span.start.line >= line then break
@@ -158,29 +241,94 @@ def Formatter::emit_comments_before(&this, line: u32) {
             .comment_index++
             continue
         }
+        if preserve_blanks and comment_end > prev_end_line and c.span.start.line > comment_end + 1 {
+            .newline()
+        }
         .write_indent()
         .write(c.text)
         .newline()
+        .comment_emitted.data[.comment_index] = true
+        comment_end = c.span.end.line
         .comment_index++
     }
+    return comment_end
 }
 
 //* Emit any inline comment on the given line
 def Formatter::emit_inline_comment(&this, line: u32) {
-    if .comment_index < .comments.size {
+    if line < .last_comment_request_line {
+        .note_cursor_regression("inline", line)
+        // Backward scan: search for un-emitted inline comments on this line
+        .emit_inline_comment_backward(line)
+        return
+    }
+    if line > .last_comment_request_line {
+        .last_comment_request_line = line
+    }
+    let emitted = false
+    while .comment_index < .comments.size {
         let c = .comments.at(.comment_index)
-        if c.span.start.line == line and c.is_inline {
+
+        // If the cursor lags behind on inline comments from earlier lines,
+        // skip them so they do not block inline comments on the current line.
+        if c.span.start.line < line {
+            if c.is_inline {
+                .comment_index++
+                continue
+            }
+            break
+        }
+
+        if c.span.start.line > line then break
+
+        if not c.is_inline {
+            break
+        }
+
+        if not emitted {
+            .ic_lines.push(.output_line)
+            emitted = true
+        }
+        .write(" ")
+        .write(c.text)
+        .comment_emitted.data[.comment_index] = true
+        .comment_index++
+    }
+}
+
+//* Backward scan for inline comments when cursor regression detected
+def Formatter::emit_inline_comment_backward(&this, line: u32) {
+    let emitted = false
+    // Find the first comment on or after this line by scanning backward from comment_index
+    let start = .comment_index
+    // First, find a starting point: scan backward until we find comments on or before the target line
+    while start > 0 {
+        let c = .comments.at(start - 1)
+        if c.span.start.line < line then break
+        start -= 1
+    }
+    // Now scan forward from start looking for un-emitted inline comments on this line
+    for let i = start; i < .comments.size; i++ {
+        let c = .comments.at(i)
+        if c.span.start.line > line then break
+        if c.span.start.line == line and c.is_inline and not .comment_emitted.at(i) {
+            if not emitted {
+                .ic_lines.push(.output_line)
+                emitted = true
+            }
             .write(" ")
             .write(c.text)
-            .comment_index++
+            .comment_emitted.data[i] = true
         }
     }
 }
 
-//* Emit any remaining comments at the end of the file
-def Formatter::emit_remaining_comments(&this) {
+//* Emit any remaining comments, optionally limited to before `max_line`
+//* When max_line is 0, emit all remaining comments (for top-level namespace)
+def Formatter::emit_remaining_comments(&this, max_line: u32 = 0) {
     while .comment_index < .comments.size {
         let c = .comments.at(.comment_index)
+        if max_line > 0 and c.span.start.line > max_line then break
         if c.is_inline {
             .comment_index++
             continue
@@ -188,19 +336,341 @@ def Formatter::emit_remaining_comments(&this) {
         .write_indent()
         .write(c.text)
         .newline()
+        .comment_emitted.data[.comment_index] = true
         .comment_index++
     }
 }
 
-//* Format a type as a string (using source text for fidelity)
+//* Check if any inline comments exist in the given line range
+def Formatter::has_inline_comments_in_range(&this, start_line: u32, end_line: u32): bool {
+    if .in_format_str then return false
+    for let ci = .comment_index; ci < .comments.size; ci++ {
+        let c = .comments.at(ci)
+        if c.span.start.line > end_line then break
+        if c.span.start.line >= start_line and c.is_inline then return true
+    }
+    return false
+}
+
+//* Check if there is an un-emitted inline comment on the given line.
+//* Unlike has_inline_comments_in_range, this also searches backward for
+//* comments that the cursor may have passed (cursor regression).
+def Formatter::has_unemitted_inline_comment(&this, line: u32): bool {
+    if .in_format_str then return false
+    for let ci = 0u32; ci < .comments.size; ci++ {
+        let c = .comments.at(ci)
+        if c.span.start.line > line then break
+        if c.span.start.line == line and c.is_inline and not .comment_emitted.at(ci) {
+            return true
+        }
+    }
+    return false
+}
+
+//* Check if there are any un-emitted inline comments in a line range.
+def Formatter::has_unemitted_inline_comment_in_range(&this, start_line: u32, end_line: u32): bool {
+    if .in_format_str then return false
+    for let ci = 0u32; ci < .comments.size; ci++ {
+        let c = .comments.at(ci)
+        if c.span.start.line > end_line then break
+        if c.span.start.line >= start_line and c.is_inline and not .comment_emitted.at(ci) {
+            return true
+        }
+    }
+    return false
+}
+
+//* Emit all un-emitted inline comments in a line range.
+def Formatter::emit_all_unemitted_inline_comments_in_range(&this, start_line: u32, end_line: u32) {
+    for let ci = 0u32; ci < .comments.size; ci++ {
+        let c = .comments.at(ci)
+        if c.span.start.line > end_line then break
+        if c.span.start.line >= start_line and c.is_inline and not .comment_emitted.at(ci) {
+            .write(" ")
+            .write(c.text)
+            .comment_emitted.data[ci] = true
+        }
+    }
+}
+
+//* Check if there is any blank (whitespace-only) line in the source between
+//* after_line and before_line (exclusive). Lines are 1-based.
+def Formatter::has_blank_source_line_between(&this, after_line: u32, before_line: u32): bool {
+    if before_line <= after_line + 1 then return false
+    if .line_offsets.size == 0 then return false
+
+    let total_lines = .line_offsets.size
+    let start_line = after_line + 1
+    if start_line > total_lines then return false
+
+    let end_line = before_line - 1
+    if end_line > total_lines {
+        end_line = total_lines
+    }
+    if start_line > end_line then return false
+
+    for let line = start_line; line <= end_line; line++ {
+        let start_idx = .line_offsets.at(line - 1)
+        let end_idx = .source.len()
+        if line < .line_offsets.size {
+            end_idx = .line_offsets.at(line) - 1
+        }
+
+        let is_blank = true
+        for let i = start_idx; i < end_idx; i++ {
+            if not .source[i].is_space() {
+                is_blank = false
+                break
+            }
+        }
+        if is_blank then return true
+    }
+    return false
+}
+
+def Formatter::format_extern_attr(&this, sym: &Symbol) {
+    if not sym.is_extern then return
+    .write_indent()
+    .write("[extern")
+    if sym.extern_name? and not sym.extern_name.eq(sym.name) {
+        .write(" \"")
+        .write(sym.extern_name)
+        .write("\"")
+    }
+    .write("]")
+    .newline()
+}
+
+def Formatter::format_template_params(&this, sym: &Symbol) {
+    if not sym.template? then return
+    .write("<")
+    let tmpl = sym.template
+    for let i = 0u32; i < tmpl.params.size; i++ {
+        if i > 0 then .write(", ")
+        .write(tmpl.params.at(i).name)
+    }
+    .write(">")
+}
+
+def Formatter::write_attr_line(&this, attr: str) {
+    .write_indent()
+    .write("[")
+    .write(attr)
+    .write("]")
+    .newline()
+}
+
+def Formatter::first_item_or_comment_line(&this, prev_end_line: u32, item_start_line: u32): u32 {
+    let next_line = item_start_line
+    if .comment_index < .comments.size {
+        let c = .comments.at(.comment_index)
+        if c.span.start.line < next_line and c.span.start.line > prev_end_line {
+            next_line = c.span.start.line
+        }
+    }
+    return next_line
+}
+
+def Formatter::format_top_level_var_decl(&this, node: &AST, keyword: str) {
+    let var = node.u.var_decl
+    .write_indent()
+    .write_var_decl(var, keyword)
+    .emit_inline_comment(node.span.start.line)
+    .newline()
+}
+
+def Formatter::write_var_decl(&this, var: &Variable, keyword: str) {
+    .write(keyword)
+    .write(" ")
+    .write(var.sym.name)
+    if var.parsed_type? {
+        .write(": ")
+        .write(.format_type(var.parsed_type))
+    }
+    if var.default_value? {
+        .write(" = ")
+        .format_expr(var.default_value)
+    }
+}
+
+def Formatter::format_inline_if_body(&this, body: &AST) {
+    .write(" {")
+    .newline()
+    .push_indent()
+    .write_indent()
+    .format_statement(body)
+    .emit_inline_comment(body.span.start.line)
+    .newline()
+    .pop_indent()
+    .write_indent()
+    .write("}")
+}
+
+def Formatter::format_arrow_body(&this, body: &AST, add_match_trailing_comma: bool = false) {
+    if body.type == Block {
+        .format_block(body)
+        return
+    }
+
+    .format_statement(body)
+    if add_match_trailing_comma and .match_body_needs_trailing_comma(body) {
+        .write(",")
+    }
+}
+
+def Formatter::format_function_type(&this, type: &Type): str {
+    let out = Buffer::make()
+    if type.base == BaseType::Closure {
+        out += "@"
+    }
+    out += "fn("
+    let func_type = type.u.func
+    for let i = 0u32; i < func_type.params.size; i++ {
+        if i > 0 then out += ", "
+        out += .format_type(func_type.params.at(i).parsed_type)
+    }
+    if func_type.is_variadic {
+        if func_type.params.size > 0 then out += ", "
+        out += "..."
+    }
+    out += ")"
+    if func_type.return_type? and not .is_implicit_void_function_type(type) {
+        out += ": "
+        out += .format_type(func_type.return_type)
+    }
+    return out.str()
+}
+
+//* Format a type as a string.
 def Formatter::format_type(&this, type: &Type): str {
     if not type? then return ""
-    return .source_text(type.span)
+    match type.base {
+        BaseType::Pointer => {
+            let out = Buffer::make()
+            out += "&"
+            out += .format_type(type.u.ptr)
+            return out.str()
+        }
+        BaseType::FunctionPtr | BaseType::Closure => {
+            return .format_function_type(type)
+        }
+        BaseType::Array => {
+            let out = Buffer::make()
+            out += "["
+            out += .format_type(type.u.arr.elem_type)
+            out += "; "
+            out += .source_text(type.u.arr.size_expr.span)
+            out += "]"
+            return out.str()
+        }
+        BaseType::VectorShorthand => {
+            let out = Buffer::make()
+            out += "$["
+            out += .format_type(type.u.ptr)
+            out += "]"
+            return out.str()
+        }
+        BaseType::MapShorthand => {
+            let out = Buffer::make()
+            out += "${"
+            out += .format_type(type.u.map_types.key)
+            out += ": "
+            out += .format_type(type.u.map_types.value)
+            out += "}"
+            return out.str()
+        }
+        else => return .source_text(type.span)
+    }
+}
+
+def Formatter::collection_size(&this, node: &AST): u32 => match node.type {
+    Call => node.u.call.args.size
+    ArrayLiteral => node.u.array_literal.elements.size
+    VectorLiteral => node.u.vec_literal.elements.size
+    MapLiteral => node.u.map_literal.elements.size
+    else => 0
+}
+
+def Formatter::collection_item_start_line(&this, node: &AST, i: u32): u32 => match node.type {
+    Call => node.u.call.args.at(i).expr.span.start.line
+    ArrayLiteral => node.u.array_literal.elements.at(i).span.start.line
+    VectorLiteral => node.u.vec_literal.elements.at(i).span.start.line
+    MapLiteral => node.u.map_literal.elements[i].key.span.start.line
+    else => node.span.start.line
+}
+
+def Formatter::collection_item_end_line(&this, node: &AST, i: u32): u32 => match node.type {
+    Call => node.u.call.args.at(i).expr.span.end.line
+    ArrayLiteral => node.u.array_literal.elements.at(i).span.end.line
+    VectorLiteral => node.u.vec_literal.elements.at(i).span.end.line
+    MapLiteral => node.u.map_literal.elements[i].value.span.end.line
+    else => node.span.end.line
+}
+
+def Formatter::format_collection_item(&this, node: &AST, i: u32) {
+    match node.type {
+        Call => {
+            let arg = node.u.call.args.at(i)
+            if arg.label? {
+                .write(arg.label)
+                .write(": ")
+            }
+            .format_expr(arg.expr)
+        }
+        ArrayLiteral => .format_expr(node.u.array_literal.elements.at(i))
+        VectorLiteral => .format_expr(node.u.vec_literal.elements.at(i))
+        MapLiteral => {
+            let pair = node.u.map_literal.elements[i]
+            .format_expr(pair.key)
+            .write(": ")
+            .format_expr(pair.value)
+        }
+        else => {}
+    }
+}
+
+def Formatter::format_collection_items(&this, node: &AST, open: str, close: str, multiline: bool) {
+    let size = .collection_size(node)
+    if multiline and size > 0 {
+        .write(open)
+        .newline()
+        .push_indent()
+        for let i = 0u32; i < size; i++ {
+            .emit_comments_before(.collection_item_start_line(node, i))
+            .write_indent()
+            .format_collection_item(node, i)
+            if i + 1 < size then .write(",")
+            .emit_inline_comment(.collection_item_end_line(node, i))
+            .newline()
+        }
+        .pop_indent()
+        .write_indent()
+        .write(close)
+        return
+    }
+
+    .write(open)
+    for let i = 0u32; i < size; i++ {
+        if i > 0 then .write(", ")
+        .format_collection_item(node, i)
+    }
+    .write(close)
 }
 
 //* Format an expression to string
 def Formatter::format_expr(&this, node: &AST) {
     if not node? then return
+
+    // Preserve parentheses from the source
+    if node.paren {
+        .write("(")
+        // Temporarily clear paren flag to avoid double-wrapping
+        node.paren = false
+        .format_expr(node)
+        node.paren = true
+        .write(")")
+        return
+    }
 
     match node.type {
         BoolLiteral => {
@@ -211,7 +681,11 @@ def Formatter::format_expr(&this, node: &AST) {
             }
         }
         IntLiteral | FloatLiteral => {
-            .write(node.u.num_literal.text)
+            let span = node.span
+            if node.u.num_literal.suffix? {
+                span = span.join(node.u.num_literal.suffix.span)
+            }
+            .write(.source_text(span))
         }
         StringLiteral => {
             .write(.source_text(node.span))
@@ -220,7 +694,36 @@ def Formatter::format_expr(&this, node: &AST) {
             .write(.source_text(node.span))
         }
         FormatStringLiteral => {
-            .write(.source_text(node.span))
+            let fmt = node.u.fmt_str
+            // Determine the original delimiter style from the source
+            let src = .source_text(node.span)
+            let is_backtick = src[0] == '`'
+            if is_backtick {
+                .write("`")
+            } else {
+                .write("f\"")
+            }
+            let saved_in_fmt = .in_format_str
+            .in_format_str = true
+            for let i = 0u32; i < fmt.parts.size; i++ {
+                .write(fmt.parts.at(i))
+                if i < fmt.exprs.size {
+                    .write("{")
+                    .format_expr(fmt.exprs.at(i))
+                    let spec = fmt.specs.at(i)
+                    if spec? {
+                        .write(":")
+                        .write(spec)
+                    }
+                    .write("}")
+                }
+            }
+            .in_format_str = saved_in_fmt
+            if is_backtick {
+                .write("`")
+            } else {
+                .write("\"")
+            }
         }
         Null => .write("null")
         Identifier => {
@@ -257,15 +760,22 @@ def Formatter::format_expr(&this, node: &AST) {
                     return
                 }
                 IndexAssign => {
+                    // binary.lhs is the original Index expression (e.g., buf[len])
+                    // binary.rhs is the value being assigned (e.g., '\0')
                     .format_expr(node.u.binary.lhs)
-                    .write("[")
+                    .write(" = ")
                     .format_expr(node.u.binary.rhs)
-                    .write("]")
                     return
                 }
                 else => {}
             }
             .format_expr(node.u.binary.lhs)
+
+            // Check if this binary op is multi-line in source
+            let op_line = node.u.binary.op_span.start.line
+            let rhs_start_line = node.u.binary.rhs.span.start.line
+            let is_multiline = rhs_start_line > op_line and not .in_format_str
+
             match op {
                 Assignment => .write(" = ")
                 PlusEquals => .write(" += ")
@@ -299,6 +809,14 @@ def Formatter::format_expr(&this, node: &AST) {
                     .write(" ")
                 }
             }
+
+            // For multi-line binary ops, emit inline comment and line break
+            if is_multiline {
+                .emit_inline_comment(op_line)
+                .newline()
+                .write_indent()
+            }
+
             .format_expr(node.u.binary.rhs)
         }
         UnaryOp => {
@@ -360,17 +878,8 @@ def Formatter::format_expr(&this, node: &AST) {
         }
         Call => {
             .format_expr(node.u.call.callee)
-            .write("(")
-            for let i = 0u32; i < node.u.call.args.size; i++ {
-                if i > 0 then .write(", ")
-                let arg = node.u.call.args.at(i)
-                if arg.label? {
-                    .write(arg.label)
-                    .write(": ")
-                }
-                .format_expr(arg.expr)
-            }
-            .write(")")
+            let multi = node.span.start.line != node.span.end.line and .has_inline_comments_in_range(node.span.start.line, node.span.end.line)
+            .format_collection_items(node, "(", ")", multi)
         }
         Cast => {
             .format_expr(node.u.cast.lhs)
@@ -392,31 +901,16 @@ def Formatter::format_expr(&this, node: &AST) {
             .write(">")
         }
         ArrayLiteral => {
-            .write("[")
-            for let i = 0u32; i < node.u.array_literal.elements.size; i++ {
-                if i > 0 then .write(", ")
-                .format_expr(node.u.array_literal.elements.at(i))
-            }
-            .write("]")
+            let multi = node.span.start.line != node.span.end.line and .has_inline_comments_in_range(node.span.start.line, node.span.end.line)
+            .format_collection_items(node, "[", "]", multi)
         }
         VectorLiteral => {
-            .write("$[")
-            for let i = 0u32; i < node.u.vec_literal.elements.size; i++ {
-                if i > 0 then .write(", ")
-                .format_expr(node.u.vec_literal.elements.at(i))
-            }
-            .write("]")
+            let multi = node.span.start.line != node.span.end.line
+            .format_collection_items(node, "$[", "]", multi)
         }
         MapLiteral => {
-            .write("${")
-            for let i = 0u32; i < node.u.map_literal.elements.size; i++ {
-                if i > 0 then .write(", ")
-                let pair = node.u.map_literal.elements[i]
-                .format_expr(pair.key)
-                .write(": ")
-                .format_expr(pair.value)
-            }
-            .write("}")
+            let multi = node.span.start.line != node.span.end.line
+            .format_collection_items(node, "${", "}", multi)
         }
         If => .format_if(node)
         Match => .format_match(node)
@@ -433,6 +927,12 @@ def Formatter::format_expr(&this, node: &AST) {
                 if i > 0 then .write(" | ")
                 .format_match_cond(node.u.is_expr.conds.at(i))
             }
+        }
+        OverloadedOperator => {
+            .write(.source_text(node.span))
+        }
+        Error => {
+            .write(.source_text(node.span))
         }
         else => {
             // Fallback: use source text
@@ -459,6 +959,12 @@ def Formatter::format_match_cond(&this, cond: &MatchCond) {
 def Formatter::format_if(&this, node: &AST) {
     let if_stmt = node.u.if_stmt
 
+    // Multi-if: `if { cond => body, cond2 => body2, else => body3 }`
+    if if_stmt.is_multi_if {
+        .format_multi_if(node)
+        return
+    }
+
     for let i = 0u32; i < if_stmt.branches.size; i++ {
         let branch = if_stmt.branches[i]
         if i == 0 {
@@ -470,6 +976,9 @@ def Formatter::format_if(&this, node: &AST) {
         if branch.body.type == Block {
             .write(" ")
             .format_block(branch.body)
+        } else if .has_inline_comments_in_range(branch.body.span.start.line, branch.body.span.start.line) {
+            // Non-block body has inline comment; use block to preserve it
+            .format_inline_if_body(branch.body)
         } else {
             .write(" then ")
             .format_statement(branch.body)
@@ -483,6 +992,10 @@ def Formatter::format_if(&this, node: &AST) {
         } else if if_stmt.els.type == Block {
             .write(" else ")
             .format_block(if_stmt.els)
+        } else if .has_inline_comments_in_range(if_stmt.els.span.start.line, if_stmt.els.span.start.line) {
+            // Non-block else body has inline comment; use block to preserve it
+            .write(" else")
+            .format_inline_if_body(if_stmt.els)
         } else {
             .write(" else ")
             .format_statement(if_stmt.els)
@@ -490,29 +1003,95 @@ def Formatter::format_if(&this, node: &AST) {
     }
 }
 
+//* Format a multi-if: `if { cond => body, cond2 => body2, else => body3 }`
+def Formatter::format_multi_if(&this, node: &AST) {
+    let if_stmt = node.u.if_stmt
+    .write("if {")
+    .newline()
+    .push_indent()
+    for let i = 0u32; i < if_stmt.branches.size; i++ {
+        let branch = if_stmt.branches[i]
+        .emit_comments_before(branch.cond.span.start.line, preserve_blanks: true)
+        .write_indent()
+        .format_expr(branch.cond)
+        .write(" => ")
+        .format_arrow_body(branch.body)
+        .emit_inline_comment(branch.body.span.start.line)
+        .newline()
+    }
+    if if_stmt.els? {
+        .emit_comments_before(if_stmt.els_span.start.line, preserve_blanks: true)
+        .write_indent()
+        .write("else => ")
+        .format_arrow_body(if_stmt.els)
+        .emit_inline_comment(if_stmt.els.span.start.line)
+        .newline()
+    }
+    .pop_indent()
+    .write_indent()
+    .write("}")
+}
+
 //* Format a block `{ ... }`
 def Formatter::format_block(&this, node: &AST) {
     .write("{")
     let stmts = node.u.block.statements
     if stmts.size == 0 {
-        .newline()
-        .write_indent()
+        if .has_inline_comments_in_range(node.span.start.line, node.span.start.line) {
+            // Empty block with inline comment: put `}` on next line
+            .emit_inline_comment(node.span.start.line)
+            .newline()
+            .write_indent()
+        }
         .write("}")
         return
     }
+    .emit_inline_comment(node.span.start.line)
     .newline()
-    .indent++
+    .push_indent()
+
+    let prev_end_line = node.span.start.line
     for let i = 0u32; i < stmts.size; i++ {
         let stmt = stmts.at(i)
-        .emit_comments_before(stmt.span.start.line)
+        // Preserve blank lines between statements: if there's a gap
+        // of more than 1 line between the previous statement's end and
+        // the next item (comment or statement), emit a blank line.
+        let next_line = .first_item_or_comment_line(prev_end_line, stmt.span.start.line)
+        if i > 0 and next_line > prev_end_line + 1 {
+            .newline()
+        }
+        // Emit comments before the statement, preserving blank lines
+        // between consecutive comments and between comments and statement
+        let comment_end = .emit_comments_before(stmt.span.start.line, preserve_blanks: true, prev_end_line: prev_end_line)
+        // Blank line between last comment and statement
+        if comment_end > prev_end_line and stmt.span.start.line > comment_end + 1 {
+            .newline()
+        }
         .write_indent()
         .format_statement(stmt)
         .emit_inline_comment(stmt.span.start.line)
         .newline()
+        prev_end_line = stmt.span.end.line
     }
     let close_line = node.span.end.line
-    .emit_comments_before(close_line)
-    .indent--
+    // Emit trailing comments with blank line preservation
+    while .comment_index < .comments.size {
+        let c = .comments.at(.comment_index)
+        if c.span.start.line >= close_line then break
+        if c.is_inline {
+            .comment_index++
+            continue
+        }
+        if c.span.start.line > prev_end_line + 1 {
+            .newline()
+        }
+        .write_indent()
+        .write(c.text)
+        .newline()
+        prev_end_line = c.span.end.line
+        .comment_index++
+    }
+    .pop_indent()
     .write_indent()
     .write("}")
 }
@@ -539,7 +1118,17 @@ def Formatter::format_statement(&this, node: &AST) {
         While => {
             .write("while ")
             .format_expr(node.u.loop.cond)
-            .write(" ")
+            // If the condition has any unemitted inline comments (e.g., multi-line
+            // boolean expressions), emit them and put { on its own line
+            let cond_start = node.u.loop.cond.span.start.line
+            let cond_end = node.u.loop.cond.span.end.line
+            if .has_unemitted_inline_comment_in_range(cond_start, cond_end) {
+                .emit_all_unemitted_inline_comments_in_range(cond_start, cond_end)
+                .newline()
+                .write_indent()
+            } else {
+                .write(" ")
+            }
             .format_block(node.u.loop.body)
         }
         For => .format_for(node)
@@ -562,6 +1151,10 @@ def Formatter::format_statement(&this, node: &AST) {
         Import => .format_import(node)
         else => .format_expr(node)
     }
+}
+
+def Formatter::match_body_needs_trailing_comma(&this, body: &AST): bool {
+    return body.type == If or body.type == Match
 }
 
 //* Detect and format for-each loops vs C-style for loops
@@ -616,35 +1209,29 @@ def Formatter::format_match(&this, node: &AST) {
     .format_expr(m.expr)
     .write(" {")
     .newline()
-    .indent++
+    .push_indent()
     for let i = 0u32; i < m.cases.size; i++ {
         let cas = m.cases[i]
-        .emit_comments_before(cas.conds.at(0).expr.span.start.line)
+        .emit_comments_before(cas.conds.at(0).expr.span.start.line, preserve_blanks: true)
         .write_indent()
         for let j = 0u32; j < cas.conds.size; j++ {
             if j > 0 then .write(" | ")
             .format_match_cond(cas.conds.at(j))
         }
         .write(" => ")
-        if cas.body.type == Block {
-            .format_block(cas.body)
-        } else {
-            .format_expr(cas.body)
-        }
+        .format_arrow_body(cas.body, add_match_trailing_comma: true)
+        .emit_inline_comment(cas.body.span.start.line)
         .newline()
     }
     if m.defolt? {
-        .emit_comments_before(m.defolt_span.start.line)
+        .emit_comments_before(m.defolt_span.start.line, preserve_blanks: true)
         .write_indent()
         .write("else => ")
-        if m.defolt.type == Block {
-            .format_block(m.defolt)
-        } else {
-            .format_expr(m.defolt)
-        }
+        .format_arrow_body(m.defolt)
+        .emit_inline_comment(m.defolt.span.start.line)
         .newline()
     }
-    .indent--
+    .pop_indent()
     .write_indent()
     .write("}")
 }
@@ -652,16 +1239,7 @@ def Formatter::format_match(&this, node: &AST) {
 //* Format a variable declaration
 def Formatter::format_var_decl(&this, node: &AST) {
     let var = node.u.var_decl
-    .write("let ")
-    .write(var.sym.name)
-    if var.parsed_type? {
-        .write(": ")
-        .write(.format_type(var.parsed_type))
-    }
-    if var.default_value? {
-        .write(" = ")
-        .format_expr(var.default_value)
-    }
+    .write_var_decl(var, "let")
 }
 
 //* Format an import statement
@@ -756,45 +1334,27 @@ def Formatter::format_param(&this, param: &Variable, is_first: bool) {
 
 //* Format function attributes
 def Formatter::format_function_attrs(&this, func: &Function) {
-    if func.sym.is_extern {
-        .write_indent()
-        .write("[extern")
-        if func.sym.extern_name? and not func.sym.extern_name.eq(func.sym.name) {
-            .write(" \"")
-            .write(func.sym.extern_name)
-            .write("\"")
-        }
-        .write("]")
-        .newline()
-    }
+    .format_extern_attr(func.sym)
     if func.exits {
-        .write_indent()
-        .write("[exits]")
-        .newline()
+        .write_attr_line("exits")
     }
     if func.is_variadic_format {
-        .write_indent()
-        .write("[variadic_format]")
-        .newline()
+        .write_attr_line("variadic_format")
     }
     if func.operator_overloads? {
         for op in func.operator_overloads.iter() {
             .write_indent()
             .write("[operator \"")
-            .write(operator_str(op))
+            .write(op.str())
             .write("\"]")
             .newline()
         }
     }
     if func.is_test_function {
-        .write_indent()
-        .write("[test]")
-        .newline()
+        .write_attr_line("test")
     }
     if func.flatten_attr {
-        .write_indent()
-        .write("[flatten]")
-        .newline()
+        .write_attr_line("flatten")
     }
 }
 
@@ -812,21 +1372,50 @@ def Formatter::format_function(&this, func: &Function) {
     .write(func.sym.name)
 
     // Template parameters
-    if func.sym.template? {
-        .write("<")
-        let tmpl = func.sym.template
-        for let i = 0u32; i < tmpl.params.size; i++ {
-            if i > 0 then .write(", ")
-            .write(tmpl.params.at(i).name)
-        }
-        .write(">")
-    }
+    .format_template_params(func.sym)
 
     // Parameters
     .write("(")
-    for let i = 0u32; i < func.params.size; i++ {
-        if i > 0 then .write(", ")
-        .format_param(func.params.at(i), is_first: i == 0)
+    let params_multiline = false
+    if func.params.size > 0 {
+        let first_line = func.params.at(0).sym.span.start.line
+        let last_param = func.params.at(func.params.size - 1)
+        let last_line = last_param.sym.span.start.line
+        // Include variadic span in the range check
+        if func.is_variadic and func.variadic_span.start.line > last_line {
+            last_line = func.variadic_span.start.line
+        }
+        if last_line > first_line and .has_inline_comments_in_range(first_line, last_line) {
+            params_multiline = true
+        }
+    }
+    if params_multiline {
+        .newline()
+        .push_indent()
+        for let i = 0u32; i < func.params.size; i++ {
+            .write_indent()
+            .format_param(func.params.at(i), is_first: i == 0)
+            .write(",")
+            .emit_inline_comment(func.params.at(i).sym.span.start.line)
+            .newline()
+        }
+        if func.is_variadic {
+            .write_indent()
+            .write("...")
+            .emit_inline_comment(func.variadic_span.start.line)
+            .newline()
+        }
+        .pop_indent()
+        .write_indent()
+    } else {
+        for let i = 0u32; i < func.params.size; i++ {
+            if i > 0 then .write(", ")
+            .format_param(func.params.at(i), is_first: i == 0)
+        }
+        if func.is_variadic {
+            if func.params.size > 0 then .write(", ")
+            .write("...")
+        }
     }
     .write(")")
 
@@ -845,6 +1434,7 @@ def Formatter::format_function(&this, func: &Function) {
     if func.is_arrow {
         .write(" => ")
         .format_expr(func.body)
+        .emit_inline_comment(func.body.span.start.line)
         .newline()
     } else {
         .write(" ")
@@ -855,17 +1445,7 @@ def Formatter::format_function(&this, func: &Function) {
 
 //* Format a struct or union definition
 def Formatter::format_struct(&this, struc: &Structure) {
-    if struc.sym.is_extern {
-        .write_indent()
-        .write("[extern")
-        if struc.sym.extern_name? and not struc.sym.extern_name.eq(struc.sym.name) {
-            .write(" \"")
-            .write(struc.sym.extern_name)
-            .write("\"")
-        }
-        .write("]")
-        .newline()
-    }
+    .format_extern_attr(struc.sym)
 
     .write_indent()
     if struc.is_union {
@@ -876,15 +1456,7 @@ def Formatter::format_struct(&this, struc: &Structure) {
     .write(struc.sym.name)
 
     // Template parameters
-    if struc.sym.template? {
-        .write("<")
-        let tmpl = struc.sym.template
-        for let i = 0u32; i < tmpl.params.size; i++ {
-            if i > 0 then .write(", ")
-            .write(tmpl.params.at(i).name)
-        }
-        .write(">")
-    }
+    .format_template_params(struc.sym)
 
     // Parent (inheritance)
     if struc.parsed_parent? {
@@ -898,15 +1470,34 @@ def Formatter::format_struct(&this, struc: &Structure) {
         return
     }
 
+    // Non-extern empty struct: also keep on one line
+    if struc.fields.size == 0 {
+        .write(" {}")
+        .newline()
+        return
+    }
+
     .write(" {")
     .newline()
-    .indent++
+    .push_indent()
 
     // Format fields, detecting multi-field declarations
     let i = 0u32
+    let prev_field_end = struc.span.start.line
     while i < struc.fields.size {
         let field = struc.fields.at(i)
-        .emit_comments_before(field.sym.span.start.line)
+
+        // Emit comments before this field, preserving blank lines
+        let next_line = .first_item_or_comment_line(prev_field_end, field.sym.span.start.line)
+        if i > 0 and next_line > prev_field_end + 1 {
+            .newline()
+        }
+        let comment_end = .emit_comments_before(field.sym.span.start.line, preserve_blanks: true, prev_end_line: prev_field_end)
+        // Blank line between last comment and field
+        if comment_end > prev_field_end and field.sym.span.start.line > comment_end + 1 {
+            .newline()
+        }
+
         .write_indent()
 
         // Check for multi-field: consecutive fields sharing the same type span
@@ -936,6 +1527,7 @@ def Formatter::format_struct(&this, struc: &Structure) {
             .write(.format_type(field.parsed_type))
             .emit_inline_comment(field.sym.span.start.line)
             .newline()
+            prev_field_end = struc.fields.at(multi_end - 1).sym.span.end.line
             i = multi_end
         } else {
             .write(field.sym.name)
@@ -949,11 +1541,12 @@ def Formatter::format_struct(&this, struc: &Structure) {
             }
             .emit_inline_comment(field.sym.span.start.line)
             .newline()
+            prev_field_end = field.sym.span.end.line
             i++
         }
     }
 
-    .indent--
+    .pop_indent()
     .write_indent()
     .write("}")
     .newline()
@@ -961,21 +1554,9 @@ def Formatter::format_struct(&this, struc: &Structure) {
 
 //* Format an enum definition
 def Formatter::format_enum(&this, enom: &Enum) {
-    if enom.sym.is_extern {
-        .write_indent()
-        .write("[extern")
-        if enom.sym.extern_name? and not enom.sym.extern_name.eq(enom.sym.name) {
-            .write(" \"")
-            .write(enom.sym.extern_name)
-            .write("\"")
-        }
-        .write("]")
-        .newline()
-    }
+    .format_extern_attr(enom.sym)
     if enom.is_flag_enum {
-        .write_indent()
-        .write("[flags]")
-        .newline()
+        .write_attr_line("flags")
     }
 
     .write_indent()
@@ -983,24 +1564,16 @@ def Formatter::format_enum(&this, enom: &Enum) {
     .write(enom.sym.name)
 
     // Template parameters
-    if enom.sym.template? {
-        .write("<")
-        let tmpl = enom.sym.template
-        for let i = 0u32; i < tmpl.params.size; i++ {
-            if i > 0 then .write(", ")
-            .write(tmpl.params.at(i).name)
-        }
-        .write(">")
-    }
+    .format_template_params(enom.sym)
 
     .write(" {")
     .newline()
-    .indent++
+    .push_indent()
 
     // Shared fields
     for let i = 0u32; i < enom.shared_fields.size; i++ {
         let field = enom.shared_fields.at(i)
-        .emit_comments_before(field.sym.span.start.line)
+        .emit_comments_before(field.sym.span.start.line, preserve_blanks: true)
         .write_indent()
         .write(field.sym.name)
         .write(": ")
@@ -1009,13 +1582,14 @@ def Formatter::format_enum(&this, enom: &Enum) {
             .write(" = ")
             .format_expr(field.default_value)
         }
+        .emit_inline_comment(field.sym.span.start.line)
         .newline()
     }
 
     // Variants
     for let i = 0u32; i < enom.variants.size; i++ {
         let variant = enom.variants.at(i)
-        .emit_comments_before(variant.span.start.line)
+        .emit_comments_before(variant.span.start.line, preserve_blanks: true)
         .write_indent()
         .write(variant.sym.name)
         if variant.specific_fields.size > 0 {
@@ -1035,10 +1609,16 @@ def Formatter::format_enum(&this, enom: &Enum) {
             }
             .write(")")
         }
+        if variant.sym.is_extern and variant.sym.extern_name? and not variant.sym.extern_name.eq(variant.sym.name) {
+            .write(` = extern("`)
+            .write(variant.sym.extern_name)
+            .write(`")`)
+        }
+        .emit_inline_comment(variant.span.start.line)
         .newline()
     }
 
-    .indent--
+    .pop_indent()
     .write_indent()
     .write("}")
     .newline()
@@ -1046,36 +1626,12 @@ def Formatter::format_enum(&this, enom: &Enum) {
 
 //* Format a constant declaration
 def Formatter::format_const_decl(&this, node: &AST) {
-    let var = node.u.var_decl
-    .write_indent()
-    .write("const ")
-    .write(var.sym.name)
-    if var.parsed_type? {
-        .write(": ")
-        .write(.format_type(var.parsed_type))
-    }
-    if var.default_value? {
-        .write(" = ")
-        .format_expr(var.default_value)
-    }
-    .newline()
+    .format_top_level_var_decl(node, "const")
 }
 
 //* Format a global variable declaration
 def Formatter::format_global_var(&this, node: &AST) {
-    let var = node.u.var_decl
-    .write_indent()
-    .write("let ")
-    .write(var.sym.name)
-    if var.parsed_type? {
-        .write(": ")
-        .write(.format_type(var.parsed_type))
-    }
-    if var.default_value? {
-        .write(" = ")
-        .format_expr(var.default_value)
-    }
-    .newline()
+    .format_top_level_var_decl(node, "let")
 }
 
 //* Format a typedef
@@ -1085,6 +1641,7 @@ def Formatter::format_typedef(&this, name: str, type: &Type) {
     .write(name)
     .write(" = ")
     .write(.format_type(type))
+    .emit_inline_comment(type.span.start.line)
     .newline()
 }
 
@@ -1096,6 +1653,7 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
         let d: Decl
         d.type = DeclType::Function
         d.line = func.span.start.line
+        d.col = func.span.start.col
         d.u.func = func
         decls.push(d)
     }
@@ -1104,6 +1662,7 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
         let d: Decl
         d.type = DeclType::Structure
         d.line = struc.span.start.line
+        d.col = struc.span.start.col
         d.u.struc = struc
         decls.push(d)
     }
@@ -1112,6 +1671,7 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
         let d: Decl
         d.type = DeclType::Enum
         d.line = enom.span.start.line
+        d.col = enom.span.start.col
         d.u.enom = enom
         decls.push(d)
     }
@@ -1120,6 +1680,7 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
         let d: Decl
         d.type = DeclType::Constant
         d.line = node.span.start.line
+        d.col = node.span.start.col
         d.u.var_node = node
         decls.push(d)
     }
@@ -1128,6 +1689,7 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
         let d: Decl
         d.type = DeclType::Variable
         d.line = node.span.start.line
+        d.col = node.span.start.col
         d.u.var_node = node
         decls.push(d)
     }
@@ -1136,6 +1698,7 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
         let d: Decl
         d.type = DeclType::Import
         d.line = node.span.start.line
+        d.col = node.span.start.col
         d.u.import_node = node
         decls.push(d)
     }
@@ -1146,6 +1709,7 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
         let d: Decl
         d.type = DeclType::Namespace
         d.line = child_ns.span.start.line
+        d.col = child_ns.span.start.col
         d.u.ns = child_ns
         decls.push(d)
     }
@@ -1156,14 +1720,17 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
         let d: Decl
         d.type = DeclType::TypeDef
         d.line = type.span.start.line
+        d.col = type.span.start.col
         d.u.type_def = TypeDefInfo(name, type, span: type.span)
         decls.push(d)
     }
 
-    // Sort by line number
+    // Sort by source position
     sort_by<Decl>(decls.data, decls.size, |a: Decl, b: Decl|: i8 {
         if a.line < b.line then return -1i8
         if a.line > b.line then return 1i8
+        if a.col < b.col then return -1i8
+        if a.col > b.col then return 1i8
         return 0i8
     })
 
@@ -1171,36 +1738,45 @@ def Formatter::collect_decls(&this, ns: &Namespace): &Vector<Decl> {
 }
 
 //* Format an entire file namespace
-def Formatter::format_ns(&this, ns: &Namespace) {
+def Formatter::format_ns(&this, ns: &Namespace, track_mappings: bool = false) {
     let decls = .collect_decls(ns)
 
     let first = true
     let prev_type: DeclType = DeclType::Import
+    let prev_is_arrow = false
+    let prev_source_end = 0u32
 
     for let i = 0u32; i < decls.size; i++ {
         let d = decls.at(i)
+
+        let map_output_start = .output_line
+
+        // Add blank line between declaration groups BEFORE emitting comments,
+        // so doc comments stay attached to their declaration.
+        if not first {
+            let need_blank = true
+            let is_var_or_const = (d.type == DeclType::Variable or d.type == DeclType::Constant)
+            let prev_var_or_const = (prev_type == DeclType::Variable or prev_type == DeclType::Constant)
+            let cur_is_arrow = (d.type == DeclType::Function and d.u.func.is_arrow)
+            if d.type == DeclType::Import and prev_type == DeclType::Import {
+                need_blank = false
+            } else if is_var_or_const and prev_var_or_const {
+                need_blank = false
+            // Consecutive arrow functions: preserve source spacing
+            // Check for actual blank lines in source (not just attribute/comment lines)
+            } else if cur_is_arrow and prev_is_arrow {
+                need_blank = .has_blank_source_line_between(prev_source_end, d.line)
+            }
+            if need_blank {
+                .newline()
+            }
+        }
 
         let old_ci = .comment_index
         .emit_comments_before(d.line)
         let emitted_comments = .comment_index > old_ci
 
-        // Add blank line between declaration groups:
-        // - Between consecutive imports: no blank line
-        // - Between consecutive variables/constants: no blank line
-        // - Between everything else: blank line
-        if not first {
-            let need_blank = true
-            let is_var_or_const = (d.type == DeclType::Variable or d.type == DeclType::Constant)
-            let prev_var_or_const = (prev_type == DeclType::Variable or prev_type == DeclType::Constant)
-            if d.type == DeclType::Import and prev_type == DeclType::Import {
-                need_blank = false
-            } else if is_var_or_const and prev_var_or_const {
-                need_blank = false
-            }
-            if need_blank {
-                .newline()
-            }
-        } else if emitted_comments {
+        if first and emitted_comments {
             // Blank line after initial file-level comments
             .newline()
         }
@@ -1214,17 +1790,46 @@ def Formatter::format_ns(&this, ns: &Namespace) {
             Import => {
                 .write_indent()
                 .format_import(d.u.import_node)
+                .emit_inline_comment(d.u.import_node.span.start.line)
                 .newline()
             }
             Namespace => .format_ns_block(d.u.ns)
             TypeDef => .format_typedef(d.u.type_def.name, d.u.type_def.type)
         }
 
+        if track_mappings {
+            let source_end = decl_end_line(&d)
+            .decl_mappings.push(DeclMapping(
+                source_start: prev_source_end + 1,
+                source_end,
+                output_start: map_output_start,
+                output_end: .output_line - 1,
+            ))
+            prev_source_end = source_end
+        } else {
+            prev_source_end = decl_end_line(&d)
+        }
+
         prev_type = d.type
+        prev_is_arrow = (d.type == DeclType::Function and d.u.func.is_arrow)
         first = false
     }
 
-    .emit_remaining_comments()
+    // Handle trailing content (comments after last declaration)
+    let map_output_start = .output_line
+    .emit_remaining_comments(ns.span.end.line)
+    if track_mappings and .output_line > map_output_start {
+        // Count total source lines
+        let total_lines = .line_offsets.size
+        if total_lines > prev_source_end {
+            .decl_mappings.push(DeclMapping(
+                source_start: prev_source_end + 1,
+                source_end: total_lines,
+                output_start: map_output_start,
+                output_end: .output_line - 1,
+            ))
+        }
+    }
 }
 
 //* Format a namespace block `namespace Name { ... }`
@@ -1234,18 +1839,162 @@ def Formatter::format_ns_block(&this, ns: &Namespace) {
     .write(ns.sym.name)
     .write(" {")
     .newline()
-    .indent++
+    .push_indent()
     .format_ns(ns)
-    .indent--
+    .pop_indent()
     .write_indent()
     .write("}")
     .newline()
 }
 
+//* Split a string into lines (returns a vector of SVs)
+def split_lines(text: str): &Vector<SV> {
+    let lines = Vector<SV>::new()
+    let sv = SV::from_str(text)
+    while not sv.is_empty() {
+        lines.push(sv.chop_line())
+    }
+    return lines
+}
+
+//* Find the column of the inline comment (last " //" pattern) in a line
+def find_inline_comment_col(line: SV): u32 {
+    if line.len < 3 then return 0
+    for let i = line.len as i32 - 2; i >= 1; i-- {
+        if line.data[i] == '/' and line.data[i + 1] == '/' and line.data[i - 1] == ' ' {
+            return i as u32
+        }
+    }
+    return 0
+}
+
+//* Post-process output to align inline comments on consecutive output lines
+def Formatter::align_inline_comments(&this) {
+    if .ic_lines.size < 2 then return
+
+    let text = .output.str()
+    let lines = split_lines(text)
+
+    // Build a set of line numbers with inline comments for fast lookup
+    // (ic_lines is already sorted since we emit in order)
+
+    // Process groups of consecutive inline comment lines
+    let i = 0u32
+    let any_changes = false
+    // Store (line_index, padding) pairs
+    let pad_lines = Vector<u32>::new()
+    let pad_amounts = Vector<u32>::new()
+
+    while i < .ic_lines.size {
+        let gs = i
+        i++
+        while i < .ic_lines.size and .ic_lines.at(i) == .ic_lines.at(i - 1) + 1 {
+            i++
+        }
+        if i - gs < 2 then continue
+
+        // Find max comment column in this group
+        let max_col = 0u32
+        for let j = gs; j < i; j++ {
+            let li = .ic_lines.at(j) - 1  // 0-indexed
+            if li < lines.size as u32 {
+                let col = find_inline_comment_col(lines.at(li))
+                if col > max_col then max_col = col
+            }
+        }
+
+        // Record padding for each line in the group
+        for let j = gs; j < i; j++ {
+            let li = .ic_lines.at(j) - 1
+            if li < lines.size as u32 {
+                let col = find_inline_comment_col(lines.at(li))
+                if col < max_col {
+                    pad_lines.push(li)
+                    pad_amounts.push(max_col - col)
+                    any_changes = true
+                }
+            }
+        }
+    }
+
+    if not any_changes then return
+
+    // Rebuild output with padding inserted
+    let new_output = Buffer::make()
+    let pad_idx = 0u32
+    for let k = 0u32; k < lines.size as u32; k++ {
+        let line = lines.at(k)
+        if pad_idx < pad_lines.size and pad_lines.at(pad_idx) == k {
+            let col = find_inline_comment_col(line)
+            let pad = pad_amounts.at(pad_idx)
+            // Write everything before the comment
+            for let c = 0u32; c < col; c++ {
+                new_output += line.data[c]
+            }
+            // Write padding spaces
+            for let p = 0u32; p < pad; p++ {
+                new_output += ' '
+            }
+            // Write the comment and rest of line
+            for let c = col; c < line.len; c++ {
+                new_output += line.data[c]
+            }
+            pad_idx++
+        } else {
+            new_output.write_sv(line)
+        }
+        new_output += '\n'
+    }
+    .output = new_output
+}
+
 //* Run the formatter and return the formatted string
 def Formatter::run(&this): str {
-    .format_ns(.ns)
-    return .output.str()
+    let track = .range_start > 0
+    .format_ns(.ns, track_mappings: track)
+    // Consume any remaining comments after the last namespace declaration
+    .emit_remaining_comments()
+    if .debug_cursor and .cursor_regressions > 0 {
+        eprintln(
+            "[formatter] detected %u comment cursor regressions while formatting %s",
+            .cursor_regressions,
+            .filename
+        )
+    }
+    assert .comment_index == .comments.size, "Formatter ended with un-emitted comments"
+    .align_inline_comments()
+
+    if not track {
+        return .output.str()
+    }
+
+    // Range mode: reconstruct output, using original text for out-of-range
+    // declarations and formatted text for in-range declarations.
+    let source_lines = split_lines(.source)
+    let formatted_lines = split_lines(.output.str())
+
+    let result = Buffer::make()
+    for let i = 0u32; i < .decl_mappings.size; i++ {
+        let m = .decl_mappings.at(i)
+
+        // Check if this declaration overlaps with the requested range
+        let overlaps = m.source_start <= .range_end and m.source_end >= .range_start
+        if overlaps {
+            // Use formatted lines
+            for let j = m.output_start; j <= m.output_end and j <= formatted_lines.size as u32; j++ {
+                result.write_sv(formatted_lines.at(j - 1))
+                result += '\n'
+            }
+        } else {
+            // Use original source lines
+            for let j = m.source_start; j <= m.source_end and j <= source_lines.size as u32; j++ {
+                result.write_sv(source_lines.at(j - 1))
+                result += '\n'
+            }
+        }
+    }
+
+    return result.str()
 }
 
 def format_usage(code: i32) {
@@ -1254,6 +2003,7 @@ def format_usage(code: i32) {
     println("")
     println("Options:")
     println("    --indent N     Set indent size in spaces (default: 4)")
+    println("    --range S:E    Only format declarations overlapping lines S through E")
     println("    -h, --help     Display this information")
     std::exit(code)
 }
@@ -1264,6 +2014,8 @@ def format_main(argc: i32, argv: &str): i32 {
 
     let indent_size: u32 = 4
     let filename: str = null
+    let range_start: u32 = 0
+    let range_end: u32 = 0
 
     while argc > 0 {
         let arg = shift_args(&argc, &argv)
@@ -1276,6 +2028,25 @@ def format_main(argc: i32, argv: &str): i32 {
                 }
                 let val = shift_args(&argc, &argv)
                 indent_size = val.to_u32()
+                if indent_size == 0 or indent_size > 16 {
+                    println("Invalid indent size: %s (expected 1..16)", val)
+                    format_usage(1)
+                }
+            }
+            "--range" => {
+                if argc == 0 {
+                    println("--range requires a value (start:end)")
+                    format_usage(1)
+                }
+                let val = shift_args(&argc, &argv)
+                let sv = SV::from_str(val)
+                let start_sv = sv.chop_by_delim(':')
+                range_start = start_sv.chop_u32()
+                range_end = sv.chop_u32()
+                if range_start == 0 or range_end == 0 or range_start > range_end {
+                    println("Invalid range: %s (expected start:end where start <= end, 1-based)", val)
+                    format_usage(1)
+                }
             }
             else => {
                 if arg[0] == '-' {
@@ -1306,27 +2077,38 @@ def format_main(argc: i32, argv: &str): i32 {
     // Set up a program for parsing
     let program = Program::new()
     program.include_stdlib = false
+    program.format_mode = true
     program.error_level = 2
 
     // Set up error handling
     let err_ctx = program.add_error_context()
     if err_ctx.set_jump_point() > 0 {
-        program.exit_with_errors_if_any()
-        return 1
+        // A parse or lex failure triggered longjmp. Instead of exiting with
+        // error code, output the original contents and treat it as a no-op.
+        print("%s", contents)
+        return 0
     }
 
     program.setup_library_paths()
 
-    // Parse the file
+    // Parse the file -- errors will be recorded, but we want to continue so
+    // we can fall back gracefully.
     Parser::parse_toplevel(program, filename, file_contents: contents, include_workspace_main: false)
 
-    program.exit_with_errors_if_any()
+    if not program.errors.is_empty() {
+        // Parsing produced errors (e.g. lex/parse failure). Don't attempt to
+        // format; return original source unchanged.
+        print("%s", contents)
+        return 0
+    }
 
     let ns = program.global
 
     // Create formatter and run
     let formatter = Formatter::make(program, ns, contents, filename)
     formatter.indent_size = indent_size
+    formatter.range_start = range_start
+    formatter.range_end = range_end
     let result = formatter.run()
 
     // Output to stdout

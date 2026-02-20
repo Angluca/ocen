@@ -1,0 +1,16 @@
+/// format
+
+def bar(): bool => true
+def baz(): bool => true
+def qux(): bool => true
+def quux(): bool => true
+
+def foo() {
+    while not (bar() or  // first check
+    baz() or             // second check
+    qux() or             // third check
+    quux()) // last check
+    {
+        break
+    }
+}

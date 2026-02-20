@@ -61,6 +61,32 @@ enum Operator {
     Error
 }
 
+def Operator::str(this): str => match this {
+    Plus => "+"
+    Minus | Negate => "-"
+    Multiply => "*"
+    Divide => "/"
+    Equals => "=="
+    NotEquals => "!="
+    Index => "[]"
+    IndexAssign => "[]="
+    LeftShift => "<<"
+    RightShift => ">>"
+    BitwiseAnd | Address => "&"
+    BitwiseOr => "|"
+    PlusEquals => "+="
+    MinusEquals => "-="
+    MultiplyEquals => "*="
+    DivideEquals => "/="
+    LeftShiftEquals => "<<="
+    RightShiftEquals => ">>="
+    Modulus => "%"
+    In => "in"
+    Not => "not"
+    IsNotNull => "?"
+    else => std::panic(`No string representation for operator: {this}`)
+}
+
 //! This takes in the parameters of the (potentially) overloaded function to determine
 //! whether this is a unary/binary operator, and what the operator is.
 def Operator::from_operator_overload(s: str, params: $[&Variable]): Operator => match s {

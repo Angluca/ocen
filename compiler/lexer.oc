@@ -348,9 +348,13 @@ def Lexer::lex_comment(&this) {
 
     // Read the comment and store it into the buffer
     while .i < .source_len and .cur() != '\n' {
-        if save_doc_comment then .comment += .cur()
-        comment_buf += .cur()
+        // Copy all bytes of the current character (handles multi-byte UTF-8)
+        let start = .i
         .inc()
+        let byte_len = .i - start
+        let sv = SV(.source + start, byte_len)
+        if save_doc_comment then .comment += sv
+        comment_buf += sv
     }
 
     if save_doc_comment then .comment += '\n'

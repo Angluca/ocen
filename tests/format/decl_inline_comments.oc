@@ -1,0 +1,16 @@
+/// format
+
+const MAX: i32 = 100 // maximum value
+const MIN: i32 = 0 // minimum value
+
+let counter: i32 = 0 // global counter
+
+typedef MyInt = i32 // just an alias
+
+import std::mem // memory functions
+
+def main() {
+    if true { // always true
+        println("hello")
+    }
+}

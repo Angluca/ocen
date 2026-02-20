@@ -65,7 +65,11 @@ See `docs/CODE_STYLE.md` for the full style guide. Key rules:
 - No trailing whitespace
 - Blank line between top-level declarations (except between consecutive imports, or consecutive let/const)
 - Source blank lines between comments are preserved
+- Blank lines between arrow function definitions use actual source blank lines (not line number gaps, which could be attributes)
 - Implicit return types (Void, or I32 for main) are not emitted
+- Inline comments are aligned per group (post-processing pass)
+- Multi-line `$[...]` (VectorLiteral) and `${...}` (MapLiteral) preserve their multi-line structure
+- Range formatting (`--range S:E`) only formats declarations overlapping the given line range
 
 ## Implementation Details
 

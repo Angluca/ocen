@@ -54,3 +54,32 @@ NOTE that the `cli` tool is called once per request, so it is not optimized for 
 All tests are in the ./tests/ directory. Each test is a `.oc` file with special directives in comments at the top of the file. Each test can specify expected exit codes, outputs, error messages, etc. See the existing tests for examples. Every feature should have corresponding positive and negative tests (negative tests are supposed to check for failure cases, and in ./tests/bad/).
 
 Any new feature added should have corresponding tests added, including all possible edge cases, and every single possible error case. We are essentially aiming for 100% code code coverage in tests (although we don't have code coverage tooling yet).
+
+### Running all tests
+
+The easiest way to run everything is the `meta/test_all.sh` script, which runs unit tests, compiles examples, and runs codebase format tests:
+
+```shell
+# Build the compiler, then run all tests
+ocen compiler/main.oc -o ./build/ocen
+bash meta/test_all.sh ./build/ocen
+```
+
+### Individual test suites
+
+```shell
+# Unit tests only (tests/ directory)
+python3 meta/test.py -c ./build/ocen tests/
+
+# Compile examples only
+bash meta/compile_examples.sh ./build/ocen
+
+# Codebase format tests (idempotency, comment preservation, range checks)
+python3 meta/codebase_format_test.py -c ./build/ocen tests std compiler
+```
+
+### Formatter tests
+
+Formatter tests live in `tests/format/`. Each test is a `.oc` file with a `/// format` or `/// format-range: S:E` directive. The expected output is in a corresponding `.expected` file. All format tests (including range) have idempotency checks: running the formatter on the `.expected` file should produce the same output.
+
+The codebase format test (`meta/codebase_format_test.py`) supplements the unit tests by running the formatter on every `.oc` file in the codebase and checking that formatting is idempotent, all comments are preserved, and range formatting is consistent.

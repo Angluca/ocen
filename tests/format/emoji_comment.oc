@@ -1,0 +1,7 @@
+/// format
+/// out: "😊 = 10"
+
+def main() {
+    let 👀 = 10
+    println(`😊 = {👀}`)
+}

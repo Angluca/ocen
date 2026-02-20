@@ -1,0 +1,18 @@
+/// format
+
+def main() {
+    let x = 5
+    let s = if {
+        x > 10 => "big"
+        x > 5 => "medium"
+        else => "small"
+    }
+
+    if {
+        x > 10 => println("big")
+        x > 5 => {
+            println("medium")
+        }
+        else => println("small")
+    }
+}

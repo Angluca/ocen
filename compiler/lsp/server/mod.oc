@@ -12,6 +12,7 @@ import std::process::{ this, Output }
 
 import @lsp::cli
 import @utils
+import @formatter
 
 // TODO: put in stdlib
 [extern] def setvbuf(file: &fs::File, buffer: str, mode: i32, size: u64): i32
@@ -280,6 +281,8 @@ def LSPServer::handle_initialize(&this, req: &Value) {
                     Value::new_str(","),
                 ]),
             }),
+            "documentFormattingProvider": Value::new_bool(true),
+            "documentRangeFormattingProvider": Value::new_bool(true),
         }),
     })
     send_response(req, result)
@@ -695,6 +698,83 @@ def LSPServer::handle_completion(&this, req: &Value) {
     send_response(req, completions)
 }
 
+def LSPServer::handle_formatting(&this, req: &Value, is_range: bool = false) {
+    lsp_log("Handling textDocument/formatting request\n")
+
+    let params = req["params"]
+    let uri = params["textDocument"]["uri"].as_str()
+    let path_sv = uri.sv()
+    path_sv.chop_by_str("file://")
+    let path = path_sv.copy_data_to_cstr()
+
+    // Get file contents (from open document or disk)
+    let contents: str = null
+    let uri_sv = uri.sv()
+    if .documents.contains(uri_sv) {
+        contents = .documents[uri_sv].text.str()
+    }
+
+    // Build args for format_main
+    let args = $["format"]
+    if is_range {
+        let range = params["range"]
+        let start_line = range["start"]["line"].as_int() + 1  // LSP is 0-based, we use 1-based
+        let end_line = range["end"]["line"].as_int() + 1
+        args += "--range"
+        args += `{start_line}:{end_line}`
+    }
+
+    // Write temp file if we have in-memory contents
+    let tmp_path: str = null
+    if contents? {
+        tmp_path = `/tmp/ocen_fmt_{tmp_file_count++}.oc`
+        fs::write_file_str(tmp_path, contents)
+        args += tmp_path
+    } else {
+        args += path
+    }
+
+    let proc_out = process::get_output(callback: || {
+        formatter::format_main(args.size as i32, args.data)
+    })
+
+    if proc_out.error or proc_out.output.size == 0 {
+        lsp_log("Formatting failed\n")
+        send_response(req, Value::new(List))
+        return
+    }
+
+    // Count lines in the original content to know the full document range
+    let original: str = null
+    if contents? {
+        original = contents
+    } else {
+        original = fs::read_file(path).str()
+    }
+    let line_count = 0
+    for let i = 0; original[i] != '\0'; i++ {
+        if original[i] == '\n' then line_count++
+    }
+
+    // Return a single TextEdit replacing the entire document
+    let result = Value::new_list($[
+        Value::new_dict(${
+            "range": Value::new_dict(${
+                "start": Value::new_dict(${
+                    "line": Value::new_int(0),
+                    "character": Value::new_int(0),
+                }),
+                "end": Value::new_dict(${
+                    "line": Value::new_int(line_count as i64 + 1),
+                    "character": Value::new_int(0),
+                }),
+            }),
+            "newText": Value::new_str(proc_out.output.str()),
+        }),
+    ])
+    send_response(req, result)
+}
+
 def LSPServer::handle_shutdown(&this, req: &Value) {
     lsp_log("Handling shutdown request\n");
     let response = Value::new_dict(${
@@ -745,6 +825,8 @@ def LSPServer::handle_request(&this, ): bool {
         "textDocument/signatureHelp"  => .handle_signature_help(data)
         "textDocument/documentSymbol" => .handle_on_document_symbols(data)
         "textDocument/rename"         => .handle_rename(data)
+        "textDocument/formatting"     => .handle_formatting(data)
+        "textDocument/rangeFormatting" => .handle_formatting(data, is_range: true)
         "shutdown"                    => .handle_shutdown(data)
         "exit"                        => return false
         // onclose

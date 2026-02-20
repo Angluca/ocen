@@ -1,0 +1,12 @@
+/// format
+
+[extern "int"]
+enum WindowMode {
+    Windowed = extern("0") // hardcoded
+    Fullscreen = extern("SDL_WINDOW_FULLSCREEN")
+    Borderless = extern("SDL_WINDOW_FULLSCREEN_DESKTOP")
+}
+
+def main() {
+    let m = WindowMode::Windowed
+}

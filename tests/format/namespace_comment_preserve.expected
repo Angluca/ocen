@@ -1,0 +1,9 @@
+/// format
+
+namespace inner {
+    def helper(): i32 => 42
+}
+
+def foo() {
+    let x = 5 // after namespace
+}

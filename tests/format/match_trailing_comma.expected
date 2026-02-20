@@ -1,0 +1,15 @@
+/// format
+
+def main() {
+    let x = 5
+    match x {
+        1 => if true {
+            println("one")
+        },
+        2 => match x {
+            2 => println("two")
+            else => println("other")
+        },
+        else => println("other")
+    }
+}

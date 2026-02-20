@@ -2,7 +2,6 @@
 
 namespace impl {
     def helper(): u32 => 42
-
     def other_helper(): u32 => 0
 }
 

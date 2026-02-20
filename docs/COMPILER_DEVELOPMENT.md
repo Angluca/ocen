@@ -11,6 +11,24 @@ $ ./meta/test.py -c ./build/ocen
 $ ocen compiler/main.oc -o build/ocen && ./meta/test.py -c ./build/ocen
 ```
 
+## Running all tests
+
+The `meta/test_all.sh` script runs the full test suite: unit tests, example compilation, and
+codebase format tests (idempotency, comment preservation, and range checks across the entire codebase).
+
+```shell
+$ ocen compiler/main.oc -o build/ocen
+$ bash meta/test_all.sh ./build/ocen
+```
+
+Individual test suites can also be run separately:
+
+```shell
+$ python3 meta/test.py -c ./build/ocen tests/          # Unit tests
+$ bash meta/compile_examples.sh ./build/ocen             # Compile examples
+$ python3 meta/codebase_format_test.py -c ./build/ocen   # Codebase format tests
+```
+
 ## Debugging using `gdb`/`lldb`
 
 There's some basic support for debugging the compiler / programs using `gdb` or `lldb`. To get an executable with
@@ -38,6 +56,7 @@ $ touch tests/feature.oc # Create a test your feature
 $ ./bootstrap/ocen compiler/main.oc -o build/ocen && ./build/ocen tests/feature.oc
 
 $ ./meta/test.py -c ./build/ocen # Make sure all tests pass
+$ bash meta/test_all.sh ./build/ocen # Run the full test suite (unit tests + examples + formatter)
 $ ./meta/gen_bootstrap.sh # Generate the new bootstrap compiler
 ```
 

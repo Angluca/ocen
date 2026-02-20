@@ -2,11 +2,13 @@
 
 def main() {
     if true then println("yes")
+
     if false {
         println("no")
     } else {
         println("yes")
     }
+
     if true {
         println("a")
     } else if false {

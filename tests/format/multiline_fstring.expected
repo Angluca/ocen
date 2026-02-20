@@ -1,0 +1,13 @@
+/// format
+
+def bar(): str => "hello"
+
+def foo() {
+    let res_text = f"
+        match x \{
+            Ok(val) => val,
+            Error(err) => std::panic(`err`)
+        \}
+    "
+    println("%s", res_text)
+}

@@ -29,6 +29,7 @@ class Result(Enum):
     TEST_MODE_PASS = 9
     TEST_MODE_FAIL = 10
     FORMAT = 11
+    FORMAT_RANGE = 12
 
 @dataclass(frozen=True)
 class LSPTest:
@@ -79,6 +80,8 @@ def get_expected(filename) -> Optional[Expected]:
                 return Expected(Result.COMPILE_FAIL, value)
             if name == "runfail":
                 return Expected(Result.RUNTIME_FAIL, value)
+            if name == "format-range":
+                return Expected(Result.FORMAT_RANGE, value)
             if name == "lsp":
                 is_lsp = True
                 lsp_flags = value
@@ -195,7 +198,10 @@ def handle_format_test(compiler: str, num: int, path: Path, expected: Expected, 
     with open(expected_path, encoding='utf-8') as f:
         expected_output = f.read()
 
-    cmd = [compiler, "format", str(path)]
+    cmd = [compiler, "format"]
+    if expected.type == Result.FORMAT_RANGE:
+        cmd += ["--range", expected.value]
+    cmd.append(str(path))
     if debug:
         print(f"[{num}] {path} || {' '.join(cmd)}", flush=True)
 
@@ -219,11 +225,12 @@ def handle_format_test(compiler: str, num: int, path: Path, expected: Expected, 
         diff_str = ''.join(diff)
         return False, f"Formatter output does not match expected\n{diff_str}", path
 
-    # Idempotency check: run formatter on the output and verify it's the same
-    process2 = run(cmd, input=actual_output.encode('utf-8'), stdout=PIPE, stderr=PIPE)
-    # Note: we can't pipe stdin to `ocen format` since it reads a file, not stdin.
-    # Instead, we run the formatter on the .expected file itself for idempotency.
-    cmd_idem = [compiler, "format", str(expected_path)]
+    # Idempotency check: run the formatter on the .expected file and verify
+    # the output is unchanged. For range formatting, use the same --range flag.
+    cmd_idem = [compiler, "format"]
+    if expected.type == Result.FORMAT_RANGE:
+        cmd_idem += ["--range", expected.value]
+    cmd_idem.append(str(expected_path))
     process2 = run(cmd_idem, stdout=PIPE, stderr=PIPE)
     if process2.returncode == 0:
         idem_output = process2.stdout.decode('utf-8')
@@ -233,7 +240,7 @@ def handle_format_test(compiler: str, num: int, path: Path, expected: Expected, 
     return True, "(Success)", path
 
 def handle_test(compiler: str, num: int, path: Path, expected: Expected, debug: bool) -> Tuple[bool, str, Path]:
-    if expected.type == Result.FORMAT:
+    if expected.type in (Result.FORMAT, Result.FORMAT_RANGE):
         return handle_format_test(compiler, num, path, expected, debug)
 
     if expected.type == Result.LSP:

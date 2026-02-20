@@ -1,0 +1,13 @@
+/// format
+
+struct Foo {}
+
+def Foo::resolve_type(
+    &this,
+    old: str,
+    allow_incomplete: bool = false, // Allow checking types like `Foo<i32, T>` without T being resolved
+    error: bool = true,             // Whether to error if the type cannot be resolved
+    resolve_templates: bool = true, // Don't try to resolve the templates, just resolve the base and params
+): i32 {
+    return 0
+}

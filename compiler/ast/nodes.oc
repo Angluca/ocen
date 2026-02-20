@@ -98,6 +98,9 @@ struct AST {
     hint: &Type  // For LSP
     resolved_symbol: &Symbol
     returns: bool
+
+    //! Was this expression wrapped in parentheses in the source?
+    paren: bool
 }
 
 
@@ -223,6 +226,7 @@ def EnumVariant::get_specific_field(&this, name: str): &Variable {
 
 def EnumVariant::new(span: Span): &EnumVariant {
     let variant = mem::alloc<EnumVariant>()
+    variant.span = span
     variant.specific_fields = Vector<&Variable>::new()
     return variant
 }
@@ -269,6 +273,7 @@ struct Function {
 
     is_variadic: bool
     is_variadic_format: bool
+    variadic_span: Span
     is_test_function: bool
     operator_overloads: &Vector<Operator>
 
@@ -454,6 +459,9 @@ struct IfStatement {
 
     //! Span of the `if` token
     if_span: Span
+
+    //! Whether this is a multi-if: `if { cond => body, ... }`
+    is_multi_if: bool
 }
 
 struct Loop {

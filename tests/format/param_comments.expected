@@ -1,0 +1,15 @@
+/// format
+
+[extern]
+def variadic_fn(
+    fmt: str, // Format string
+    ...       // Additional args
+)
+
+def multi_param(
+    a: i32,  // First param
+    b: str,  // Second param
+    c: bool, // Third param
+) {
+    println("hi")
+}

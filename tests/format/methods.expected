@@ -5,7 +5,5 @@ struct Foo {
 }
 
 def Foo::get_x(this): u32 => .x
-
 def Foo::set_x(&this, y: u32) => .x = y
-
 def Foo::new(x: u32): Foo => Foo(x)
