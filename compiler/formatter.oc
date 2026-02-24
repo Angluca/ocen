@@ -90,6 +90,8 @@ struct Formatter {
     range_end: u32       //| End line of range (0 = no range)
     output_line: u32     //| Tracks current output line (1-based)
     decl_mappings: &Vector<DeclMapping>
+    stmt_mappings: &Vector<DeclMapping>  //| Statement-level source↔output mappings
+    track_stmts: bool                    //| Whether to record stmt_mappings in format_block
 
     in_format_str: bool = false  //| Suppress multi-line formatting inside format strings
     ic_lines: &Vector<u32>          //| Output line numbers of emitted inline comments
@@ -139,6 +141,8 @@ def Formatter::make(program: &Program, ns: &Namespace, source: str, filename: st
         range_end: 0,
         output_line: 1,
         decl_mappings: Vector<DeclMapping>::new(),
+        stmt_mappings: Vector<DeclMapping>::new(),
+        track_stmts: false,
         ic_lines: Vector<u32>::new(),
         last_comment_request_line: 0,
         debug_cursor: debug_cursor,
@@ -1081,10 +1085,40 @@ def Formatter::format_block(&this, node: &AST) {
         if comment_end > prev_end_line and stmt.span.start.line > comment_end + 1 {
             .newline()
         }
+        let stmt_output_start = .output_line
         .write_indent()
         .format_statement(stmt)
         .emit_inline_comment(stmt.span.start.line)
         .newline()
+        if .track_stmts {
+            let source_end = stmt.span.end.line
+            let output_lines = (.output_line - 1) - stmt_output_start + 1
+            // Cap source_end based on output line count to avoid
+            // swallowing comments/blanks after the statement.
+            let output_cap = stmt.span.start.line + output_lines - 1
+            if source_end > output_cap {
+                source_end = output_cap
+            }
+            // Cap at next statement's start line to prevent overlapping
+            // source ranges (some AST spans include the next line).
+            if i + 1 < stmts.size {
+                let next_start = stmts[i + 1].span.start.line
+                if source_end >= next_start {
+                    source_end = next_start - 1
+                }
+            }
+            // For the last statement, cap source_end before the block's
+            // closing brace so it's not swallowed into this mapping.
+            if i == stmts.size - 1 and source_end >= node.span.end.line {
+                source_end = node.span.end.line - 1
+            }
+            .stmt_mappings.push(DeclMapping(
+                source_start: stmt.span.start.line,
+                source_end: source_end,
+                output_start: stmt_output_start,
+                output_end: .output_line - 1,
+            ))
+        }
         prev_end_line = stmt.span.end.line
     }
     let close_line = node.span.end.line
@@ -1375,6 +1409,7 @@ def Formatter::format_function_attrs(&this, func: &Function) {
 //* Format a function definition
 def Formatter::format_function(&this, func: &Function) {
     .format_function_attrs(func)
+    let header_output_start = .output_line
     .write_indent()
     .write("def ")
 
@@ -1452,7 +1487,20 @@ def Formatter::format_function(&this, func: &Function) {
         .newline()
     } else {
         .write(" ")
+        // Record function header (def ... {) as a pseudo-statement so
+        // range formatting can include the signature when it overlaps.
+        if .range_start > 0 {
+            .stmt_mappings.push(DeclMapping(
+                source_start: func.span.start.line,
+                source_end: func.body.span.start.line,
+                output_start: header_output_start,
+                output_end: .output_line,
+            ))
+        }
+        let was_tracking = .track_stmts
+        if .range_start > 0 then .track_stmts = true
         .format_block(func.body)
+        .track_stmts = was_tracking
         .newline()
     }
 }
@@ -1962,133 +2010,6 @@ def Formatter::align_inline_comments(&this) {
     .output = new_output
 }
 
-//* Apply formatting changes only within [range_start, range_end] for a
-//* single declaration, using LCS-based diffing to identify individual
-//* change hunks and apply only those touching the requested range.
-def apply_range_diff(
-    source_lines: &Vector<SV>,     src_start: u32, src_end: u32,
-    formatted_lines: &Vector<SV>,  fmt_start: u32, fmt_end: u32,
-    range_start: u32, range_end: u32,
-    result: &Buffer
-) {
-    let n = src_end - src_start + 1
-    let m = fmt_end - fmt_start + 1
-    let w = m + 1   // row width for flat DP table
-
-    // Build LCS DP table: dp[i * w + j] = LCS length for src[0..i), fmt[0..j)
-    // calloc zeros memory, so dp is initialized to 0
-    let dp = mem::alloc<u32>(((n + 1) * w) as u32)
-
-    for let i = 0u32; i < n; i++ {
-        for let j = 0u32; j < m; j++ {
-            if source_lines.at(src_start - 1 + i).eq(formatted_lines.at(fmt_start - 1 + j)) {
-                dp[(i + 1) * w + (j + 1)] = dp[i * w + j] + 1
-            } else {
-                let a = dp[i * w + (j + 1)]
-                let b = dp[(i + 1) * w + j]
-                dp[(i + 1) * w + (j + 1)] = if a > b then a else b
-            }
-        }
-    }
-
-    // Backtrack to find LCS positions
-    let lcs_len = dp[n * w + m]
-    let alloc_len = if lcs_len > 0 then lcs_len else 1u32
-    let lcs_si = mem::alloc<u32>(alloc_len) // source indices (0-based within decl)
-    let lcs_fi = mem::alloc<u32>(alloc_len) // formatted indices (0-based within decl)
-    {
-        let i = n
-        let j = m
-        let k = lcs_len
-        while k > 0 {
-            if source_lines.at(src_start - 1 + i - 1).eq(formatted_lines.at(fmt_start - 1 + j - 1)) {
-                k--
-                i--
-                j--
-                lcs_si[k] = i
-                lcs_fi[k] = j
-            } else if dp[(i - 1) * w + j] >= dp[i * w + (j - 1)] {
-                i--
-            } else {
-                j--
-            }
-        }
-    }
-
-    // Walk through the diff using LCS anchors.
-    // Between consecutive anchors we have a "hunk" of differing lines.
-    // For each hunk: if any of its source lines fall within the requested
-    // range, emit the formatted replacement.  Otherwise emit source lines.
-    let si = 0u32  // current source index (0-based within decl)
-    let fi = 0u32  // current formatted index (0-based within decl)
-
-    for let lk = 0u32; lk <= lcs_len; lk++ {
-        let next_si = if lk < lcs_len then lcs_si[lk] else n
-        let next_fi = if lk < lcs_len then lcs_fi[lk] else m
-
-        // Hunk: source [si, next_si) ↔ formatted [fi, next_fi)
-        if si < next_si or fi < next_fi {
-            let src_count = next_si - si
-            let fmt_count = next_fi - fi
-
-            // Equal-sized hunks (e.g. indentation-only changes): apply per-line,
-            // so that changes outside the range are not dragged in.
-            if src_count == fmt_count and src_count > 0 {
-                for let h = 0u32; h < src_count; h++ {
-                    let abs_line = src_start + si + h
-                    if abs_line >= range_start and abs_line <= range_end {
-                        result.write_sv(formatted_lines.at(fmt_start - 1 + fi + h))
-                    } else {
-                        result.write_sv(source_lines.at(src_start - 1 + si + h))
-                    }
-                    result += '\n'
-                }
-            } else {
-                // Unequal sizes (line joining/splitting/deletion): only apply if
-                // ALL source lines in the hunk are within the range, to avoid
-                // dragging in changes outside the requested range.
-                let all_in_range = true
-                for let h = si; h < next_si; h++ {
-                    let abs_line = src_start + h
-                    if abs_line < range_start or abs_line > range_end {
-                        all_in_range = false
-                        break
-                    }
-                }
-                // Pure insertion with no source lines: check insertion point
-                if si == next_si and fi < next_fi {
-                    let abs_line = src_start + si
-                    all_in_range = abs_line >= range_start and abs_line <= range_end + 1
-                }
-
-                if all_in_range {
-                    for let h = fi; h < next_fi; h++ {
-                        result.write_sv(formatted_lines.at(fmt_start - 1 + h))
-                        result += '\n'
-                    }
-                } else {
-                    for let h = si; h < next_si; h++ {
-                        result.write_sv(source_lines.at(src_start - 1 + h))
-                        result += '\n'
-                    }
-                }
-            }
-        }
-
-        // Emit the LCS anchor line (identical in both)
-        if lk < lcs_len {
-            result.write_sv(source_lines.at(src_start - 1 + next_si))
-            result += '\n'
-            si = next_si + 1
-            fi = next_fi + 1
-        }
-    }
-
-    mem::free(dp)
-    mem::free(lcs_si)
-    mem::free(lcs_fi)
-}
-
 //* Run the formatter and return the formatted string
 def Formatter::run(&this): str {
     let track = .range_start > 0
@@ -2109,11 +2030,13 @@ def Formatter::run(&this): str {
         return .output.str()
     }
 
-    // Range mode: reconstruct output, using original text for out-of-range
-    // declarations and formatted text for in-range declarations.
-    // For declarations that partially overlap the range, match unchanged
-    // leading/trailing lines within the declaration to confine the edit to
-    // only the lines that actually differ.
+    // Range mode: reconstruct output using statement-level mappings.
+    // For declarations that don't overlap the range, emit source lines.
+    // For overlapping declarations, use stmt_mappings to find statements
+    // that overlap the range, then:
+    //   - source lines before the first overlapping statement
+    //   - formatted lines for the overlapping statements
+    //   - source lines after the last overlapping statement
     let source_lines = split_lines(.source)
     let formatted_lines = split_lines(.output.str())
 
@@ -2132,14 +2055,159 @@ def Formatter::run(&this): str {
             continue
         }
 
-        // Declaration overlaps the range. Use LCS-based diffing to apply
-        // only the formatting changes whose source lines fall within range.
-        apply_range_diff(
-            source_lines,    m.source_start, m.source_end,
-            formatted_lines, m.output_start, m.output_end,
-            .range_start, .range_end,
-            &result,
-        )
+        // Declaration overlaps the range.
+        // Collect all stmt_mappings within this declaration, then filter
+        // to "leaf" mappings (those not containing any other mapping).
+        // Iterate leaves in source order, emitting source for gaps and
+        // deciding per-leaf whether to use formatted or source output.
+
+        // Step 1: Collect all stmt_mappings within this declaration
+        let all_stmts = Vector<u32>::new()
+        for let k = 0u32; k < .stmt_mappings.size; k++ {
+            let sm = .stmt_mappings.at(k)
+            if sm.source_start >= m.source_start and sm.source_end <= m.source_end {
+                all_stmts.push(k)
+            }
+        }
+
+        if all_stmts.size == 0 {
+            // No statements tracked (import, struct, enum, arrow function, etc.)
+            // Treat the whole declaration as a single mapping and apply
+            // the same per-line logic as for leaf stmts.
+            let src_count = m.source_end - m.source_start + 1
+            let fmt_count = m.output_end - m.output_start + 1
+            if m.source_start >= .range_start and m.source_end <= .range_end {
+                // Fully within range — use formatted
+                for let j = m.output_start; j <= m.output_end and j <= formatted_lines.size as u32; j++ {
+                    result.write_sv(formatted_lines.at(j - 1))
+                    result += '\n'
+                }
+            } else if src_count == fmt_count {
+                // Partially overlapping, same line count — per-line
+                for let li = 0u32; li < src_count; li++ {
+                    let abs_line = m.source_start + li
+                    if abs_line >= .range_start and abs_line <= .range_end {
+                        result.write_sv(formatted_lines.at(m.output_start - 1 + li))
+                    } else {
+                        result.write_sv(source_lines.at(m.source_start - 1 + li))
+                    }
+                    result += '\n'
+                }
+            } else {
+                // Different line count, partially overlapping — keep source
+                for let j = m.source_start; j <= m.source_end and j <= source_lines.size as u32; j++ {
+                    result.write_sv(source_lines.at(j - 1))
+                    result += '\n'
+                }
+            }
+            continue
+        }
+
+        // Step 2: Filter to leaf mappings — those that don't contain any
+        // other mapping strictly inside them.
+        let leaves = Vector<u32>::new()
+        for let a = 0u32; a < all_stmts.size; a++ {
+            let sa = .stmt_mappings.at(all_stmts.at(a))
+            let is_leaf = true
+            for let b = 0u32; b < all_stmts.size; b++ {
+                if a == b then continue
+                let sb = .stmt_mappings.at(all_stmts.at(b))
+                if sb.source_start >= sa.source_start and sb.source_end <= sa.source_end and (sb.source_start > sa.source_start or sb.source_end < sa.source_end) {
+                    is_leaf = false
+                    break
+                }
+            }
+            if is_leaf {
+                leaves.push(all_stmts.at(a))
+            }
+        }
+
+        // Step 3: Iterate leaf stmts in source order, emitting source for
+        // gaps and deciding per-leaf how to handle.
+        let prev_source = m.source_start
+        for let a = 0u32; a < leaves.size; a++ {
+            let sm = .stmt_mappings.at(leaves.at(a))
+
+            // Handle multiple stmts on same source line (e.g. semicolon-separated).
+            // Skip source emission for duplicates; only emit formatted if in range.
+            if sm.source_start < prev_source {
+                let stmt_overlaps = sm.source_start <= .range_end and sm.source_end >= .range_start
+                if stmt_overlaps {
+                    for let j = sm.output_start; j <= sm.output_end and j <= formatted_lines.size as u32; j++ {
+                        result.write_sv(formatted_lines.at(j - 1))
+                        result += '\n'
+                    }
+                }
+                if sm.source_end >= prev_source {
+                    prev_source = sm.source_end + 1
+                }
+                continue
+            }
+
+            // Emit gap: source lines from prev_source to stmt start
+            for let j = prev_source; j < sm.source_start and j <= source_lines.size as u32; j++ {
+                result.write_sv(source_lines.at(j - 1))
+                result += '\n'
+            }
+
+            let stmt_overlaps = sm.source_start <= .range_end and sm.source_end >= .range_start
+            let src_count = sm.source_end - sm.source_start + 1
+            let fmt_count = sm.output_end - sm.output_start + 1
+
+            if not stmt_overlaps {
+                // Not in range — use source
+                for let j = sm.source_start; j <= sm.source_end and j <= source_lines.size as u32; j++ {
+                    result.write_sv(source_lines.at(j - 1))
+                    result += '\n'
+                }
+            } else if sm.source_start >= .range_start and sm.source_end <= .range_end {
+                // Fully within range — use formatted
+                for let j = sm.output_start; j <= sm.output_end and j <= formatted_lines.size as u32; j++ {
+                    result.write_sv(formatted_lines.at(j - 1))
+                    result += '\n'
+                }
+            } else if src_count == fmt_count {
+                // Partially overlapping, same line count — per-line substitution
+                for let li = 0u32; li < src_count; li++ {
+                    let abs_line = sm.source_start + li
+                    if abs_line >= .range_start and abs_line <= .range_end {
+                        result.write_sv(formatted_lines.at(sm.output_start - 1 + li))
+                    } else {
+                        result.write_sv(source_lines.at(sm.source_start - 1 + li))
+                    }
+                    result += '\n'
+                }
+            } else {
+                // Partially overlapping, different line count — only format
+                // if ALL source lines are within range, else keep source
+                let all_in = true
+                for let j = sm.source_start; j <= sm.source_end; j++ {
+                    if j < .range_start or j > .range_end {
+                        all_in = false
+                        break
+                    }
+                }
+                if all_in {
+                    for let j = sm.output_start; j <= sm.output_end and j <= formatted_lines.size as u32; j++ {
+                        result.write_sv(formatted_lines.at(j - 1))
+                        result += '\n'
+                    }
+                } else {
+                    for let j = sm.source_start; j <= sm.source_end and j <= source_lines.size as u32; j++ {
+                        result.write_sv(source_lines.at(j - 1))
+                        result += '\n'
+                    }
+                }
+            }
+
+            prev_source = sm.source_end + 1
+        }
+
+        // Emit remaining source lines after last leaf
+        for let j = prev_source; j <= m.source_end and j <= source_lines.size as u32; j++ {
+            result.write_sv(source_lines.at(j - 1))
+            result += '\n'
+        }
     }
 
     return result.str()
