@@ -1,0 +1,8 @@
+/// format: --line-width 40
+
+def foo(): u32 {
+    return some_func(a, b, c, d, e, f)
+    let x = very_long_name + another_long_name + third
+    x = compute(alpha, beta, gamma, delta)
+    return short
+}

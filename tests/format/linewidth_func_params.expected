@@ -1,0 +1,27 @@
+/// format: --line-width 50
+
+def short_func(x: u32): u32 => x
+
+def medium(a: u32, b: u32, c: u32): u32 {
+    return a
+}
+
+def long_params(
+    first_param: u32,
+    second_param: u32,
+    third_param: u32,
+): u32 {
+    return first_param
+}
+
+def with_defaults(
+    a: u32 = 10,
+    b: u32 = 20,
+    c: u32 = 30,
+): u32 {
+    return a
+}
+
+def Foo::method(&this, x: u32, y: u32, z: u32): bool {
+    return true
+}

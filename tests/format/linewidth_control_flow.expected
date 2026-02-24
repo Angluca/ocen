@@ -1,0 +1,18 @@
+/// format: --line-width 45
+
+def foo() {
+    if short_cond {
+        return 1
+    }
+    if very_long_condition_here and
+    another_condition {
+        return 2
+    }
+    while counter < max_value and is_valid {
+        counter++
+    }
+    for let i = 0; i <
+    some_very_long_array.size; i++ {
+        println("hi")
+    }
+}

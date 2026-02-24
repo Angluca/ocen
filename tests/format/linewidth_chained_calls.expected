@@ -1,0 +1,10 @@
+/// format: --line-width 40
+
+def foo() {
+    let short = a.b.c
+    let long = very_long_name.some_method(
+        arg1,
+        arg2,
+        arg3
+    ).another_method(x, y)
+}

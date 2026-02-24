@@ -271,6 +271,9 @@ def FormatOptions::default(): FormatOptions {
     )
 }
 
+//* Check if line-width-aware formatting is enabled
+def FormatOptions::width_enabled(&this): bool => .line_width > 0
+
 //! Decision functions: pure policy for formatting choices.
 //!
 //! These decouple "should we break?" from the AST traversal logic.
@@ -446,6 +449,7 @@ struct Formatter {
     cursor_regressions: u32
     comment_emitted: &Vector<bool>   // Track which comments have been emitted
     comment_line_index: CommentIndex // Per-line comment index for O(1) lookups
+    output_col: u32 // Current column in the output (0-based)
 }
 
 def build_line_offsets(source: str): &Vector<u32> {
@@ -476,7 +480,7 @@ def Formatter::make(program: &Program, ns: &Namespace, source: str, filename: st
     let line_offsets = build_line_offsets(source)
     let num_lines = line_offsets.size as u32
     let comment_line_index = CommentIndex::build(filtered, num_lines)
-    return Formatter(output: Buffer::make(), indent: 0, options: FormatOptions::default(), source, line_offsets, filename, comments: filtered, comment_index: 0, program, ns, range_start: 0, range_end: 0, output_line: 1, decl_mappings: Vector<DeclMapping>::new(), stmt_mappings: Vector<DeclMapping>::new(), track_stmts: false, ic_lines: Vector<u32>::new(), last_comment_request_line: 0, debug_cursor: debug_cursor, cursor_regressions: 0, comment_emitted: emitted, comment_line_index: comment_line_index)
+    return Formatter(output: Buffer::make(), indent: 0, options: FormatOptions::default(), source, line_offsets, filename, comments: filtered, comment_index: 0, program, ns, range_start: 0, range_end: 0, output_line: 1, decl_mappings: Vector<DeclMapping>::new(), stmt_mappings: Vector<DeclMapping>::new(), track_stmts: false, ic_lines: Vector<u32>::new(), last_comment_request_line: 0, debug_cursor: debug_cursor, cursor_regressions: 0, comment_emitted: emitted, comment_line_index: comment_line_index, output_col: 0)
 }
 
 def Formatter::note_cursor_regression(&this, kind: str, requested: u32) {
@@ -489,10 +493,14 @@ def Formatter::note_cursor_regression(&this, kind: str, requested: u32) {
 //* Write raw string to output
 def Formatter::write(&this, s: str) {
     .output += s
-    // Track output lines for strings that contain embedded newlines
-    // (e.g., multi-line format string parts)
+    // Track output lines and columns
     for let i = 0u32; i < s.len(); i++ {
-        if s[i] == '\n' then .output_line++
+        if s[i] == '\n' {
+            .output_line++
+            .output_col = 0
+        } else {
+            .output_col++
+        }
     }
 }
 
@@ -500,6 +508,7 @@ def Formatter::write(&this, s: str) {
 def Formatter::newline(&this) {
     .output += '\n'
     .output_line++
+    .output_col = 0
 }
 
 def Formatter::push_indent(&this) {
@@ -513,9 +522,118 @@ def Formatter::pop_indent(&this) {
 
 //* Write indentation at current level
 def Formatter::write_indent(&this) {
-    for let i = 0u32; i < .indent * .options.indent_size; i++ {
+    let spaces = .indent * .options.indent_size
+    for let i = 0u32; i < spaces; i++ {
         .output += ' '
     }
+    .output_col = spaces
+}
+
+//* Measure how wide an expression would be if formatted on a single line.
+//* Returns the width in characters (not including any leading indentation).
+//* This uses buffer capture - it temporarily swaps the output buffer.
+def Formatter::measure_expr(&this, node: &AST): u32 {
+    let saved_output = .output
+    let saved_line = .output_line
+    let saved_col = .output_col
+    let saved_in_fmt = .in_format_str
+    .output = Buffer::make()
+    .output_line = 1
+    .output_col = 0
+    .in_format_str = true // suppress multi-line inside measurement
+    .format_expr(node)
+    let width = .output_col
+    .output = saved_output
+    .output_line = saved_line
+    .output_col = saved_col
+    .in_format_str = saved_in_fmt
+    return width
+}
+
+//* Measure how wide a statement would be if formatted on a single line.
+def Formatter::measure_statement(&this, node: &AST): u32 {
+    let saved_output = .output
+    let saved_line = .output_line
+    let saved_col = .output_col
+    let saved_in_fmt = .in_format_str
+    .output = Buffer::make()
+    .output_line = 1
+    .output_col = 0
+    .in_format_str = true
+    .format_statement(node)
+    let width = .output_col
+    .output = saved_output
+    .output_line = saved_line
+    .output_col = saved_col
+    .in_format_str = saved_in_fmt
+    return width
+}
+
+//* Check if the current output column plus additional text would exceed line width.
+//* Returns false if line_width is 0 (disabled).
+def Formatter::would_exceed_width(&this, additional: u32): bool {
+    if not .options.width_enabled() then return false
+    return (.output_col + additional) > .options.line_width
+}
+
+//* Get the remaining width on the current line.
+//* Returns a large number if line_width is 0 (disabled).
+def Formatter::remaining_width(&this): u32 {
+    if not .options.width_enabled() then return 10000u32
+    if .output_col >= .options.line_width then return 0u32
+    return .options.line_width - .output_col
+}
+
+//* Measure the full width of a collection as if formatted on one line.
+//* For Calls: callee(arg1, arg2, arg3)
+//* For Arrays: [elem1, elem2, elem3]
+//* etc.
+def Formatter::measure_collection(&this, node: &AST, open: str, close: str): u32 {
+    let size = .collection_size(node)
+    let width = open.len() + close.len()
+    for let i = 0u32; i < size; i++ {
+        if i > 0 then width += 2 // ", "
+        let saved_output = .output
+        let saved_line = .output_line
+        let saved_col = .output_col
+        let saved_in_fmt = .in_format_str
+        .output = Buffer::make()
+        .output_line = 1
+        .output_col = 0
+        .in_format_str = true
+        .format_collection_item(node, i)
+        width += .output_col
+        .output = saved_output
+        .output_line = saved_line
+        .output_col = saved_col
+        .in_format_str = saved_in_fmt
+    }
+    return width
+}
+
+//* Measure the full width of function params as if on one line.
+//* e.g.: (a: u32, b: str, c: bool)
+def Formatter::measure_params(&this, func: &Function): u32 {
+    let width = 2u32 // "(" + ")"
+    for let i = 0u32; i < func.params.size; i++ {
+        if i > 0 then width += 2 // ", "
+        let saved_output = .output
+        let saved_line = .output_line
+        let saved_col = .output_col
+        .output = Buffer::make()
+        .output_line = 1
+        .output_col = 0
+        .format_param(func.params.at(i), is_first: i == 0)
+        width += .output_col
+        .output = saved_output
+        .output_line = saved_line
+        .output_col = saved_col
+    }
+    if func.is_variadic {
+        if func.params.size > 0 then width += 2 // ", "
+        width += 3 // "..."
+    }
+    return width
 }
 
 //* Get source text for a span
@@ -831,6 +949,38 @@ def Formatter::write_var_decl(&this, var: &Variable, keyword: str) {
         .write(.format_type(var.parsed_type))
     }
     if var.default_value? {
+        // Width-aware: check if RHS would fit on same line.
+        // Only break at '=' when the RHS is NOT a breakable collection
+        // (calls, arrays, etc. handle their own breaking).
+        if .options.width_enabled() and not .in_format_str {
+            let rhs_width = .measure_expr(var.default_value)
+            if .would_exceed_width(3 + rhs_width) { // 3 for " = "
+                let rhs = var.default_value
+                // Check if the RHS can handle its own breaking
+                // (collections with items, binary ops, etc.)
+                let is_breakable = false
+                if rhs.type == BinaryOp {
+                    is_breakable = true
+                } else if rhs.type == Call and rhs.u.call.args.size > 0 {
+                    is_breakable = true
+                } else if rhs.type == ArrayLiteral and rhs.u.array_literal.elements.size > 0 {
+                    is_breakable = true
+                } else if rhs.type == VectorLiteral and rhs.u.vec_literal.elements.size > 0 {
+                    is_breakable = true
+                } else if rhs.type == MapLiteral and rhs.u.map_literal.elements.size > 0 {
+                    is_breakable = true
+                }
+                if not is_breakable {
+                    .write(" =")
+                    .newline()
+                    .push_indent()
+                    .write_indent()
+                    .format_expr(var.default_value)
+                    .pop_indent()
+                    return
+                }
+            }
+        }
         .write(" = ")
         .format_expr(var.default_value)
     }
@@ -1047,6 +1197,15 @@ def Formatter::plan_collection(&this, node: &AST, open: str, close: str): Collec
         }
     }
 
+    // Width-aware: if not already multiline and line_width is set,
+    // check if the collection would exceed line width on one line
+    if not multiline and .options.width_enabled() and size > 0 and not .in_format_str {
+        let col_width = .measure_collection(node, open, close)
+        if .would_exceed_width(col_width) {
+            multiline = true
+        }
+    }
+
     return CollectionPlan(multiline, size, open, close)
 }
 
@@ -1100,6 +1259,15 @@ def Formatter::plan_params(&this, func: &Function): ParamPlan {
         }
         let has_comments = .has_inline_comments_in_range(first_line, last_line)
         multiline = should_break_params(first_line, last_line, has_comments, &.options)
+
+        // Width-aware: if not already multiline and line_width is set,
+        // check if the params would exceed line width on one line
+        if not multiline and .options.width_enabled() {
+            let param_width = .measure_params(func)
+            if .would_exceed_width(param_width) {
+                multiline = true
+            }
+        }
     }
     return ParamPlan(multiline, param_count: func.params.size, is_variadic: func.is_variadic)
 }
@@ -1138,6 +1306,20 @@ def Formatter::emit_params(&this, func: &Function, plan: &ParamPlan) {
     }
 
     .write(")")
+}
+
+//* Get the printed width of a binary operator (including surrounding spaces).
+//* e.g., " + " => 3, " and " => 5
+def binary_op_width(op: Operator): u32 => match op {
+    Assignment | PlusEquals | MinusEquals | MultiplyEquals | DivideEquals => 3
+    LeftShiftEquals | RightShiftEquals => 4
+    Equals | NotEquals | LessThan | LessThanEquals | GreaterThan | GreaterThanEquals => 3
+    Plus | Minus | Multiply | Divide | Modulus => 3
+    And | In => 5
+    Or => 4
+    BitwiseAnd | BitwiseOr | BitwiseXor => 3
+    LeftShift | RightShift => 4
+    else => 3
 }
 
 //* Format an expression to string
@@ -1273,48 +1455,108 @@ def Formatter::format_expr(&this, node: &AST) {
             let rhs_start_line = node.u.binary.rhs.span.start.line
             let is_multiline = should_break_binary_rhs(op_line, rhs_start_line, .in_format_str, &.options)
 
-            match op {
-                Assignment => .write(" = ")
-                PlusEquals => .write(" += ")
-                MinusEquals => .write(" -= ")
-                MultiplyEquals => .write(" *= ")
-                DivideEquals => .write(" /= ")
-                LeftShiftEquals => .write(" <<= ")
-                RightShiftEquals => .write(" >>= ")
-                Equals => .write(" == ")
-                NotEquals => .write(" != ")
-                LessThan => .write(" < ")
-                LessThanEquals => .write(" <= ")
-                GreaterThan => .write(" > ")
-                GreaterThanEquals => .write(" >= ")
-                Plus => .write(" + ")
-                Minus => .write(" - ")
-                Multiply => .write(" * ")
-                Divide => .write(" / ")
-                Modulus => .write(" % ")
-                And => .write(" and ")
-                Or => .write(" or ")
-                In => .write(" in ")
-                BitwiseAnd => .write(" & ")
-                BitwiseOr => .write(" | ")
-                BitwiseXor => .write(" ^ ")
-                LeftShift => .write(" << ")
-                RightShift => .write(" >> ")
-                else => {
-                    .write(" ")
-                    .write(.source_text(node.u.binary.op_span))
-                    .write(" ")
+            // Width-aware: if not already multiline, check if the RHS
+            // would push past the line width. We check after the operator
+            // width is accounted for.
+            if not is_multiline and .options.width_enabled() and not .in_format_str {
+                let rhs_width = .measure_expr(node.u.binary.rhs)
+                let op_w = binary_op_width(op)
+                if .would_exceed_width(op_w + rhs_width) {
+                    // Check if the RHS can handle its own breaking
+                    // (collections with items break naturally without
+                    // needing to break at the operator)
+                    let rhs = node.u.binary.rhs
+                    let rhs_breakable = false
+                    if rhs.type == Call and rhs.u.call.args.size > 0 {
+                        rhs_breakable = true
+                    } else if rhs.type == ArrayLiteral and rhs.u.array_literal.elements.size > 0 {
+                        rhs_breakable = true
+                    } else if rhs.type == VectorLiteral and rhs.u.vec_literal.elements.size > 0 {
+                        rhs_breakable = true
+                    } else if rhs.type == MapLiteral and rhs.u.map_literal.elements.size > 0 {
+                        rhs_breakable = true
+                    }
+                    if not rhs_breakable {
+                        is_multiline = true
+                    }
                 }
             }
 
-            // For multi-line binary ops, emit inline comment and line break
+            // Write the operator. When breaking to next line, omit the trailing
+            // space to avoid trailing whitespace on the line.
             if is_multiline {
+                match op {
+                    Assignment => .write(" =")
+                    PlusEquals => .write(" +=")
+                    MinusEquals => .write(" -=")
+                    MultiplyEquals => .write(" *=")
+                    DivideEquals => .write(" /=")
+                    LeftShiftEquals => .write(" <<=")
+                    RightShiftEquals => .write(" >>=")
+                    Equals => .write(" ==")
+                    NotEquals => .write(" !=")
+                    LessThan => .write(" <")
+                    LessThanEquals => .write(" <=")
+                    GreaterThan => .write(" >")
+                    GreaterThanEquals => .write(" >=")
+                    Plus => .write(" +")
+                    Minus => .write(" -")
+                    Multiply => .write(" *")
+                    Divide => .write(" /")
+                    Modulus => .write(" %")
+                    And => .write(" and")
+                    Or => .write(" or")
+                    In => .write(" in")
+                    BitwiseAnd => .write(" &")
+                    BitwiseOr => .write(" |")
+                    BitwiseXor => .write(" ^")
+                    LeftShift => .write(" <<")
+                    RightShift => .write(" >>")
+                    else => {
+                        .write(" ")
+                        .write(.source_text(node.u.binary.op_span))
+                    }
+                }
                 .emit_inline_comment(op_line)
                 .newline()
                 .write_indent()
+                .format_expr(node.u.binary.rhs)
+            } else {
+                match op {
+                    Assignment => .write(" = ")
+                    PlusEquals => .write(" += ")
+                    MinusEquals => .write(" -= ")
+                    MultiplyEquals => .write(" *= ")
+                    DivideEquals => .write(" /= ")
+                    LeftShiftEquals => .write(" <<= ")
+                    RightShiftEquals => .write(" >>= ")
+                    Equals => .write(" == ")
+                    NotEquals => .write(" != ")
+                    LessThan => .write(" < ")
+                    LessThanEquals => .write(" <= ")
+                    GreaterThan => .write(" > ")
+                    GreaterThanEquals => .write(" >= ")
+                    Plus => .write(" + ")
+                    Minus => .write(" - ")
+                    Multiply => .write(" * ")
+                    Divide => .write(" / ")
+                    Modulus => .write(" % ")
+                    And => .write(" and ")
+                    Or => .write(" or ")
+                    In => .write(" in ")
+                    BitwiseAnd => .write(" & ")
+                    BitwiseOr => .write(" | ")
+                    BitwiseXor => .write(" ^ ")
+                    LeftShift => .write(" << ")
+                    RightShift => .write(" >> ")
+                    else => {
+                        .write(" ")
+                        .write(.source_text(node.u.binary.op_span))
+                        .write(" ")
+                    }
+                }
+                .format_expr(node.u.binary.rhs)
             }
-
-            .format_expr(node.u.binary.rhs)
         }
         UnaryOp => {
             let op = node.u.unary.op
@@ -1904,10 +2146,29 @@ def Formatter::format_function(&this, func: &Function) {
     }
 
     if func.is_arrow {
-        .write(" => ")
-        .format_expr(func.body)
-        .emit_inline_comment(func.body.span.start.line)
-        .newline()
+        // Width-aware: check if arrow body would fit on same line
+        let break_arrow = false
+        if .options.width_enabled() {
+            let body_width = .measure_expr(func.body)
+            if .would_exceed_width(4 + body_width) { // 4 for " => "
+                break_arrow = true
+            }
+        }
+        if break_arrow {
+            .write(" =>")
+            .newline()
+            .push_indent()
+            .write_indent()
+            .format_expr(func.body)
+            .pop_indent()
+            .emit_inline_comment(func.body.span.start.line)
+            .newline()
+        } else {
+            .write(" => ")
+            .format_expr(func.body)
+            .emit_inline_comment(func.body.span.start.line)
+            .newline()
+        }
     } else {
         .write(" ")
         // Record function header (def ... {) as a pseudo-statement so
@@ -2658,9 +2919,10 @@ def format_usage(code: i32) {
     println("   ocen format [options] <file>")
     println("")
     println("Options:")
-    println("    --indent N     Set indent size in spaces (default: 4)")
-    println("    --range S:E    Only format declarations overlapping lines S through E")
-    println("    -h, --help     Display this information")
+    println("    --indent N       Set indent size in spaces (default: 4)")
+    println("    --line-width N   Set target line width (default: 0 = disabled)")
+    println("    --range S:E      Only format declarations overlapping lines S through E")
+    println("    -h, --help       Display this information")
     std::exit(code)
 }
 
@@ -2669,6 +2931,7 @@ def format_main(argc: i32, argv: &str): i32 {
     shift_args(&argc, &argv) // skip "format"
 
     let indent_size: u32 = 4
+    let line_width: u32 = 0
     let filename: str = null
     let range_start: u32 = 0
     let range_end: u32 = 0
@@ -2688,6 +2951,14 @@ def format_main(argc: i32, argv: &str): i32 {
                     println("Invalid indent size: %s (expected 1..16)", val)
                     format_usage(1)
                 }
+            }
+            "--line-width" => {
+                if argc == 0 {
+                    println("--line-width requires a value")
+                    format_usage(1)
+                }
+                let val = shift_args(&argc, &argv)
+                line_width = val.to_u32()
             }
             "--range" => {
                 if argc == 0 {
@@ -2763,6 +3034,7 @@ def format_main(argc: i32, argv: &str): i32 {
     // Create formatter and run
     let fmt = Formatter::make(program, ns, contents, filename)
     fmt.options.indent_size = indent_size
+    fmt.options.line_width = line_width
     fmt.range_start = range_start
     fmt.range_end = range_end
     let result = fmt.run()

@@ -1,0 +1,14 @@
+/// format: --line-width 50
+
+def foo() {
+    let short_name: u32 = 1
+    let very_long_variable_name: SomeLongTypeName =
+        some_very_long_initializer_expression()
+    let another: u32 = compute(
+        alpha,
+        beta,
+        gamma,
+        delta,
+        epsilon
+    )
+}

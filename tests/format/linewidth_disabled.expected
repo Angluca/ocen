@@ -1,0 +1,9 @@
+/// format
+
+def very_long_function_name_that_exceeds_any_reasonable_line_width(extremely_long_parameter_name_one: u32, extremely_long_parameter_name_two: u32): u32 {
+    return extremely_long_parameter_name_one + extremely_long_parameter_name_two
+}
+
+def foo() {
+    very_long_function_name_that_exceeds_any_reasonable_line_width(extremely_long_parameter_name_one: 12345, extremely_long_parameter_name_two: 67890)
+}

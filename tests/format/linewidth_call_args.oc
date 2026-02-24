@@ -1,0 +1,16 @@
+/// format: --line-width 40
+
+def short(a: u32, b: u32): u32 {
+    return a + b
+}
+
+def foo() {
+    short(1, 2)
+    short(100000, 200000, 300000, 400000)
+    short(a, b, c)
+    some_function(first_arg, second_arg, third_arg)
+    x.method(alpha, beta, gamma, delta)
+    very_long_function_name(arg1, arg2)
+    f()
+    f(a)
+}

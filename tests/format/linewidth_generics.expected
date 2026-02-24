@@ -1,0 +1,13 @@
+/// format: --line-width 40
+
+import std::vector::{ Vector }
+import std::map::{ Map }
+
+def foo() {
+    let v =
+        Vector<SomeLongTypeName>::new()
+    let m =
+        Map<str, Vector<SomeLongTypeName>>::new()
+    let x: Vector<Map<str, u32>> =
+        Vector<Map<str, u32>>::new()
+}

@@ -30,6 +30,7 @@ class Result(Enum):
     TEST_MODE_FAIL = 10
     FORMAT = 11
     FORMAT_RANGE = 12
+    FORMAT_OPTS = 13
 
 @dataclass(frozen=True)
 class LSPTest:
@@ -62,6 +63,8 @@ def get_expected(filename) -> Optional[Expected]:
                 return Expected(Result.TEST_MODE_PASS, None)
             if line == "format":
                 return Expected(Result.FORMAT, None)
+            if line.startswith("format "):
+                return Expected(Result.FORMAT_OPTS, line[len("format "):])
             if line == "":
                 continue
 
@@ -82,6 +85,8 @@ def get_expected(filename) -> Optional[Expected]:
                 return Expected(Result.RUNTIME_FAIL, value)
             if name == "format-range":
                 return Expected(Result.FORMAT_RANGE, value)
+            if name == "format":
+                return Expected(Result.FORMAT_OPTS, value)
             if name == "lsp":
                 is_lsp = True
                 lsp_flags = value
@@ -201,6 +206,8 @@ def handle_format_test(compiler: str, num: int, path: Path, expected: Expected, 
     cmd = [compiler, "format"]
     if expected.type == Result.FORMAT_RANGE:
         cmd += ["--range", expected.value]
+    elif expected.type == Result.FORMAT_OPTS:
+        cmd += shlex.split(expected.value)
     cmd.append(str(path))
     if debug:
         print(f"[{num}] {path} || {' '.join(cmd)}", flush=True)
@@ -230,6 +237,8 @@ def handle_format_test(compiler: str, num: int, path: Path, expected: Expected, 
     cmd_idem = [compiler, "format"]
     if expected.type == Result.FORMAT_RANGE:
         cmd_idem += ["--range", expected.value]
+    elif expected.type == Result.FORMAT_OPTS:
+        cmd_idem += shlex.split(expected.value)
     cmd_idem.append(str(expected_path))
     process2 = run(cmd_idem, stdout=PIPE, stderr=PIPE)
     if process2.returncode == 0:
@@ -240,7 +249,7 @@ def handle_format_test(compiler: str, num: int, path: Path, expected: Expected, 
     return True, "(Success)", path
 
 def handle_test(compiler: str, num: int, path: Path, expected: Expected, debug: bool) -> Tuple[bool, str, Path]:
-    if expected.type in (Result.FORMAT, Result.FORMAT_RANGE):
+    if expected.type in (Result.FORMAT, Result.FORMAT_RANGE, Result.FORMAT_OPTS):
         return handle_format_test(compiler, num, path, expected, debug)
 
     if expected.type == Result.LSP:

@@ -1,0 +1,11 @@
+/// format: --line-width 50
+
+struct ShortStruct {
+    x: u32
+    y: u32
+}
+
+def foo() {
+    let a = ShortStruct(x: 1, y: 2)
+    let b = ShortStruct(first_field: 100, second_field: 200, third_field: 300)
+}

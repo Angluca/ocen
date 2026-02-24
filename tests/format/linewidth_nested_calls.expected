@@ -1,0 +1,14 @@
+/// format: --line-width 60
+
+def foo() {
+    // Short calls that fit should stay on one line
+    short(1, 2, 3)
+    // Even with labeled args
+    make(x: 1, y: 2)
+
+    // Nested calls where outer exceeds width
+    outer(inner1(a, b, c), inner2(d, e, f), inner3(g, h))
+
+    // Deeply nested
+    a(b(c(d(e(f(1, 2, 3))))))
+}

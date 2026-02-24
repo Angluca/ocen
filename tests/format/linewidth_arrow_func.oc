@@ -1,0 +1,5 @@
+/// format: --line-width 50
+
+def short_arrow(x: u32): u32 => x + 1
+
+def long_arrow(very_long_param: u32, another_param: u32): u32 => very_long_param + another_param

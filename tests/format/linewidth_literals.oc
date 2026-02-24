@@ -1,0 +1,9 @@
+/// format: --line-width 40
+
+def foo() {
+    let a = [1, 2, 3]
+    let b = [100, 200, 300, 400, 500, 600, 700]
+    let c = $[1, 2, 3]
+    let d = $[100, 200, 300, 400, 500, 600]
+    let e = ${"key1": "val1", "key2": "val2", "key3": "val3"}
+}
