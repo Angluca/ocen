@@ -167,11 +167,15 @@ typedef struct compiler_ast_nodes_MatchCondArg compiler_ast_nodes_MatchCondArg;
 typedef struct compiler_ast_nodes_MatchCond compiler_ast_nodes_MatchCond;
 typedef struct compiler_ast_nodes_MatchCase compiler_ast_nodes_MatchCase;
 typedef struct compiler_ast_nodes_MapLiteralPair compiler_ast_nodes_MapLiteralPair;
+typedef struct compiler_formatter_FormatOptions compiler_formatter_FormatOptions;
+typedef struct compiler_formatter_CollectionPlan compiler_formatter_CollectionPlan;
+typedef struct compiler_formatter_ParamPlan compiler_formatter_ParamPlan;
 typedef struct compiler_formatter_TypeDefInfo compiler_formatter_TypeDefInfo;
 typedef enum compiler_formatter_DeclType compiler_formatter_DeclType;
 typedef union compiler_formatter_DeclUnion compiler_formatter_DeclUnion;
 typedef struct compiler_formatter_Decl compiler_formatter_Decl;
 typedef struct compiler_formatter_DeclMapping compiler_formatter_DeclMapping;
+typedef struct compiler_formatter_CommentIndex compiler_formatter_CommentIndex;
 typedef struct compiler_formatter_Formatter compiler_formatter_Formatter;
 typedef struct compiler_lsp_server_Loc compiler_lsp_server_Loc;
 typedef struct compiler_lsp_server_TextDocument compiler_lsp_server_TextDocument;
@@ -217,7 +221,7 @@ typedef struct std_vector_Iterator__7 std_vector_Iterator__7;
 typedef struct std_compact_map_Iterator__1 std_compact_map_Iterator__1;
 typedef struct std_vector_Iterator__24 std_vector_Iterator__24;
 typedef struct std_compact_map_Iterator__2 std_compact_map_Iterator__2;
-typedef struct std_vector_Iterator__36 std_vector_Iterator__36;
+typedef struct std_vector_Iterator__40 std_vector_Iterator__40;
 typedef struct std_compact_map_Iterator__4 std_compact_map_Iterator__4;
 typedef enum std_logging_LogLevel std_logging_LogLevel;
 typedef struct std_set_Set__0 std_set_Set__0;
@@ -291,7 +295,6 @@ typedef struct std_vector_Vector__26 std_vector_Vector__26;
 typedef struct std_vector_Vector__27 std_vector_Vector__27;
 typedef struct std_vector_Vector__28 std_vector_Vector__28;
 typedef struct std_vector_Vector__29 std_vector_Vector__29;
-typedef struct std_vector_Vector__30 std_vector_Vector__30;
 typedef struct std_vector_Vector__31 std_vector_Vector__31;
 typedef struct std_vector_Vector__32 std_vector_Vector__32;
 typedef struct std_vector_Vector__33 std_vector_Vector__33;
@@ -302,6 +305,9 @@ typedef struct std_vector_Vector__37 std_vector_Vector__37;
 typedef struct std_vector_Vector__38 std_vector_Vector__38;
 typedef struct std_vector_Vector__39 std_vector_Vector__39;
 typedef struct std_vector_Vector__40 std_vector_Vector__40;
+typedef struct std_vector_Vector__41 std_vector_Vector__41;
+typedef struct std_vector_Vector__42 std_vector_Vector__42;
+typedef struct std_vector_Vector__43 std_vector_Vector__43;
 typedef struct std_vector_Iterator__0 std_vector_Iterator__0;
 typedef struct std_vector_Iterator__3 std_vector_Iterator__3;
 typedef struct std_vector_Iterator__4 std_vector_Iterator__4;
@@ -325,11 +331,11 @@ typedef struct std_vector_Iterator__26 std_vector_Iterator__26;
 typedef struct std_vector_Iterator__27 std_vector_Iterator__27;
 typedef struct std_vector_Iterator__28 std_vector_Iterator__28;
 typedef struct std_vector_Iterator__29 std_vector_Iterator__29;
-typedef struct std_vector_Iterator__34 std_vector_Iterator__34;
-typedef struct std_vector_Iterator__35 std_vector_Iterator__35;
+typedef struct std_vector_Iterator__38 std_vector_Iterator__38;
+typedef struct std_vector_Iterator__39 std_vector_Iterator__39;
 typedef struct std_json_Parser std_json_Parser;
-typedef struct _ClosureTy_37 _ClosureTy_37;
-typedef struct _ClosureTy_48 _ClosureTy_48;
+typedef struct _ClosureTy_41 _ClosureTy_41;
+typedef struct _ClosureTy_52 _ClosureTy_52;
 typedef struct compiler_formatter_collect_decls__Closure_0Ctx compiler_formatter_collect_decls__Closure_0Ctx;
 typedef struct compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1Ctx compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1Ctx;
 typedef struct compiler_passes_typechecker_create_match_for_error_prop__Closure_2Ctx compiler_passes_typechecker_create_match_for_error_prop__Closure_2Ctx;
@@ -1221,6 +1227,24 @@ struct compiler_ast_nodes_MapLiteralPair {
   compiler_ast_nodes_AST *value;
 };
 
+struct compiler_formatter_FormatOptions {
+  u32 indent_size;
+  u32 line_width;
+};
+
+struct compiler_formatter_CollectionPlan {
+  bool multiline;
+  u32 size;
+  char *open;
+  char *close;
+};
+
+struct compiler_formatter_ParamPlan {
+  bool multiline;
+  u32 param_count;
+  bool is_variadic;
+};
+
 struct compiler_formatter_TypeDefInfo {
   char *name;
   compiler_types_Type *type;
@@ -1265,6 +1289,7 @@ union compiler_formatter_DeclUnion {
 struct compiler_formatter_Decl {
   compiler_formatter_DeclType type;
   u32 line;
+  u32 col;
   compiler_formatter_DeclUnion u;
 };
 
@@ -1275,11 +1300,17 @@ struct compiler_formatter_DeclMapping {
   u32 output_end;
 };
 
+struct compiler_formatter_CommentIndex {
+  std_vector_Vector__35 *line_to_comments;
+  u32 num_lines;
+};
+
 struct compiler_formatter_Formatter {
   std_buffer_Buffer output;
   u32 indent;
-  u32 indent_size;
+  compiler_formatter_FormatOptions options;
   char *source;
+  std_vector_Vector__31 *line_offsets;
   char *filename;
   std_vector_Vector__16 *comments;
   u32 comment_index;
@@ -1288,7 +1319,16 @@ struct compiler_formatter_Formatter {
   u32 range_start;
   u32 range_end;
   u32 output_line;
-  std_vector_Vector__32 *decl_mappings;
+  std_vector_Vector__34 *decl_mappings;
+  std_vector_Vector__34 *stmt_mappings;
+  bool track_stmts;
+  bool in_format_str;
+  std_vector_Vector__31 *ic_lines;
+  u32 last_comment_request_line;
+  bool debug_cursor;
+  u32 cursor_regressions;
+  std_vector_Vector__36 *comment_emitted;
+  compiler_formatter_CommentIndex comment_line_index;
 };
 
 struct compiler_lsp_server_Loc {
@@ -1860,35 +1900,35 @@ struct std_compact_map_Map__2 {
 };
 
 struct std_compact_map_Map__3 {
-  std_vector_Vector__33 *items;
-  i32 *indices;
-  u32 capacity;
-  u32 num_tombstones;
-};
-
-struct std_compact_map_Map__4 {
-  std_vector_Vector__36 *items;
-  i32 *indices;
-  u32 capacity;
-  u32 num_tombstones;
-};
-
-struct std_compact_map_Map__5 {
   std_vector_Vector__37 *items;
   i32 *indices;
   u32 capacity;
   u32 num_tombstones;
 };
 
+struct std_compact_map_Map__4 {
+  std_vector_Vector__40 *items;
+  i32 *indices;
+  u32 capacity;
+  u32 num_tombstones;
+};
+
+struct std_compact_map_Map__5 {
+  std_vector_Vector__41 *items;
+  i32 *indices;
+  u32 capacity;
+  u32 num_tombstones;
+};
+
 struct std_compact_map_Map__6 {
-  std_vector_Vector__38 *items;
+  std_vector_Vector__42 *items;
   i32 *indices;
   u32 capacity;
   u32 num_tombstones;
 };
 
 struct std_compact_map_Map__7 {
-  std_vector_Vector__39 *items;
+  std_vector_Vector__43 *items;
   i32 *indices;
   u32 capacity;
   u32 num_tombstones;
@@ -1912,13 +1952,13 @@ struct std_compact_map_Iterator__2 {
   std_vector_Iterator__24 iter;
 };
 
-struct std_vector_Iterator__36 {
-  std_vector_Vector__36 *vec;
+struct std_vector_Iterator__40 {
+  std_vector_Vector__40 *vec;
   u32 index;
 };
 
 struct std_compact_map_Iterator__4 {
-  std_vector_Iterator__36 iter;
+  std_vector_Iterator__40 iter;
 };
 
 enum std_logging_LogLevel {
@@ -1979,7 +2019,7 @@ union std_value_ValueUnion {
   i64 as_int;
   f64 as_float;
   std_buffer_Buffer as_str;
-  std_vector_Vector__35 *as_list;
+  std_vector_Vector__39 *as_list;
   std_compact_map_Map__4 *as_dict;
 };
 
@@ -2421,68 +2461,80 @@ struct std_vector_Vector__29 {
   u32 capacity;
 };
 
-struct std_vector_Vector__30 {
-  compiler_formatter_Decl *data;
-  u32 size;
-  u32 capacity;
-};
-
 struct std_vector_Vector__31 {
-  std_sv_SV *data;
+  u32 *data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__32 {
-  compiler_formatter_DeclMapping *data;
+  compiler_formatter_Decl *data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__33 {
-  std_compact_map_Item__3 *data;
+  std_sv_SV *data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__34 {
-  std_span_Span *data;
+  compiler_formatter_DeclMapping *data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__35 {
-  std_value_Value **data;
+  std_vector_Vector__31 **data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__36 {
-  std_compact_map_Item__4 *data;
+  bool *data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__37 {
-  std_compact_map_Item__5 *data;
+  std_compact_map_Item__3 *data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__38 {
-  std_compact_map_Item__6 *data;
+  std_span_Span *data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__39 {
-  std_compact_map_Item__7 *data;
+  std_value_Value **data;
   u32 size;
   u32 capacity;
 };
 
 struct std_vector_Vector__40 {
-  u32 *data;
+  std_compact_map_Item__4 *data;
+  u32 size;
+  u32 capacity;
+};
+
+struct std_vector_Vector__41 {
+  std_compact_map_Item__5 *data;
+  u32 size;
+  u32 capacity;
+};
+
+struct std_vector_Vector__42 {
+  std_compact_map_Item__6 *data;
+  u32 size;
+  u32 capacity;
+};
+
+struct std_vector_Vector__43 {
+  std_compact_map_Item__7 *data;
   u32 size;
   u32 capacity;
 };
@@ -2602,13 +2654,13 @@ struct std_vector_Iterator__29 {
   u32 index;
 };
 
-struct std_vector_Iterator__34 {
-  std_vector_Vector__34 *vec;
+struct std_vector_Iterator__38 {
+  std_vector_Vector__38 *vec;
   u32 index;
 };
 
-struct std_vector_Iterator__35 {
-  std_vector_Vector__35 *vec;
+struct std_vector_Iterator__39 {
+  std_vector_Vector__39 *vec;
   u32 index;
 };
 
@@ -2617,11 +2669,11 @@ struct std_json_Parser {
   u32 curr;
 };
 
-struct _ClosureTy_37 {
+struct _ClosureTy_41 {
   void *_C;
   void (*fn)(void *__C);
 };
-struct _ClosureTy_48 {
+struct _ClosureTy_52 {
   void *_C;
   i8 (*fn)(void *__C, compiler_formatter_Decl, compiler_formatter_Decl);
 };
@@ -3003,6 +3055,7 @@ compiler_ast_scopes_Scope *compiler_ast_scopes_Scope_new(compiler_ast_scopes_Sco
 compiler_ast_scopes_Symbol *compiler_ast_scopes_Scope_lookup_recursive(compiler_ast_scopes_Scope *this, char *name);
 compiler_ast_scopes_Symbol *compiler_ast_scopes_Scope_lookup_local(compiler_ast_scopes_Scope *this, char *name);
 void compiler_ast_scopes_Scope_insert(compiler_ast_scopes_Scope *this, char *name, compiler_ast_scopes_Symbol *symbol);
+char *compiler_ast_operators_Operator_str(compiler_ast_operators_Operator this);
 compiler_ast_operators_Operator compiler_ast_operators_Operator_from_operator_overload(char *s, std_vector_Vector__3 *params);
 compiler_ast_operators_Operator compiler_ast_operators_Operator_from_token(compiler_tokens_Token *tok);
 u32 compiler_ast_operators_Operator_num_overload_params(compiler_ast_operators_Operator this);
@@ -3031,25 +3084,59 @@ compiler_ast_nodes_AST *compiler_ast_nodes_AST_new_binop(compiler_ast_operators_
 std_span_Span compiler_ast_nodes_AST_display_span(compiler_ast_nodes_AST *this);
 compiler_ast_scopes_Symbol *compiler_ast_nodes_AST_symbol(compiler_ast_nodes_AST *this);
 bool compiler_ast_nodes_AST_is_lvalue(compiler_ast_nodes_AST *this);
-char *compiler_formatter_operator_str(compiler_ast_operators_Operator op);
-u32 compiler_formatter_decl_end_line(compiler_formatter_Decl *d);
+compiler_formatter_FormatOptions compiler_formatter_FormatOptions_default(void);
+bool compiler_formatter_should_break_collection(u32 start_line, u32 end_line, bool has_comments, compiler_formatter_FormatOptions *options);
+bool compiler_formatter_should_break_list_literal(u32 start_line, u32 end_line, compiler_formatter_FormatOptions *options);
+bool compiler_formatter_should_break_params(u32 first_param_line, u32 last_param_line, bool has_comments, compiler_formatter_FormatOptions *options);
+bool compiler_formatter_should_break_binary_rhs(u32 op_line, u32 rhs_start_line, bool in_format_str, compiler_formatter_FormatOptions *options);
+u32 compiler_formatter_decl_end_line(compiler_formatter_Decl *decl);
+compiler_formatter_CommentIndex compiler_formatter_CommentIndex_build(std_vector_Vector__16 *all_comments, u32 num_lines);
+std_vector_Vector__31 *compiler_formatter_CommentIndex_comments_on_line(compiler_formatter_CommentIndex *this, u32 line);
+std_vector_Vector__31 *compiler_formatter_build_line_offsets(char *source);
 compiler_formatter_Formatter compiler_formatter_Formatter_make(compiler_ast_program_Program *program, compiler_ast_program_Namespace *ns, char *source, char *filename);
+void compiler_formatter_Formatter_note_cursor_regression(compiler_formatter_Formatter *this, char *kind, u32 requested);
 void compiler_formatter_Formatter_write(compiler_formatter_Formatter *this, char *s);
 void compiler_formatter_Formatter_newline(compiler_formatter_Formatter *this);
+void compiler_formatter_Formatter_push_indent(compiler_formatter_Formatter *this);
+void compiler_formatter_Formatter_pop_indent(compiler_formatter_Formatter *this);
 void compiler_formatter_Formatter_write_indent(compiler_formatter_Formatter *this);
 char *compiler_formatter_Formatter_source_text(compiler_formatter_Formatter *this, std_span_Span span);
 bool compiler_formatter_Formatter_has_explicit_return_type(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func);
-void compiler_formatter_Formatter_emit_comments_before(compiler_formatter_Formatter *this, u32 line);
+bool compiler_formatter_Formatter_is_implicit_void_function_type(compiler_formatter_Formatter *this, compiler_types_Type *type);
+u32 compiler_formatter_Formatter_emit_comments_before(compiler_formatter_Formatter *this, u32 line, bool preserve_blanks, u32 prev_end_line);
 void compiler_formatter_Formatter_emit_inline_comment(compiler_formatter_Formatter *this, u32 line);
+void compiler_formatter_Formatter_emit_inline_comment_backward(compiler_formatter_Formatter *this, u32 line);
 void compiler_formatter_Formatter_emit_remaining_comments(compiler_formatter_Formatter *this, u32 max_line);
 bool compiler_formatter_Formatter_has_inline_comments_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line);
+bool compiler_formatter_Formatter_has_unemitted_inline_comment_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line);
+void compiler_formatter_Formatter_emit_all_unemitted_inline_comments_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line);
+bool compiler_formatter_Formatter_has_blank_source_line_between(compiler_formatter_Formatter *this, u32 after_line, u32 before_line);
+void compiler_formatter_Formatter_format_extern_attr(compiler_formatter_Formatter *this, compiler_ast_scopes_Symbol *sym);
+void compiler_formatter_Formatter_format_template_params(compiler_formatter_Formatter *this, compiler_ast_scopes_Symbol *sym);
+void compiler_formatter_Formatter_write_attr_line(compiler_formatter_Formatter *this, char *attr);
+u32 compiler_formatter_Formatter_first_item_or_comment_line(compiler_formatter_Formatter *this, u32 prev_end_line, u32 item_start_line);
+u32 compiler_formatter_Formatter_emit_item_preamble(compiler_formatter_Formatter *this, u32 item_start_line, u32 item_index, u32 prev_end_line);
+void compiler_formatter_Formatter_format_top_level_var_decl(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, char *keyword);
+void compiler_formatter_Formatter_write_var_decl(compiler_formatter_Formatter *this, compiler_ast_nodes_Variable *var, char *keyword);
+void compiler_formatter_Formatter_format_inline_if_body(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *body);
+void compiler_formatter_Formatter_format_arrow_body(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *body, bool add_match_trailing_comma);
+char *compiler_formatter_Formatter_format_function_type(compiler_formatter_Formatter *this, compiler_types_Type *type);
 char *compiler_formatter_Formatter_format_type(compiler_formatter_Formatter *this, compiler_types_Type *type);
+u32 compiler_formatter_Formatter_collection_size(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
+u32 compiler_formatter_Formatter_collection_item_start_line(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, u32 i);
+u32 compiler_formatter_Formatter_collection_item_end_line(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, u32 i);
+void compiler_formatter_Formatter_format_collection_item(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, u32 i);
+compiler_formatter_CollectionPlan compiler_formatter_Formatter_plan_collection(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, char *open, char *close);
+void compiler_formatter_Formatter_emit_collection(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, compiler_formatter_CollectionPlan *plan);
+compiler_formatter_ParamPlan compiler_formatter_Formatter_plan_params(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func);
+void compiler_formatter_Formatter_emit_params(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func, compiler_formatter_ParamPlan *plan);
 void compiler_formatter_Formatter_format_expr(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_match_cond(compiler_formatter_Formatter *this, compiler_ast_nodes_MatchCond *cond);
 void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_multi_if(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_block(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_statement(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
+bool compiler_formatter_Formatter_match_body_needs_trailing_comma(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *body);
 void compiler_formatter_Formatter_format_for(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_match(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_var_decl(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
@@ -3064,10 +3151,19 @@ void compiler_formatter_Formatter_format_enum(compiler_formatter_Formatter *this
 void compiler_formatter_Formatter_format_const_decl(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_global_var(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_typedef(compiler_formatter_Formatter *this, char *name, compiler_types_Type *type);
-std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_formatter_Formatter *this, compiler_ast_program_Namespace *ns);
+std_vector_Vector__32 *compiler_formatter_Formatter_collect_decls(compiler_formatter_Formatter *this, compiler_ast_program_Namespace *ns);
 void compiler_formatter_Formatter_format_ns(compiler_formatter_Formatter *this, compiler_ast_program_Namespace *ns, bool track_mappings);
 void compiler_formatter_Formatter_format_ns_block(compiler_formatter_Formatter *this, compiler_ast_program_Namespace *ns);
-std_vector_Vector__31 *compiler_formatter_split_lines(char *text);
+std_vector_Vector__33 *compiler_formatter_split_lines(char *text);
+u32 compiler_formatter_find_inline_comment_col(std_sv_SV line);
+void compiler_formatter_Formatter_align_inline_comments(compiler_formatter_Formatter *this);
+void compiler_formatter_emit_source_lines(std_buffer_Buffer *result, std_vector_Vector__33 *source_lines, u32 start, u32 end);
+void compiler_formatter_emit_formatted_lines(std_buffer_Buffer *result, std_vector_Vector__33 *formatted_lines, u32 start, u32 end);
+bool compiler_formatter_mapping_overlaps_range(u32 source_start, u32 source_end, u32 range_start, u32 range_end);
+void compiler_formatter_emit_mapping_substitution(std_buffer_Buffer *result, compiler_formatter_DeclMapping *mapping, std_vector_Vector__33 *source_lines, std_vector_Vector__33 *formatted_lines, u32 range_start, u32 range_end);
+std_vector_Vector__31 *compiler_formatter_filter_leaf_mappings(std_vector_Vector__31 *all_stmts, std_vector_Vector__34 *stmt_mappings);
+void compiler_formatter_Formatter_validate_mappings(compiler_formatter_Formatter *this);
+char *compiler_formatter_Formatter_reconstruct_range(compiler_formatter_Formatter *this, std_vector_Vector__33 *source_lines, std_vector_Vector__33 *formatted_lines);
 char *compiler_formatter_Formatter_run(compiler_formatter_Formatter *this);
 void compiler_formatter_format_usage(i32 code);
 i32 compiler_formatter_format_main(i32 argc, char **argv);
@@ -3127,7 +3223,7 @@ std_value_Value *compiler_lsp_cli_utils_gen_variable_json(compiler_ast_nodes_Var
 std_value_Value *compiler_lsp_cli_utils_gen_function_json(compiler_ast_nodes_Function *func);
 std_value_Value *compiler_lsp_cli_utils_gen_namespace_json(compiler_ast_program_Namespace *ns);
 void compiler_lsp_cli_utils_insert_completion_item(std_value_Value *completions, compiler_ast_scopes_Symbol *sym, std_set_Set__2 *seen, char *name);
-std_vector_Vector__34 *compiler_lsp_cli_utils_get_unique_reference_spans(compiler_ast_scopes_Symbol *sym, bool for_rename);
+std_vector_Vector__38 *compiler_lsp_cli_utils_get_unique_reference_spans(compiler_ast_scopes_Symbol *sym, bool for_rename);
 std_value_Value *compiler_lsp_cli_utils_gen_references_json(compiler_ast_scopes_Symbol *sym, std_span_Location loc);
 std_value_Value *compiler_lsp_cli_utils_gen_signature_help(compiler_ast_nodes_AST *node, u32 active_param);
 std_value_Value *compiler_lsp_cli_utils_gen_renames_json(compiler_ast_scopes_Symbol *sym, std_span_Location loc);
@@ -3219,6 +3315,7 @@ u8 char_value_from_hex(char this);
 u8 char_get_hex_digit(char this);
 bool char_is_alnum(char this);
 bool char_is_print(char this);
+bool char_is_space(char this);
 u32 u32_min(u32 this, u32 other);
 u32 u32_max(u32 this, u32 other);
 char *std_shift_args(i32 *argc, char ***argv, char *where);
@@ -3267,138 +3364,142 @@ compiler_ast_nodes_Argument *std_mem_alloc__14(u32 count);
 compiler_ast_nodes_ImportPart *std_mem_alloc__15(u32 count);
 compiler_ast_nodes_MatchCond *std_mem_alloc__16(u32 count);
 compiler_ast_nodes_AST *std_mem_alloc__17(u32 count);
-char *std_mem_alloc__18(u32 count);
-compiler_attributes_Attribute *std_mem_alloc__19(u32 count);
-compiler_tokens_Token *std_mem_alloc__20(u32 count);
-compiler_errors_Error *std_mem_alloc__21(u32 count);
-compiler_types_Type *std_mem_alloc__22(u32 count);
-i32 *std_mem_alloc__23(u32 count);
-std_compact_map_Map__0 *std_mem_alloc__24(u32 count);
-std_compact_map_Map__1 *std_mem_alloc__25(u32 count);
-std_compact_map_Map__2 *std_mem_alloc__26(u32 count);
-std_compact_map_Map__3 *std_mem_alloc__27(u32 count);
-std_compact_map_Map__4 *std_mem_alloc__28(u32 count);
-std_compact_map_Map__5 *std_mem_alloc__29(u32 count);
-std_compact_map_Map__6 *std_mem_alloc__30(u32 count);
-std_compact_map_Map__7 *std_mem_alloc__31(u32 count);
-u8 *std_mem_alloc__32(u32 count);
-std_set_Set__0 *std_mem_alloc__33(u32 count);
-std_set_Set__1 *std_mem_alloc__34(u32 count);
-std_set_Set__2 *std_mem_alloc__35(u32 count);
-std_set_Set__3 *std_mem_alloc__36(u32 count);
-std_value_Value *std_mem_alloc__37(u32 count);
-std_map_Item__0 *std_mem_alloc__38(u32 count);
-std_map_Item__0 **std_mem_alloc__39(u32 count);
-std_map_Map__0 *std_mem_alloc__40(u32 count);
-std_map_Item__1 *std_mem_alloc__41(u32 count);
-std_map_Item__1 **std_mem_alloc__42(u32 count);
-std_map_Map__1 *std_mem_alloc__43(u32 count);
-std_map_Item__2 *std_mem_alloc__44(u32 count);
-std_map_Item__2 **std_mem_alloc__45(u32 count);
-std_map_Map__2 *std_mem_alloc__46(u32 count);
-std_map_Item__3 *std_mem_alloc__47(u32 count);
-std_map_Item__3 **std_mem_alloc__48(u32 count);
-std_map_Map__3 *std_mem_alloc__49(u32 count);
-std_map_Item__4 *std_mem_alloc__50(u32 count);
-std_map_Item__4 **std_mem_alloc__51(u32 count);
-std_map_Map__4 *std_mem_alloc__52(u32 count);
-std_map_Item__5 *std_mem_alloc__53(u32 count);
-std_map_Item__5 **std_mem_alloc__54(u32 count);
-std_map_Map__5 *std_mem_alloc__55(u32 count);
-std_map_Item__6 *std_mem_alloc__56(u32 count);
-std_map_Item__6 **std_mem_alloc__57(u32 count);
-std_map_Map__6 *std_mem_alloc__58(u32 count);
-std_map_Item__7 *std_mem_alloc__59(u32 count);
-std_map_Item__7 **std_mem_alloc__60(u32 count);
-std_map_Map__7 *std_mem_alloc__61(u32 count);
-std_map_Item__8 *std_mem_alloc__62(u32 count);
-std_map_Item__8 **std_mem_alloc__63(u32 count);
-std_map_Map__8 *std_mem_alloc__64(u32 count);
-std_map_Item__9 *std_mem_alloc__65(u32 count);
-std_map_Item__9 **std_mem_alloc__66(u32 count);
-std_map_Map__9 *std_mem_alloc__67(u32 count);
-std_vector_Vector__0 *std_mem_alloc__68(u32 count);
-compiler_types_Type **std_mem_alloc__69(u32 count);
-std_vector_Vector__1 *std_mem_alloc__70(u32 count);
-compiler_ast_scopes_Scope **std_mem_alloc__71(u32 count);
-std_vector_Vector__2 *std_mem_alloc__72(u32 count);
-compiler_ast_program_Namespace **std_mem_alloc__73(u32 count);
-std_vector_Vector__3 *std_mem_alloc__74(u32 count);
-compiler_ast_nodes_Variable **std_mem_alloc__75(u32 count);
-std_vector_Vector__4 *std_mem_alloc__76(u32 count);
-compiler_ast_scopes_TemplateInstance **std_mem_alloc__77(u32 count);
-std_vector_Vector__5 *std_mem_alloc__78(u32 count);
-compiler_ast_nodes_MatchCond **std_mem_alloc__79(u32 count);
-std_vector_Vector__6 *std_mem_alloc__80(u32 count);
-std_compact_map_Item__0 *std_mem_alloc__81(u32 count);
-std_vector_Vector__7 *std_mem_alloc__82(u32 count);
-std_compact_map_Item__1 *std_mem_alloc__83(u32 count);
-std_vector_Vector__8 *std_mem_alloc__84(u32 count);
-compiler_ast_nodes_ImportPart **std_mem_alloc__85(u32 count);
-std_vector_Vector__9 *std_mem_alloc__86(u32 count);
-compiler_ast_nodes_Function **std_mem_alloc__87(u32 count);
-std_vector_Vector__10 *std_mem_alloc__88(u32 count);
-compiler_ast_nodes_Argument **std_mem_alloc__89(u32 count);
-std_vector_Vector__11 *std_mem_alloc__90(u32 count);
-char **std_mem_alloc__91(u32 count);
-std_vector_Vector__12 *std_mem_alloc__92(u32 count);
-compiler_ast_scopes_Symbol **std_mem_alloc__93(u32 count);
-std_vector_Vector__13 *std_mem_alloc__94(u32 count);
-compiler_tokens_Token **std_mem_alloc__95(u32 count);
-std_vector_Vector__14 *std_mem_alloc__96(u32 count);
-compiler_attributes_Attribute **std_mem_alloc__97(u32 count);
-std_vector_Vector__15 *std_mem_alloc__98(u32 count);
-compiler_errors_Error **std_mem_alloc__99(u32 count);
-std_vector_Vector__16 *std_mem_alloc__100(u32 count);
-compiler_tokens_Comment *std_mem_alloc__101(u32 count);
-std_vector_Vector__17 *std_mem_alloc__102(u32 count);
-compiler_ast_nodes_Structure **std_mem_alloc__103(u32 count);
-std_vector_Vector__18 *std_mem_alloc__104(u32 count);
-compiler_ast_nodes_Enum **std_mem_alloc__105(u32 count);
-std_vector_Vector__19 *std_mem_alloc__106(u32 count);
-compiler_ast_nodes_AST **std_mem_alloc__107(u32 count);
-std_vector_Vector__20 *std_mem_alloc__108(u32 count);
-jmp_buf *std_mem_alloc__109(u32 count);
-std_vector_Vector__21 *std_mem_alloc__110(u32 count);
-compiler_ast_scopes_Reference *std_mem_alloc__111(u32 count);
-std_vector_Vector__22 *std_mem_alloc__112(u32 count);
-compiler_ast_nodes_MatchCondArg **std_mem_alloc__113(u32 count);
-std_vector_Vector__23 *std_mem_alloc__114(u32 count);
-compiler_ast_nodes_EnumVariant **std_mem_alloc__115(u32 count);
-std_vector_Vector__24 *std_mem_alloc__116(u32 count);
-std_compact_map_Item__2 *std_mem_alloc__117(u32 count);
-std_vector_Vector__25 *std_mem_alloc__118(u32 count);
-compiler_ast_operators_Operator *std_mem_alloc__119(u32 count);
-std_vector_Vector__26 *std_mem_alloc__120(u32 count);
-std_vector_Vector__8 **std_mem_alloc__121(u32 count);
-std_vector_Vector__27 *std_mem_alloc__122(u32 count);
-compiler_ast_nodes_IfBranch *std_mem_alloc__123(u32 count);
-std_vector_Vector__28 *std_mem_alloc__124(u32 count);
-compiler_ast_nodes_MatchCase *std_mem_alloc__125(u32 count);
-std_vector_Vector__29 *std_mem_alloc__126(u32 count);
-compiler_ast_nodes_MapLiteralPair *std_mem_alloc__127(u32 count);
-std_vector_Vector__30 *std_mem_alloc__128(u32 count);
-compiler_formatter_Decl *std_mem_alloc__129(u32 count);
-std_vector_Vector__31 *std_mem_alloc__130(u32 count);
-std_sv_SV *std_mem_alloc__131(u32 count);
-std_vector_Vector__32 *std_mem_alloc__132(u32 count);
-compiler_formatter_DeclMapping *std_mem_alloc__133(u32 count);
-std_vector_Vector__33 *std_mem_alloc__134(u32 count);
-std_compact_map_Item__3 *std_mem_alloc__135(u32 count);
-std_vector_Vector__34 *std_mem_alloc__136(u32 count);
-std_span_Span *std_mem_alloc__137(u32 count);
-std_vector_Vector__35 *std_mem_alloc__138(u32 count);
-std_value_Value **std_mem_alloc__139(u32 count);
-std_vector_Vector__36 *std_mem_alloc__140(u32 count);
-std_compact_map_Item__4 *std_mem_alloc__141(u32 count);
-std_vector_Vector__37 *std_mem_alloc__142(u32 count);
-std_compact_map_Item__5 *std_mem_alloc__143(u32 count);
-std_vector_Vector__38 *std_mem_alloc__144(u32 count);
-std_compact_map_Item__6 *std_mem_alloc__145(u32 count);
-std_vector_Vector__39 *std_mem_alloc__146(u32 count);
-std_compact_map_Item__7 *std_mem_alloc__147(u32 count);
-std_vector_Vector__40 *std_mem_alloc__148(u32 count);
-u32 *std_mem_alloc__149(u32 count);
+char *std_mem_alloc__19(u32 count);
+compiler_attributes_Attribute *std_mem_alloc__20(u32 count);
+compiler_tokens_Token *std_mem_alloc__21(u32 count);
+compiler_errors_Error *std_mem_alloc__22(u32 count);
+compiler_types_Type *std_mem_alloc__23(u32 count);
+i32 *std_mem_alloc__24(u32 count);
+std_compact_map_Map__0 *std_mem_alloc__25(u32 count);
+std_compact_map_Map__1 *std_mem_alloc__26(u32 count);
+std_compact_map_Map__2 *std_mem_alloc__27(u32 count);
+std_compact_map_Map__3 *std_mem_alloc__28(u32 count);
+std_compact_map_Map__4 *std_mem_alloc__29(u32 count);
+std_compact_map_Map__5 *std_mem_alloc__30(u32 count);
+std_compact_map_Map__6 *std_mem_alloc__31(u32 count);
+std_compact_map_Map__7 *std_mem_alloc__32(u32 count);
+u8 *std_mem_alloc__33(u32 count);
+std_set_Set__0 *std_mem_alloc__34(u32 count);
+std_set_Set__1 *std_mem_alloc__35(u32 count);
+std_set_Set__2 *std_mem_alloc__36(u32 count);
+std_set_Set__3 *std_mem_alloc__37(u32 count);
+std_value_Value *std_mem_alloc__38(u32 count);
+std_map_Item__0 *std_mem_alloc__39(u32 count);
+std_map_Item__0 **std_mem_alloc__40(u32 count);
+std_map_Map__0 *std_mem_alloc__41(u32 count);
+std_map_Item__1 *std_mem_alloc__42(u32 count);
+std_map_Item__1 **std_mem_alloc__43(u32 count);
+std_map_Map__1 *std_mem_alloc__44(u32 count);
+std_map_Item__2 *std_mem_alloc__45(u32 count);
+std_map_Item__2 **std_mem_alloc__46(u32 count);
+std_map_Map__2 *std_mem_alloc__47(u32 count);
+std_map_Item__3 *std_mem_alloc__48(u32 count);
+std_map_Item__3 **std_mem_alloc__49(u32 count);
+std_map_Map__3 *std_mem_alloc__50(u32 count);
+std_map_Item__4 *std_mem_alloc__51(u32 count);
+std_map_Item__4 **std_mem_alloc__52(u32 count);
+std_map_Map__4 *std_mem_alloc__53(u32 count);
+std_map_Item__5 *std_mem_alloc__54(u32 count);
+std_map_Item__5 **std_mem_alloc__55(u32 count);
+std_map_Map__5 *std_mem_alloc__56(u32 count);
+std_map_Item__6 *std_mem_alloc__57(u32 count);
+std_map_Item__6 **std_mem_alloc__58(u32 count);
+std_map_Map__6 *std_mem_alloc__59(u32 count);
+std_map_Item__7 *std_mem_alloc__60(u32 count);
+std_map_Item__7 **std_mem_alloc__61(u32 count);
+std_map_Map__7 *std_mem_alloc__62(u32 count);
+std_map_Item__8 *std_mem_alloc__63(u32 count);
+std_map_Item__8 **std_mem_alloc__64(u32 count);
+std_map_Map__8 *std_mem_alloc__65(u32 count);
+std_map_Item__9 *std_mem_alloc__66(u32 count);
+std_map_Item__9 **std_mem_alloc__67(u32 count);
+std_map_Map__9 *std_mem_alloc__68(u32 count);
+std_vector_Vector__0 *std_mem_alloc__69(u32 count);
+compiler_types_Type **std_mem_alloc__70(u32 count);
+std_vector_Vector__1 *std_mem_alloc__71(u32 count);
+compiler_ast_scopes_Scope **std_mem_alloc__72(u32 count);
+std_vector_Vector__2 *std_mem_alloc__73(u32 count);
+compiler_ast_program_Namespace **std_mem_alloc__74(u32 count);
+std_vector_Vector__3 *std_mem_alloc__75(u32 count);
+compiler_ast_nodes_Variable **std_mem_alloc__76(u32 count);
+std_vector_Vector__4 *std_mem_alloc__77(u32 count);
+compiler_ast_scopes_TemplateInstance **std_mem_alloc__78(u32 count);
+std_vector_Vector__5 *std_mem_alloc__79(u32 count);
+compiler_ast_nodes_MatchCond **std_mem_alloc__80(u32 count);
+std_vector_Vector__6 *std_mem_alloc__81(u32 count);
+std_compact_map_Item__0 *std_mem_alloc__82(u32 count);
+std_vector_Vector__7 *std_mem_alloc__83(u32 count);
+std_compact_map_Item__1 *std_mem_alloc__84(u32 count);
+std_vector_Vector__8 *std_mem_alloc__85(u32 count);
+compiler_ast_nodes_ImportPart **std_mem_alloc__86(u32 count);
+std_vector_Vector__9 *std_mem_alloc__87(u32 count);
+compiler_ast_nodes_Function **std_mem_alloc__88(u32 count);
+std_vector_Vector__10 *std_mem_alloc__89(u32 count);
+compiler_ast_nodes_Argument **std_mem_alloc__90(u32 count);
+std_vector_Vector__11 *std_mem_alloc__91(u32 count);
+char **std_mem_alloc__92(u32 count);
+std_vector_Vector__12 *std_mem_alloc__93(u32 count);
+compiler_ast_scopes_Symbol **std_mem_alloc__94(u32 count);
+std_vector_Vector__13 *std_mem_alloc__95(u32 count);
+compiler_tokens_Token **std_mem_alloc__96(u32 count);
+std_vector_Vector__14 *std_mem_alloc__97(u32 count);
+compiler_attributes_Attribute **std_mem_alloc__98(u32 count);
+std_vector_Vector__15 *std_mem_alloc__99(u32 count);
+compiler_errors_Error **std_mem_alloc__100(u32 count);
+std_vector_Vector__16 *std_mem_alloc__101(u32 count);
+compiler_tokens_Comment *std_mem_alloc__102(u32 count);
+std_vector_Vector__17 *std_mem_alloc__103(u32 count);
+compiler_ast_nodes_Structure **std_mem_alloc__104(u32 count);
+std_vector_Vector__18 *std_mem_alloc__105(u32 count);
+compiler_ast_nodes_Enum **std_mem_alloc__106(u32 count);
+std_vector_Vector__19 *std_mem_alloc__107(u32 count);
+compiler_ast_nodes_AST **std_mem_alloc__108(u32 count);
+std_vector_Vector__20 *std_mem_alloc__109(u32 count);
+jmp_buf *std_mem_alloc__110(u32 count);
+std_vector_Vector__21 *std_mem_alloc__111(u32 count);
+compiler_ast_scopes_Reference *std_mem_alloc__112(u32 count);
+std_vector_Vector__22 *std_mem_alloc__113(u32 count);
+compiler_ast_nodes_MatchCondArg **std_mem_alloc__114(u32 count);
+std_vector_Vector__23 *std_mem_alloc__115(u32 count);
+compiler_ast_nodes_EnumVariant **std_mem_alloc__116(u32 count);
+std_vector_Vector__24 *std_mem_alloc__117(u32 count);
+std_compact_map_Item__2 *std_mem_alloc__118(u32 count);
+std_vector_Vector__25 *std_mem_alloc__119(u32 count);
+compiler_ast_operators_Operator *std_mem_alloc__120(u32 count);
+std_vector_Vector__26 *std_mem_alloc__121(u32 count);
+std_vector_Vector__8 **std_mem_alloc__122(u32 count);
+std_vector_Vector__27 *std_mem_alloc__123(u32 count);
+compiler_ast_nodes_IfBranch *std_mem_alloc__124(u32 count);
+std_vector_Vector__28 *std_mem_alloc__125(u32 count);
+compiler_ast_nodes_MatchCase *std_mem_alloc__126(u32 count);
+std_vector_Vector__29 *std_mem_alloc__127(u32 count);
+compiler_ast_nodes_MapLiteralPair *std_mem_alloc__128(u32 count);
+std_vector_Vector__31 *std_mem_alloc__131(u32 count);
+u32 *std_mem_alloc__132(u32 count);
+std_vector_Vector__32 *std_mem_alloc__133(u32 count);
+compiler_formatter_Decl *std_mem_alloc__134(u32 count);
+std_vector_Vector__33 *std_mem_alloc__135(u32 count);
+std_sv_SV *std_mem_alloc__136(u32 count);
+std_vector_Vector__34 *std_mem_alloc__137(u32 count);
+compiler_formatter_DeclMapping *std_mem_alloc__138(u32 count);
+std_vector_Vector__35 *std_mem_alloc__139(u32 count);
+std_vector_Vector__31 **std_mem_alloc__140(u32 count);
+std_vector_Vector__36 *std_mem_alloc__141(u32 count);
+bool *std_mem_alloc__142(u32 count);
+std_vector_Vector__37 *std_mem_alloc__143(u32 count);
+std_compact_map_Item__3 *std_mem_alloc__144(u32 count);
+std_vector_Vector__38 *std_mem_alloc__145(u32 count);
+std_span_Span *std_mem_alloc__146(u32 count);
+std_vector_Vector__39 *std_mem_alloc__147(u32 count);
+std_value_Value **std_mem_alloc__148(u32 count);
+std_vector_Vector__40 *std_mem_alloc__149(u32 count);
+std_compact_map_Item__4 *std_mem_alloc__150(u32 count);
+std_vector_Vector__41 *std_mem_alloc__151(u32 count);
+std_compact_map_Item__5 *std_mem_alloc__152(u32 count);
+std_vector_Vector__42 *std_mem_alloc__153(u32 count);
+std_compact_map_Item__6 *std_mem_alloc__154(u32 count);
+std_vector_Vector__43 *std_mem_alloc__155(u32 count);
+std_compact_map_Item__7 *std_mem_alloc__156(u32 count);
 void std_mem_free(void *ptr);
 u8 *std_mem_realloc__0(u8 *ptr, u32 old_count, u32 new_count);
 compiler_types_Type **std_mem_realloc__1(compiler_types_Type **ptr, u32 old_count, u32 new_count);
@@ -3431,17 +3532,19 @@ std_vector_Vector__8 **std_mem_realloc__27(std_vector_Vector__8 **ptr, u32 old_c
 compiler_ast_nodes_IfBranch *std_mem_realloc__28(compiler_ast_nodes_IfBranch *ptr, u32 old_count, u32 new_count);
 compiler_ast_nodes_MatchCase *std_mem_realloc__29(compiler_ast_nodes_MatchCase *ptr, u32 old_count, u32 new_count);
 compiler_ast_nodes_MapLiteralPair *std_mem_realloc__30(compiler_ast_nodes_MapLiteralPair *ptr, u32 old_count, u32 new_count);
-compiler_formatter_Decl *std_mem_realloc__31(compiler_formatter_Decl *ptr, u32 old_count, u32 new_count);
-std_sv_SV *std_mem_realloc__32(std_sv_SV *ptr, u32 old_count, u32 new_count);
-compiler_formatter_DeclMapping *std_mem_realloc__33(compiler_formatter_DeclMapping *ptr, u32 old_count, u32 new_count);
-std_compact_map_Item__3 *std_mem_realloc__34(std_compact_map_Item__3 *ptr, u32 old_count, u32 new_count);
-std_span_Span *std_mem_realloc__35(std_span_Span *ptr, u32 old_count, u32 new_count);
-std_value_Value **std_mem_realloc__36(std_value_Value **ptr, u32 old_count, u32 new_count);
-std_compact_map_Item__4 *std_mem_realloc__37(std_compact_map_Item__4 *ptr, u32 old_count, u32 new_count);
-std_compact_map_Item__5 *std_mem_realloc__38(std_compact_map_Item__5 *ptr, u32 old_count, u32 new_count);
-std_compact_map_Item__6 *std_mem_realloc__39(std_compact_map_Item__6 *ptr, u32 old_count, u32 new_count);
-std_compact_map_Item__7 *std_mem_realloc__40(std_compact_map_Item__7 *ptr, u32 old_count, u32 new_count);
-u32 *std_mem_realloc__41(u32 *ptr, u32 old_count, u32 new_count);
+u32 *std_mem_realloc__32(u32 *ptr, u32 old_count, u32 new_count);
+compiler_formatter_Decl *std_mem_realloc__33(compiler_formatter_Decl *ptr, u32 old_count, u32 new_count);
+std_sv_SV *std_mem_realloc__34(std_sv_SV *ptr, u32 old_count, u32 new_count);
+compiler_formatter_DeclMapping *std_mem_realloc__35(compiler_formatter_DeclMapping *ptr, u32 old_count, u32 new_count);
+std_vector_Vector__31 **std_mem_realloc__36(std_vector_Vector__31 **ptr, u32 old_count, u32 new_count);
+bool *std_mem_realloc__37(bool *ptr, u32 old_count, u32 new_count);
+std_compact_map_Item__3 *std_mem_realloc__38(std_compact_map_Item__3 *ptr, u32 old_count, u32 new_count);
+std_span_Span *std_mem_realloc__39(std_span_Span *ptr, u32 old_count, u32 new_count);
+std_value_Value **std_mem_realloc__40(std_value_Value **ptr, u32 old_count, u32 new_count);
+std_compact_map_Item__4 *std_mem_realloc__41(std_compact_map_Item__4 *ptr, u32 old_count, u32 new_count);
+std_compact_map_Item__5 *std_mem_realloc__42(std_compact_map_Item__5 *ptr, u32 old_count, u32 new_count);
+std_compact_map_Item__6 *std_mem_realloc__43(std_compact_map_Item__6 *ptr, u32 old_count, u32 new_count);
+std_compact_map_Item__7 *std_mem_realloc__44(std_compact_map_Item__7 *ptr, u32 old_count, u32 new_count);
 void *std_mem_impl_my_calloc(void *state, u32 size);
 void *std_mem_impl_my_realloc(void *state, void *ptr, u32 old_size, u32 size);
 void std_mem_impl_my_free(void *state, void *ptr);
@@ -3594,13 +3697,13 @@ u32 str_hash(char *this);
 u32 u32_hash(u32 this);
 u32 u64_hash(u64 this);
 std_process_Output std_process_Output_from_error(i32 error_code);
-std_process_Output std_process_get_output(char *cmd, _ClosureTy_37 callback, bool capture_stderr, char *shell);
+std_process_Output std_process_get_output(char *cmd, _ClosureTy_41 callback, bool capture_stderr, char *shell);
 char *std_value_ValueType_str(std_value_ValueType this);
 std_value_Value *std_value_Value_new(std_value_ValueType type);
 std_value_Value *std_value_Value_new_str(char *s);
 std_value_Value *std_value_Value_new_bool(bool bul);
 std_value_Value *std_value_Value_new_int(i64 num);
-std_value_Value *std_value_Value_new_list(std_vector_Vector__35 *vec);
+std_value_Value *std_value_Value_new_list(std_vector_Vector__39 *vec);
 std_value_Value *std_value_Value_new_dict(std_compact_map_Map__4 *map);
 void std_value_Value_ensure(std_value_Value *this, std_value_ValueType type);
 bool std_value_Value_is(std_value_Value this, std_value_ValueType type);
@@ -3613,7 +3716,7 @@ void std_value_Value_insert_str(std_value_Value *this, char *key, char *s);
 void std_value_Value_insert_u32(std_value_Value *this, char *key, u32 i);
 i64 std_value_Value_as_int(std_value_Value *this);
 std_buffer_Buffer std_value_Value_as_str(std_value_Value *this);
-std_vector_Vector__35 *std_value_Value_as_list(std_value_Value *this);
+std_vector_Vector__39 *std_value_Value_as_list(std_value_Value *this);
 std_compact_map_Map__4 *std_value_Value_as_dict(std_value_Value *this);
 char *std_value_Value_dbg(std_value_Value *this);
 bool std_value_Value_eq_str(std_value_Value *this, char *other);
@@ -4036,71 +4139,80 @@ compiler_ast_nodes_MapLiteralPair std_vector_Vector__29_at(std_vector_Vector__29
 void std_vector_Vector__29_resize(std_vector_Vector__29 *this, u32 new_capacity);
 std_vector_Vector__29 *std_vector_Vector__29_new(u32 capacity);
 void std_vector_Vector__29_push(std_vector_Vector__29 *this, compiler_ast_nodes_MapLiteralPair value);
-compiler_formatter_Decl std_vector_Vector__30_at(std_vector_Vector__30 *this, u32 i);
-void std_vector_Vector__30_resize(std_vector_Vector__30 *this, u32 new_capacity);
-std_vector_Vector__30 *std_vector_Vector__30_new(u32 capacity);
-void std_vector_Vector__30_push(std_vector_Vector__30 *this, compiler_formatter_Decl value);
-std_sv_SV std_vector_Vector__31_at(std_vector_Vector__31 *this, u32 i);
+u32 std_vector_Vector__31_at(std_vector_Vector__31 *this, u32 i);
+void std_vector_Vector__31_free(std_vector_Vector__31 *this);
 void std_vector_Vector__31_resize(std_vector_Vector__31 *this, u32 new_capacity);
 std_vector_Vector__31 *std_vector_Vector__31_new(u32 capacity);
-void std_vector_Vector__31_push(std_vector_Vector__31 *this, std_sv_SV value);
-compiler_formatter_DeclMapping std_vector_Vector__32_at(std_vector_Vector__32 *this, u32 i);
+void std_vector_Vector__31_push(std_vector_Vector__31 *this, u32 value);
+compiler_formatter_Decl std_vector_Vector__32_at(std_vector_Vector__32 *this, u32 i);
 void std_vector_Vector__32_resize(std_vector_Vector__32 *this, u32 new_capacity);
 std_vector_Vector__32 *std_vector_Vector__32_new(u32 capacity);
-void std_vector_Vector__32_push(std_vector_Vector__32 *this, compiler_formatter_DeclMapping value);
-void std_vector_Vector__33_zero_unused(std_vector_Vector__33 *this);
-std_compact_map_Item__3 std_vector_Vector__33_pop(std_vector_Vector__33 *this);
-std_compact_map_Item__3 std_vector_Vector__33_at(std_vector_Vector__33 *this, u32 i);
+void std_vector_Vector__32_push(std_vector_Vector__32 *this, compiler_formatter_Decl value);
+std_sv_SV std_vector_Vector__33_at(std_vector_Vector__33 *this, u32 i);
 void std_vector_Vector__33_resize(std_vector_Vector__33 *this, u32 new_capacity);
 std_vector_Vector__33 *std_vector_Vector__33_new(u32 capacity);
-void std_vector_Vector__33_push(std_vector_Vector__33 *this, std_compact_map_Item__3 value);
-std_vector_Iterator__34 std_vector_Vector__34_iter(std_vector_Vector__34 *this);
-std_span_Span std_vector_Iterator__34_cur(std_vector_Iterator__34 *this);
-void std_vector_Iterator__34_next(std_vector_Iterator__34 *this);
-bool std_vector_Iterator__34_has_value(std_vector_Iterator__34 *this);
-std_vector_Iterator__34 std_vector_Iterator__34_make(std_vector_Vector__34 *vec);
-void std_vector_Vector__34_free(std_vector_Vector__34 *this);
+void std_vector_Vector__33_push(std_vector_Vector__33 *this, std_sv_SV value);
+compiler_formatter_DeclMapping std_vector_Vector__34_at(std_vector_Vector__34 *this, u32 i);
 void std_vector_Vector__34_resize(std_vector_Vector__34 *this, u32 new_capacity);
 std_vector_Vector__34 *std_vector_Vector__34_new(u32 capacity);
-void std_vector_Vector__34_push(std_vector_Vector__34 *this, std_span_Span value);
-std_vector_Iterator__35 std_vector_Vector__35_iter(std_vector_Vector__35 *this);
-std_value_Value *std_vector_Iterator__35_cur(std_vector_Iterator__35 *this);
-void std_vector_Iterator__35_next(std_vector_Iterator__35 *this);
-bool std_vector_Iterator__35_has_value(std_vector_Iterator__35 *this);
-std_vector_Iterator__35 std_vector_Iterator__35_make(std_vector_Vector__35 *vec);
-std_value_Value *std_vector_Vector__35_at(std_vector_Vector__35 *this, u32 i);
+compiler_formatter_DeclMapping *std_vector_Vector__34_at_ptr(std_vector_Vector__34 *this, u32 i);
+void std_vector_Vector__34_push(std_vector_Vector__34 *this, compiler_formatter_DeclMapping value);
+std_vector_Vector__31 *std_vector_Vector__35_at(std_vector_Vector__35 *this, u32 i);
 void std_vector_Vector__35_resize(std_vector_Vector__35 *this, u32 new_capacity);
 std_vector_Vector__35 *std_vector_Vector__35_new(u32 capacity);
-void std_vector_Vector__35_push(std_vector_Vector__35 *this, std_value_Value *value);
-std_vector_Iterator__36 std_vector_Vector__36_iter(std_vector_Vector__36 *this);
-std_compact_map_Item__4 std_vector_Iterator__36_cur(std_vector_Iterator__36 *this);
-void std_vector_Iterator__36_next(std_vector_Iterator__36 *this);
-bool std_vector_Iterator__36_has_value(std_vector_Iterator__36 *this);
-std_vector_Iterator__36 std_vector_Iterator__36_make(std_vector_Vector__36 *vec);
-std_compact_map_Item__4 std_vector_Vector__36_at(std_vector_Vector__36 *this, u32 i);
+void std_vector_Vector__35_push(std_vector_Vector__35 *this, std_vector_Vector__31 *value);
+bool std_vector_Vector__36_at(std_vector_Vector__36 *this, u32 i);
 void std_vector_Vector__36_resize(std_vector_Vector__36 *this, u32 new_capacity);
 std_vector_Vector__36 *std_vector_Vector__36_new(u32 capacity);
-void std_vector_Vector__36_push(std_vector_Vector__36 *this, std_compact_map_Item__4 value);
-std_compact_map_Item__5 std_vector_Vector__37_at(std_vector_Vector__37 *this, u32 i);
-void std_vector_Vector__37_free(std_vector_Vector__37 *this);
+void std_vector_Vector__36_push(std_vector_Vector__36 *this, bool value);
+void std_vector_Vector__37_zero_unused(std_vector_Vector__37 *this);
+std_compact_map_Item__3 std_vector_Vector__37_pop(std_vector_Vector__37 *this);
+std_compact_map_Item__3 std_vector_Vector__37_at(std_vector_Vector__37 *this, u32 i);
 void std_vector_Vector__37_resize(std_vector_Vector__37 *this, u32 new_capacity);
 std_vector_Vector__37 *std_vector_Vector__37_new(u32 capacity);
-void std_vector_Vector__37_push(std_vector_Vector__37 *this, std_compact_map_Item__5 value);
-std_compact_map_Item__6 std_vector_Vector__38_at(std_vector_Vector__38 *this, u32 i);
+void std_vector_Vector__37_push(std_vector_Vector__37 *this, std_compact_map_Item__3 value);
+std_vector_Iterator__38 std_vector_Vector__38_iter(std_vector_Vector__38 *this);
+std_span_Span std_vector_Iterator__38_cur(std_vector_Iterator__38 *this);
+void std_vector_Iterator__38_next(std_vector_Iterator__38 *this);
+bool std_vector_Iterator__38_has_value(std_vector_Iterator__38 *this);
+std_vector_Iterator__38 std_vector_Iterator__38_make(std_vector_Vector__38 *vec);
 void std_vector_Vector__38_free(std_vector_Vector__38 *this);
 void std_vector_Vector__38_resize(std_vector_Vector__38 *this, u32 new_capacity);
 std_vector_Vector__38 *std_vector_Vector__38_new(u32 capacity);
-void std_vector_Vector__38_push(std_vector_Vector__38 *this, std_compact_map_Item__6 value);
-std_compact_map_Item__7 std_vector_Vector__39_at(std_vector_Vector__39 *this, u32 i);
-void std_vector_Vector__39_free(std_vector_Vector__39 *this);
+void std_vector_Vector__38_push(std_vector_Vector__38 *this, std_span_Span value);
+std_vector_Iterator__39 std_vector_Vector__39_iter(std_vector_Vector__39 *this);
+std_value_Value *std_vector_Iterator__39_cur(std_vector_Iterator__39 *this);
+void std_vector_Iterator__39_next(std_vector_Iterator__39 *this);
+bool std_vector_Iterator__39_has_value(std_vector_Iterator__39 *this);
+std_vector_Iterator__39 std_vector_Iterator__39_make(std_vector_Vector__39 *vec);
+std_value_Value *std_vector_Vector__39_at(std_vector_Vector__39 *this, u32 i);
 void std_vector_Vector__39_resize(std_vector_Vector__39 *this, u32 new_capacity);
 std_vector_Vector__39 *std_vector_Vector__39_new(u32 capacity);
-void std_vector_Vector__39_push(std_vector_Vector__39 *this, std_compact_map_Item__7 value);
-u32 std_vector_Vector__40_at(std_vector_Vector__40 *this, u32 i);
-void std_vector_Vector__40_free(std_vector_Vector__40 *this);
+void std_vector_Vector__39_push(std_vector_Vector__39 *this, std_value_Value *value);
+std_vector_Iterator__40 std_vector_Vector__40_iter(std_vector_Vector__40 *this);
+std_compact_map_Item__4 std_vector_Iterator__40_cur(std_vector_Iterator__40 *this);
+void std_vector_Iterator__40_next(std_vector_Iterator__40 *this);
+bool std_vector_Iterator__40_has_value(std_vector_Iterator__40 *this);
+std_vector_Iterator__40 std_vector_Iterator__40_make(std_vector_Vector__40 *vec);
+std_compact_map_Item__4 std_vector_Vector__40_at(std_vector_Vector__40 *this, u32 i);
 void std_vector_Vector__40_resize(std_vector_Vector__40 *this, u32 new_capacity);
 std_vector_Vector__40 *std_vector_Vector__40_new(u32 capacity);
-void std_vector_Vector__40_push(std_vector_Vector__40 *this, u32 value);
+void std_vector_Vector__40_push(std_vector_Vector__40 *this, std_compact_map_Item__4 value);
+std_compact_map_Item__5 std_vector_Vector__41_at(std_vector_Vector__41 *this, u32 i);
+void std_vector_Vector__41_free(std_vector_Vector__41 *this);
+void std_vector_Vector__41_resize(std_vector_Vector__41 *this, u32 new_capacity);
+std_vector_Vector__41 *std_vector_Vector__41_new(u32 capacity);
+void std_vector_Vector__41_push(std_vector_Vector__41 *this, std_compact_map_Item__5 value);
+std_compact_map_Item__6 std_vector_Vector__42_at(std_vector_Vector__42 *this, u32 i);
+void std_vector_Vector__42_free(std_vector_Vector__42 *this);
+void std_vector_Vector__42_resize(std_vector_Vector__42 *this, u32 new_capacity);
+std_vector_Vector__42 *std_vector_Vector__42_new(u32 capacity);
+void std_vector_Vector__42_push(std_vector_Vector__42 *this, std_compact_map_Item__6 value);
+std_compact_map_Item__7 std_vector_Vector__43_at(std_vector_Vector__43 *this, u32 i);
+void std_vector_Vector__43_free(std_vector_Vector__43 *this);
+void std_vector_Vector__43_resize(std_vector_Vector__43 *this, u32 new_capacity);
+std_vector_Vector__43 *std_vector_Vector__43_new(u32 capacity);
+void std_vector_Vector__43_push(std_vector_Vector__43 *this, std_compact_map_Item__7 value);
 std_json_Parser std_json_Parser_make(std_vector_Vector__13 *tokens);
 compiler_tokens_Token *std_json_Parser_token(std_json_Parser *this);
 compiler_tokens_Token *std_json_Parser_consume(std_json_Parser *this, compiler_tokens_TokenType type);
@@ -4113,7 +4225,7 @@ std_value_Value *std_json_parse_sv(std_sv_SV source, char *filename);
 void std_json_serialize_into(std_value_Value *val, std_buffer_Buffer *sb);
 std_buffer_Buffer std_json_serialize(std_value_Value *val);
 void std_json_write_to_file(std_value_Value *val, char *filename);
-void std_sort_sort_by__0(compiler_formatter_Decl *data, u32 size, _ClosureTy_48 cmp);
+void std_sort_sort_by__0(compiler_formatter_Decl *data, u32 size, _ClosureTy_52 cmp);
 i8 compiler_formatter_collect_decls__Closure_0(void *__C, compiler_formatter_Decl a, compiler_formatter_Decl b);
 void compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1(void *__C, compiler_ast_nodes_AST *node);
 void compiler_passes_typechecker_create_match_for_error_prop__Closure_2(void *__C, compiler_ast_nodes_AST *node);
@@ -4265,12 +4377,12 @@ switch ((type->base)) {
     case compiler_types_BaseType_F64:
     case compiler_types_BaseType_Alias:
     case compiler_types_BaseType_Enum:
-    m_360_0:
+    m_364_0:
       {
         return std_format("{{%x}}", type);
       } break;
     case compiler_types_BaseType_Structure:
-    m_360_1:
+    m_364_1:
       {
         if (!(((bool)type->template_instance))) {
           return std_format("{{%x}}", type);
@@ -4284,27 +4396,27 @@ switch ((type->base)) {
         }
       } break;
     case compiler_types_BaseType_UnresolvedTemplate:
-    m_360_2:
+    m_364_2:
       {
         compiler_types_UnresolvedTemplate uspec = type->u.unresolved_spec;
         return compiler_docgen_DocGenerator_gen_templated_type(this, uspec.base, uspec.args);
       } break;
     case compiler_types_BaseType_Pointer:
-    m_360_3:
+    m_364_3:
       {
         char *sub = compiler_docgen_DocGenerator_gen_typename_str(this, type->u.ptr);
         str_replace_with(&sub, std_format("&%s", sub));
         return sub;
       } break;
     case compiler_types_BaseType_Array:
-    m_360_4:
+    m_364_4:
       {
         char *sub = compiler_docgen_DocGenerator_gen_typename_str(this, type->u.arr.elem_type);
         str_replace_with(&sub, std_format("[%s]", sub));
         return sub;
       } break;
     case compiler_types_BaseType_FunctionPtr:
-    m_360_5:
+    m_364_5:
       {
         std_buffer_Buffer buf = std_buffer_Buffer_make(16);
         std_buffer_Buffer_write_str(&buf, "fn(");
@@ -4326,12 +4438,12 @@ switch ((type->base)) {
         return std_buffer_Buffer_str(buf);
       } break;
     case compiler_types_BaseType_Unresolved:
-    m_360_6:
+    m_364_6:
       {
         compiler_ast_nodes_AST *node = type->u.unresolved;
 switch ((node->type)) {
           case compiler_ast_nodes_ASTType_Identifier:
-          m_361_0:
+          m_365_0:
             {
               return strdup(node->u.ident.name);
             } break;
@@ -4812,17 +4924,17 @@ compiler_passes_register_types_Finder compiler_passes_register_types_Finder_to(c
   if (((bool)res)) {
 switch ((res->type)) {
       case compiler_ast_scopes_SymbolType_TypeDef:
-      m_362_0:
+      m_366_0:
         {
           this.type=res->u.type_def;
         } break;
       case compiler_ast_scopes_SymbolType_Structure:
-      m_362_1:
+      m_366_1:
         {
           this.type=res->u.struc->type;
         } break;
       case compiler_ast_scopes_SymbolType_Enum:
-      m_362_2:
+      m_366_2:
         {
           this.type=res->u.enom->type;
         } break;
@@ -4902,20 +5014,20 @@ void compiler_passes_register_types_RegisterTypes_register_cached_types(compiler
 }
 
 void compiler_passes_register_types_RegisterTypes_create_namespace_scopes(compiler_passes_register_types_RegisterTypes *this, compiler_ast_program_Namespace *ns, compiler_ast_program_Namespace *parent) {
-  compiler_ast_scopes_Scope *parent_scope = ({compiler_ast_scopes_Scope *__yv_363;
+  compiler_ast_scopes_Scope *parent_scope = ({compiler_ast_scopes_Scope *__yv_367;
     if (!(((bool)parent))) {
-      __yv_363 = NULL;
-      goto _l___yv_363;
+      __yv_367 = NULL;
+      goto _l___yv_367;
     } else if (parent->is_dir_with_mod) {
-      __yv_363 = parent->scope->parent;
-      goto _l___yv_363;
+      __yv_367 = parent->scope->parent;
+      goto _l___yv_367;
     } else {
-      __yv_363 = parent->scope;
-      goto _l___yv_363;
+      __yv_367 = parent->scope;
+      goto _l___yv_367;
     }
 
-_l___yv_363:
-  __yv_363;});
+_l___yv_367:
+  __yv_367;});
   ns->scope=compiler_ast_scopes_Scope_new(parent_scope);
   for (std_map_ValueIterator__3 _i214 = std_map_Map__3_iter_values(ns->namespaces); std_map_ValueIterator__3_has_value(&_i214); std_map_ValueIterator__3_next(&_i214)) {
     compiler_ast_program_Namespace *child = std_map_ValueIterator__3_cur(&_i214);
@@ -4962,17 +5074,17 @@ switch ((node->type)) {
     case compiler_ast_nodes_ASTType_SizeOf:
     case compiler_ast_nodes_ASTType_CharLiteral:
     case compiler_ast_nodes_ASTType_FloatLiteral:
-    m_364_0:
+    m_368_0:
       {
       } break;
     case compiler_ast_nodes_ASTType_Assert:
-    m_364_1:
+    m_368_1:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.assertion.expr);
         compiler_passes_visitor_Visitor_visit_po(this, node->u.assertion.msg);
       } break;
     case compiler_ast_nodes_ASTType_Is:
-    m_364_2:
+    m_368_2:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.is_expr.lhs);
         for (std_vector_Iterator__5 _i189 = std_vector_Vector__5_iter(node->u.is_expr.conds); std_vector_Iterator__5_has_value(&_i189); std_vector_Iterator__5_next(&_i189)) {
@@ -4983,7 +5095,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_364_3:
+    m_368_3:
       {
         for (std_vector_Iterator__19 _i190 = std_vector_Vector__19_iter(node->u.block.statements); std_vector_Iterator__19_has_value(&_i190); std_vector_Iterator__19_next(&_i190)) {
           compiler_ast_nodes_AST *stmt = std_vector_Iterator__19_cur(&_i190);
@@ -4993,7 +5105,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Call:
-    m_364_4:
+    m_368_4:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.call.callee);
         for (std_vector_Iterator__10 _i191 = std_vector_Vector__10_iter(node->u.call.args); std_vector_Iterator__10_has_value(&_i191); std_vector_Iterator__10_next(&_i191)) {
@@ -5004,7 +5116,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_364_5:
+    m_368_5:
       {
         for (std_vector_Iterator__27 _i192 = std_vector_Vector__27_iter(node->u.if_stmt.branches); std_vector_Iterator__27_has_value(&_i192); std_vector_Iterator__27_next(&_i192)) {
           compiler_ast_nodes_IfBranch branch = std_vector_Iterator__27_cur(&_i192);
@@ -5017,40 +5129,40 @@ switch ((node->type)) {
       } break;
     case compiler_ast_nodes_ASTType_Member:
     case compiler_ast_nodes_ASTType_TryMember:
-    m_364_6:
+    m_368_6:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.member.lhs);
       } break;
     case compiler_ast_nodes_ASTType_NSLookup:
-    m_364_7:
+    m_368_7:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.lookup.lhs);
       } break;
     case compiler_ast_nodes_ASTType_Return:
-    m_364_8:
+    m_368_8:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.ret.expr);
       } break;
     case compiler_ast_nodes_ASTType_Yield:
-    m_364_9:
+    m_368_9:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_VarDeclaration:
-    m_364_10:
+    m_368_10:
       {
         compiler_passes_visitor_Visitor_visit_var(this, node->u.var_decl);
       } break;
     case compiler_ast_nodes_ASTType_While:
     case compiler_ast_nodes_ASTType_For:
-    m_364_11:
+    m_368_11:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.loop.cond);
         compiler_passes_visitor_Visitor_visit_po(this, node->u.loop.body);
         compiler_passes_visitor_Visitor_visit_po(this, node->u.loop.step);
       } break;
     case compiler_ast_nodes_ASTType_FormatStringLiteral:
-    m_364_12:
+    m_368_12:
       {
         for (std_vector_Iterator__19 _i193 = std_vector_Vector__19_iter(node->u.fmt_str.exprs); std_vector_Iterator__19_has_value(&_i193); std_vector_Iterator__19_next(&_i193)) {
           compiler_ast_nodes_AST *arg = std_vector_Iterator__19_cur(&_i193);
@@ -5060,12 +5172,12 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Cast:
-    m_364_13:
+    m_368_13:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.cast.lhs);
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_364_14:
+    m_368_14:
       {
         compiler_ast_nodes_Match mtch = node->u.match_stmt;
         compiler_passes_visitor_Visitor_visit_po(this, mtch.expr);
@@ -5084,17 +5196,17 @@ switch ((node->type)) {
         compiler_passes_visitor_Visitor_visit_po(this, mtch.defolt);
       } break;
     case compiler_ast_nodes_ASTType_Defer:
-    m_364_15:
+    m_368_15:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_Specialization:
-    m_364_16:
+    m_368_16:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.spec.base);
       } break;
     case compiler_ast_nodes_ASTType_ArrayLiteral:
-    m_364_17:
+    m_368_17:
       {
         for (std_vector_Iterator__19 _i196 = std_vector_Vector__19_iter(node->u.array_literal.elements); std_vector_Iterator__19_has_value(&_i196); std_vector_Iterator__19_next(&_i196)) {
           compiler_ast_nodes_AST *elem = std_vector_Iterator__19_cur(&_i196);
@@ -5104,7 +5216,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_VectorLiteral:
-    m_364_18:
+    m_368_18:
       {
         for (std_vector_Iterator__19 _i197 = std_vector_Vector__19_iter(node->u.vec_literal.elements); std_vector_Iterator__19_has_value(&_i197); std_vector_Iterator__19_next(&_i197)) {
           compiler_ast_nodes_AST *elem = std_vector_Iterator__19_cur(&_i197);
@@ -5114,7 +5226,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_MapLiteral:
-    m_364_19:
+    m_368_19:
       {
         for (std_vector_Iterator__29 _i198 = std_vector_Vector__29_iter(node->u.map_literal.elements); std_vector_Iterator__29_has_value(&_i198); std_vector_Iterator__29_next(&_i198)) {
           compiler_ast_nodes_MapLiteralPair elem = std_vector_Iterator__29_cur(&_i198);
@@ -5125,23 +5237,23 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_CreateClosure:
-    m_364_20:
+    m_368_20:
       {
         compiler_ast_nodes_Function *func = node->u.closure;
         compiler_passes_visitor_Visitor_visit_po(this, func->body);
       } break;
     case compiler_ast_nodes_ASTType_CreateNew:
-    m_364_21:
+    m_368_21:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_UnaryOp:
-    m_364_22:
+    m_368_22:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.unary.expr);
       } break;
     case compiler_ast_nodes_ASTType_BinaryOp:
-    m_364_23:
+    m_368_23:
       {
         compiler_passes_visitor_Visitor_visit_po(this, node->u.binary.lhs);
         compiler_passes_visitor_Visitor_visit_po(this, node->u.binary.rhs);
@@ -5169,40 +5281,40 @@ void compiler_passes_mark_dead_code_MarkDeadCode_mark_sym(compiler_passes_mark_d
   sym->is_dead=false;
 switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Function:
-    m_365_0:
+    m_369_0:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_function(this, sym->u.func);
       } break;
     case compiler_ast_scopes_SymbolType_Structure:
-    m_365_1:
+    m_369_1:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_struct(this, sym->u.struc);
       } break;
     case compiler_ast_scopes_SymbolType_Enum:
-    m_365_2:
+    m_369_2:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_enum(this, sym->u.enom);
       } break;
     case compiler_ast_scopes_SymbolType_Constant:
     case compiler_ast_scopes_SymbolType_Variable:
-    m_365_3:
+    m_369_3:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_type(this, sym->u.var->type);
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, sym->u.var->default_value);
         sym->u.var->sym->is_dead=false;
       } break;
     case compiler_ast_scopes_SymbolType_Closure:
-    m_365_4:
+    m_369_4:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_function(this, sym->u.closure);
       } break;
     case compiler_ast_scopes_SymbolType_ClosureType:
-    m_365_5:
+    m_369_5:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_type(this, sym->u.type_def);
       } break;
     case compiler_ast_scopes_SymbolType_ClosedVariable:
-    m_365_6:
+    m_369_6:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_sym(this, sym->u.closed_var.orig->sym);
       } break;
@@ -5221,7 +5333,7 @@ void compiler_passes_mark_dead_code_MarkDeadCode_mark_function(compiler_passes_m
   for (std_vector_Iterator__3 _i43 = std_vector_Vector__3_iter(f->params); std_vector_Iterator__3_has_value(&_i43); std_vector_Iterator__3_next(&_i43)) {
     compiler_ast_nodes_Variable *param = std_vector_Iterator__3_cur(&_i43);
     {
-      compiler_passes_mark_dead_code_MarkDeadCode_mark_sym(this, ({compiler_types_Type *_t366 = param->type; _t366 ? _t366->sym : NULL;}));
+      compiler_passes_mark_dead_code_MarkDeadCode_mark_sym(this, ({compiler_types_Type *_t370 = param->type; _t370 ? _t370->sym : NULL;}));
       compiler_passes_mark_dead_code_MarkDeadCode_mark_type(this, param->type);
     }
   }
@@ -5236,19 +5348,19 @@ void compiler_passes_mark_dead_code_MarkDeadCode_mark_type(compiler_passes_mark_
 switch ((typ->base)) {
     case compiler_types_BaseType_Pointer:
     case compiler_types_BaseType_Alias:
-    m_367_0:
+    m_371_0:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_type(this, typ->u.ptr);
       } break;
     case compiler_types_BaseType_Array:
-    m_367_1:
+    m_371_1:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_type(this, typ->u.arr.elem_type);
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, typ->u.arr.size_expr);
       } break;
     case compiler_types_BaseType_FunctionPtr:
     case compiler_types_BaseType_Closure:
-    m_367_2:
+    m_371_2:
       {
         compiler_types_FunctionType ft = typ->u.func;
         compiler_passes_mark_dead_code_MarkDeadCode_mark_type(this, ft.return_type);
@@ -5332,17 +5444,17 @@ switch ((node->type)) {
     case compiler_ast_nodes_ASTType_StringLiteral:
     case compiler_ast_nodes_ASTType_CharLiteral:
     case compiler_ast_nodes_ASTType_Null:
-    m_368_0:
+    m_372_0:
       {
       } break;
     case compiler_ast_nodes_ASTType_Yield:
     case compiler_ast_nodes_ASTType_Defer:
-    m_368_1:
+    m_372_1:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_CreateNew:
-    m_368_2:
+    m_372_2:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.child);
         if (this->o->program->did_cache_symbols) {
@@ -5351,27 +5463,27 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Return:
-    m_368_3:
+    m_372_3:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.ret.expr);
       } break;
     case compiler_ast_nodes_ASTType_UnaryOp:
-    m_368_4:
+    m_372_4:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.unary.expr);
       } break;
     case compiler_ast_nodes_ASTType_SizeOf:
-    m_368_5:
+    m_372_5:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_type(this, node->u.size_of_type);
       } break;
     case compiler_ast_nodes_ASTType_VarDeclaration:
-    m_368_6:
+    m_372_6:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_sym(this, node->u.var_decl->sym);
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_368_7:
+    m_372_7:
       {
         for (std_vector_Iterator__19 _i50 = std_vector_Vector__19_iter(node->u.block.statements); std_vector_Iterator__19_has_value(&_i50); std_vector_Iterator__19_next(&_i50)) {
           compiler_ast_nodes_AST *statement = std_vector_Iterator__19_cur(&_i50);
@@ -5381,12 +5493,12 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_CreateClosure:
-    m_368_8:
+    m_372_8:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark_function(this, node->u.closure);
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_368_9:
+    m_372_9:
       {
         for (std_vector_Iterator__27 _i51 = std_vector_Vector__27_iter(node->u.if_stmt.branches); std_vector_Iterator__27_has_value(&_i51); std_vector_Iterator__27_next(&_i51)) {
           compiler_ast_nodes_IfBranch branch = std_vector_Iterator__27_cur(&_i51);
@@ -5398,7 +5510,7 @@ switch ((node->type)) {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.if_stmt.els);
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_368_10:
+    m_372_10:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.match_stmt.expr);
         for (std_vector_Iterator__28 _i52 = std_vector_Vector__28_iter(node->u.match_stmt.cases); std_vector_Iterator__28_has_value(&_i52); std_vector_Iterator__28_next(&_i52)) {
@@ -5420,7 +5532,7 @@ switch ((node->type)) {
       } break;
     case compiler_ast_nodes_ASTType_While:
     case compiler_ast_nodes_ASTType_For:
-    m_368_11:
+    m_372_11:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.loop.init);
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.loop.cond);
@@ -5428,13 +5540,13 @@ switch ((node->type)) {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.loop.body);
       } break;
     case compiler_ast_nodes_ASTType_Assert:
-    m_368_12:
+    m_372_12:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.assertion.expr);
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.assertion.msg);
       } break;
     case compiler_ast_nodes_ASTType_FormatStringLiteral:
-    m_368_13:
+    m_372_13:
       {
         if (this->o->program->did_cache_symbols) {
           compiler_passes_mark_dead_code_MarkDeadCode_mark_sym(this, this->o->program->cached_symbols.fmt_string_fn);
@@ -5448,23 +5560,23 @@ switch ((node->type)) {
       } break;
     case compiler_ast_nodes_ASTType_Member:
     case compiler_ast_nodes_ASTType_TryMember:
-    m_368_14:
+    m_372_14:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.member.lhs);
       } break;
     case compiler_ast_nodes_ASTType_Identifier:
     case compiler_ast_nodes_ASTType_Specialization:
     case compiler_ast_nodes_ASTType_OverloadedOperator:
-    m_368_15:
+    m_372_15:
       {
       } break;
     case compiler_ast_nodes_ASTType_NSLookup:
-    m_368_16:
+    m_372_16:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.lookup.lhs);
       } break;
     case compiler_ast_nodes_ASTType_Call:
-    m_368_17:
+    m_372_17:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.call.callee);
         for (std_vector_Iterator__10 _i55 = std_vector_Vector__10_iter(node->u.call.args); std_vector_Iterator__10_has_value(&_i55); std_vector_Iterator__10_next(&_i55)) {
@@ -5475,13 +5587,13 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_BinaryOp:
-    m_368_18:
+    m_372_18:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.binary.lhs);
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.binary.rhs);
       } break;
     case compiler_ast_nodes_ASTType_Is:
-    m_368_19:
+    m_372_19:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.is_expr.lhs);
         for (std_vector_Iterator__5 _i56 = std_vector_Vector__5_iter(node->u.is_expr.conds); std_vector_Iterator__5_has_value(&_i56); std_vector_Iterator__5_next(&_i56)) {
@@ -5492,13 +5604,13 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Cast:
-    m_368_20:
+    m_372_20:
       {
         compiler_passes_mark_dead_code_MarkDeadCode_mark(this, node->u.cast.lhs);
         compiler_passes_mark_dead_code_MarkDeadCode_mark_type(this, node->u.cast.to);
       } break;
     case compiler_ast_nodes_ASTType_ArrayLiteral:
-    m_368_21:
+    m_372_21:
       {
         for (std_vector_Iterator__19 _i57 = std_vector_Vector__19_iter(node->u.array_literal.elements); std_vector_Iterator__19_has_value(&_i57); std_vector_Iterator__19_next(&_i57)) {
           compiler_ast_nodes_AST *expr = std_vector_Iterator__19_cur(&_i57);
@@ -5508,7 +5620,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_VectorLiteral:
-    m_368_22:
+    m_372_22:
       {
         compiler_ast_nodes_VectorLiteral vec_lit = node->u.vec_literal;
         for (std_vector_Iterator__19 _i58 = std_vector_Vector__19_iter(vec_lit.elements); std_vector_Iterator__19_has_value(&_i58); std_vector_Iterator__19_next(&_i58)) {
@@ -5525,7 +5637,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_MapLiteral:
-    m_368_23:
+    m_372_23:
       {
         compiler_ast_nodes_MapLiteral map_lit = node->u.map_literal;
         for (std_vector_Iterator__29 _i59 = std_vector_Vector__29_iter(map_lit.elements); std_vector_Iterator__29_has_value(&_i59); std_vector_Iterator__29_next(&_i59)) {
@@ -5748,16 +5860,16 @@ void compiler_passes_generic_pass_GenericPass_insert_into_scope_checked(compiler
 }
 
 compiler_ast_scopes_Symbol *compiler_passes_generic_pass_GenericPass_find_in_symbol(compiler_passes_generic_pass_GenericPass *this, compiler_ast_scopes_Symbol *sym, char *name, bool allow_templated) {
-  return ({compiler_ast_scopes_Symbol *__yv_369;
+  return ({compiler_ast_scopes_Symbol *__yv_373;
 switch ((sym->type)) {
       case compiler_ast_scopes_SymbolType_Namespace:
-      m_370_0:
+      m_374_0:
         {
-          __yv_369 = compiler_ast_program_Namespace_find_importable_symbol(sym->u.ns, name);
-          goto _l___yv_369;
+          __yv_373 = compiler_ast_program_Namespace_find_importable_symbol(sym->u.ns, name);
+          goto _l___yv_373;
         } break;
       case compiler_ast_scopes_SymbolType_Structure:
-      m_370_1:
+      m_374_1:
         {
           if (compiler_ast_scopes_Symbol_is_templated(sym) && !(allow_templated)) {
             return NULL;
@@ -5767,22 +5879,22 @@ switch ((sym->type)) {
           if (!(((bool)method))) {
             return NULL;
           }
-          __yv_369 = method->sym;
-          goto _l___yv_369;
+          __yv_373 = method->sym;
+          goto _l___yv_373;
         } break;
       case compiler_ast_scopes_SymbolType_TypeDef:
-      m_370_2:
+      m_374_2:
         {
           compiler_types_Type *type_def = sym->u.type_def;
           compiler_ast_nodes_Function *method = std_map_Map__8_get(type_def->methods, name, NULL);
           if (!(((bool)method))) {
             return NULL;
           }
-          __yv_369 = method->sym;
-          goto _l___yv_369;
+          __yv_373 = method->sym;
+          goto _l___yv_373;
         } break;
       case compiler_ast_scopes_SymbolType_Enum:
-      m_370_3:
+      m_374_3:
         {
           compiler_ast_nodes_Enum *enom = sym->u.enom;
           compiler_ast_nodes_EnumVariant *variant = compiler_ast_nodes_Enum_get_variant(enom, name);
@@ -5793,17 +5905,17 @@ switch ((sym->type)) {
           if (((bool)method)) {
             return method->sym;
           }
-          __yv_369 = NULL;
-          goto _l___yv_369;
+          __yv_373 = NULL;
+          goto _l___yv_373;
         } break;
       default:
         {
-          __yv_369 = NULL;
-          goto _l___yv_369;
+          __yv_373 = NULL;
+          goto _l___yv_373;
         } break;
     }
-_l___yv_369:
-  __yv_369;});}
+_l___yv_373:
+  __yv_373;});}
 
 compiler_ast_scopes_Symbol *compiler_passes_generic_pass_GenericPass_find_in_symbol_or_error(compiler_passes_generic_pass_GenericPass *this, compiler_ast_scopes_Symbol *sym, char *name, std_span_Span span, bool error) {
   if (error && compiler_ast_scopes_Symbol_is_templated(sym)) {
@@ -5815,22 +5927,22 @@ compiler_ast_scopes_Symbol *compiler_passes_generic_pass_GenericPass_find_in_sym
   }
 switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Namespace:
-    m_371_0:
+    m_375_0:
       {
         compiler_passes_generic_pass_GenericPass_error(this, compiler_errors_Error_new(span, std_format("Could not find symbol %s in namespace %s", name, sym->display)));
       } break;
     case compiler_ast_scopes_SymbolType_Structure:
-    m_371_1:
+    m_375_1:
       {
         compiler_passes_generic_pass_GenericPass_error(this, compiler_errors_Error_new(span, std_format("Could not find method %s in structure %s", name, sym->display)));
       } break;
     case compiler_ast_scopes_SymbolType_TypeDef:
-    m_371_2:
+    m_375_2:
       {
         compiler_passes_generic_pass_GenericPass_error(this, compiler_errors_Error_new(span, std_format("Could not find method %s in type %s", name, sym->display)));
       } break;
     case compiler_ast_scopes_SymbolType_Enum:
-    m_371_3:
+    m_375_3:
       {
         compiler_passes_generic_pass_GenericPass_error(this, compiler_errors_Error_new(span, std_format("Could not find variant/method %s in enum %s", name, sym->display)));
       } break;
@@ -5893,12 +6005,12 @@ void compiler_passes_generic_pass_GenericPass_import_all_from_namespace(compiler
 void compiler_passes_generic_pass_GenericPass_import_all_from_symbol(compiler_passes_generic_pass_GenericPass *this, compiler_ast_scopes_Symbol *sym, bool export) {
 switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Namespace:
-    m_372_0:
+    m_376_0:
       {
         compiler_passes_generic_pass_GenericPass_import_all_from_namespace(this, sym->u.ns, export);
       } break;
     case compiler_ast_scopes_SymbolType_TypeDef:
-    m_372_1:
+    m_376_1:
       {
         for (std_map_ValueIterator__8 _i87 = std_map_Map__8_iter_values(sym->u.type_def->methods); std_map_ValueIterator__8_has_value(&_i87); std_map_ValueIterator__8_next(&_i87)) {
           compiler_ast_nodes_Function *method = std_map_ValueIterator__8_cur(&_i87);
@@ -5908,7 +6020,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Structure:
-    m_372_2:
+    m_376_2:
       {
         for (std_map_ValueIterator__8 _i88 = std_map_Map__8_iter_values(sym->u.struc->type->methods); std_map_ValueIterator__8_has_value(&_i88); std_map_ValueIterator__8_next(&_i88)) {
           compiler_ast_nodes_Function *method = std_map_ValueIterator__8_cur(&_i88);
@@ -5918,7 +6030,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Enum:
-    m_372_3:
+    m_376_3:
       {
         for (std_vector_Iterator__23 _i89 = std_vector_Vector__23_iter(sym->u.enom->variants); std_vector_Iterator__23_has_value(&_i89); std_vector_Iterator__23_next(&_i89)) {
           compiler_ast_nodes_EnumVariant *variant = std_vector_Iterator__23_cur(&_i89);
@@ -5934,7 +6046,7 @@ switch ((sym->type)) {
   }}
 
 compiler_ast_nodes_Function *compiler_passes_generic_pass_GenericPass_current_func(compiler_passes_generic_pass_GenericPass *this) {
-  return ({compiler_ast_scopes_Scope *_t373 = compiler_passes_generic_pass_GenericPass_scope(this); _t373 ? _t373->cur_func : NULL;});}
+  return ({compiler_ast_scopes_Scope *_t377 = compiler_passes_generic_pass_GenericPass_scope(this); _t377 ? _t377->cur_func : NULL;});}
 
 compiler_errors_Error *compiler_passes_typechecker_TypeChecker_error(compiler_passes_typechecker_TypeChecker *this, compiler_errors_Error *err) {
   return compiler_passes_generic_pass_GenericPass_error(this->o, err);}
@@ -5954,56 +6066,56 @@ void compiler_passes_typechecker_TypeChecker_set_resolved_symbol(compiler_passes
     return;
   }
   compiler_ast_scopes_ReferenceType ref_type = compiler_ast_scopes_ReferenceType_Normal;
-  std_span_Span span = ({std_span_Span __yv_374;
+  std_span_Span span = ({std_span_Span __yv_378;
 switch ((node->type)) {
       case compiler_ast_nodes_ASTType_Identifier:
-      m_375_0:
+      m_379_0:
         {
-          __yv_374 = node->span;
-          goto _l___yv_374;
+          __yv_378 = node->span;
+          goto _l___yv_378;
         } break;
       case compiler_ast_nodes_ASTType_Import:
       case compiler_ast_nodes_ASTType_Specialization:
-      m_375_1:
+      m_379_1:
         {
           return;
         } break;
       case compiler_ast_nodes_ASTType_OverloadedOperator:
-      m_375_2:
+      m_379_2:
         {
           ref_type=compiler_ast_scopes_ReferenceType_OperatorOverload;
-          __yv_374 = node->u.operator_span;
-          goto _l___yv_374;
+          __yv_378 = node->u.operator_span;
+          goto _l___yv_378;
         } break;
       case compiler_ast_nodes_ASTType_NSLookup:
-      m_375_3:
+      m_379_3:
         {
-          __yv_374 = node->u.lookup.rhs_span;
-          goto _l___yv_374;
+          __yv_378 = node->u.lookup.rhs_span;
+          goto _l___yv_378;
         } break;
       case compiler_ast_nodes_ASTType_Member:
       case compiler_ast_nodes_ASTType_TryMember:
-      m_375_4:
+      m_379_4:
         {
           if (str_eq(sym->name, "this") && node->u.member.dot_shorthand) {
             ref_type=compiler_ast_scopes_ReferenceType_DotShorthand;
           }
-          __yv_374 = node->u.member.rhs_span;
-          goto _l___yv_374;
+          __yv_378 = node->u.member.rhs_span;
+          goto _l___yv_378;
         } break;
       case compiler_ast_nodes_ASTType_VarDeclaration:
-      m_375_5:
+      m_379_5:
         {
-          __yv_374 = sym->span;
-          goto _l___yv_374;
+          __yv_378 = sym->span;
+          goto _l___yv_378;
         } break;
       default:
         {
           if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:69:20: Assertion failed: `false`", std_format("Unhandled node type in set_resolved_symbol: %s", compiler_ast_nodes_ASTType_dbg(node->type))); exit(1); }
         } break;
     }
-_l___yv_374:
-  __yv_374;});
+_l___yv_378:
+  __yv_378;});
   if (((bool)sym) && !(this->in_template_instance)) {
     compiler_ast_scopes_Symbol_add_reference(sym, ref_type, span);
   }
@@ -6040,7 +6152,7 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_resolve_type(compil
   }
 switch ((old->base)) {
     case compiler_types_BaseType_Pointer:
-    m_376_0:
+    m_380_0:
       {
         compiler_types_Type *ptr = compiler_passes_typechecker_TypeChecker_resolve_type(this, old->u.ptr, p_a, p_e, p_r);
         if (!(((bool)ptr))) {
@@ -6048,12 +6160,12 @@ switch ((old->base)) {
         }
 switch ((ptr->base)) {
           case compiler_types_BaseType_Char:
-          m_377_0:
+          m_381_0:
             {
               resolved=compiler_ast_program_Program_get_type_by_name(this->o->program, "str", old->span);
             } break;
           case compiler_types_BaseType_Void:
-          m_377_1:
+          m_381_1:
             {
               resolved=compiler_ast_program_Program_get_type_by_name(this->o->program, "untyped_ptr", old->span);
             } break;
@@ -6064,7 +6176,7 @@ switch ((ptr->base)) {
             } break;
         }      } break;
     case compiler_types_BaseType_Alias:
-    m_376_1:
+    m_380_1:
       {
         if (!(((bool)old->u.ptr))) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new_note(old->span, "This type does not point to anything", "Cannot use a typedef for a type when defining any of it's members.\nUse fully qualified type for all field / method definitions."));
@@ -6074,7 +6186,7 @@ switch ((ptr->base)) {
       } break;
     case compiler_types_BaseType_Closure:
     case compiler_types_BaseType_FunctionPtr:
-    m_376_2:
+    m_380_2:
       {
         std_vector_Vector__3 *checked_params = std_vector_Vector__3_new(16);
         compiler_types_FunctionType func = old->u.func;
@@ -6100,19 +6212,19 @@ switch ((ptr->base)) {
         }
       } break;
     case compiler_types_BaseType_Unresolved:
-    m_376_3:
+    m_380_3:
       {
         compiler_ast_nodes_AST *node = old->u.unresolved;
         compiler_ast_scopes_Symbol *res = compiler_passes_typechecker_TypeChecker_resolve_scoped_identifier(this, node, p_e, NULL, p_r);
         if (((bool)res)) {
 switch ((res->type)) {
             case compiler_ast_scopes_SymbolType_TypeDef:
-            m_378_0:
+            m_382_0:
               {
                 resolved=compiler_passes_typechecker_TypeChecker_resolve_type(this, res->u.type_def, p_a, p_e, p_r);
               } break;
             case compiler_ast_scopes_SymbolType_Structure:
-            m_378_1:
+            m_382_1:
               {
                 compiler_ast_nodes_Structure *struc = res->u.struc;
                 if (compiler_ast_scopes_Symbol_is_templated(res) && !(allow_incomplete)) {
@@ -6130,7 +6242,7 @@ switch ((res->type)) {
                 }
               } break;
             case compiler_ast_scopes_SymbolType_Function:
-            m_378_2:
+            m_382_2:
               {
                 compiler_ast_nodes_Function *func = res->u.func;
                 if (compiler_ast_scopes_Symbol_is_templated(res) && !(allow_incomplete)) {
@@ -6148,7 +6260,7 @@ switch ((res->type)) {
                 }
               } break;
             case compiler_ast_scopes_SymbolType_Enum:
-            m_378_3:
+            m_382_3:
               {
                 compiler_ast_nodes_Enum *enom = res->u.enom;
                 if (compiler_ast_scopes_Symbol_is_templated(res) && !(allow_incomplete)) {
@@ -6179,7 +6291,7 @@ switch ((res->type)) {
         }
       } break;
     case compiler_types_BaseType_Array:
-    m_376_4:
+    m_380_4:
       {
         compiler_types_ArrayType arr = old->u.arr;
         compiler_types_Type *elem_type = compiler_passes_typechecker_TypeChecker_resolve_type(this, arr.elem_type, p_a, p_e, p_r);
@@ -6189,7 +6301,7 @@ switch ((res->type)) {
         compiler_passes_typechecker_TypeChecker_try_infer_array_size(this, &resolved->u.arr);
       } break;
     case compiler_types_BaseType_VectorShorthand:
-    m_376_5:
+    m_380_5:
       {
         if (!((this->o->program->did_cache_symbols && ((bool)this->o->program->cached_symbols.std_vector)))) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(old->span, "Vector shorthand not available"));
@@ -6201,9 +6313,9 @@ switch ((res->type)) {
             return NULL;
           }
           compiler_ast_scopes_Symbol *res = compiler_passes_typechecker_TypeChecker_resolve_templated_symbol(this, std_vector, ({
-            std_vector_Vector__0 *_vc379 = std_vector_Vector__0_new(1);
-            std_vector_Vector__0_push(_vc379, elem_type);
-            _vc379;}), old->span);
+            std_vector_Vector__0 *_vc383 = std_vector_Vector__0_new(1);
+            std_vector_Vector__0_push(_vc383, elem_type);
+            _vc383;}), old->span);
           if(!(res->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:253:24: Assertion failed: `res.type == Structure`", NULL); }
           old->sym=res;
           resolved=compiler_types_Type_new_resolved(compiler_types_BaseType_Pointer, old->span);
@@ -6211,7 +6323,7 @@ switch ((res->type)) {
         }
       } break;
     case compiler_types_BaseType_MapShorthand:
-    m_376_6:
+    m_380_6:
       {
         if (!((this->o->program->did_cache_symbols && ((bool)this->o->program->cached_symbols.std_map)))) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(old->span, "Map shorthand not available"));
@@ -6224,11 +6336,11 @@ switch ((res->type)) {
             return NULL;
           }
           compiler_ast_scopes_Symbol *res = compiler_passes_typechecker_TypeChecker_resolve_templated_symbol(this, std_map, ({
-            std_vector_Vector__0 *_vc380 = std_vector_Vector__0_new(2);
-            std_vector_Vector__0_push(_vc380, key_type);
-            std_vector_Vector__0_push(_vc380, value_type);
-            _vc380;}), old->span);
-          if(!(res->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:270:24: Assertion failed: `res.type == Structure`", NULL); }
+            std_vector_Vector__0 *_vc384 = std_vector_Vector__0_new(2);
+            std_vector_Vector__0_push(_vc384, key_type);
+            std_vector_Vector__0_push(_vc384, value_type);
+            _vc384;}), old->span);
+          if(!(res->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:271:24: Assertion failed: `res.type == Structure`", NULL); }
           old->sym=res;
           resolved=compiler_types_Type_new_resolved(compiler_types_BaseType_Pointer, old->span);
           resolved->u.ptr=res->u.struc->type;
@@ -6249,7 +6361,7 @@ switch ((res->type)) {
     case compiler_types_BaseType_F32:
     case compiler_types_BaseType_F64:
     case compiler_types_BaseType_Enum:
-    m_376_7:
+    m_380_7:
       {
       } break;
     default:
@@ -6416,17 +6528,17 @@ compiler_ast_scopes_Symbol *compiler_passes_typechecker_TypeChecker_resolve_temp
   std_vector_Vector__4_push(sym->template->instances, instance);
 switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Structure:
-    m_381_0:
+    m_385_0:
       {
         compiler_passes_typechecker_TypeChecker_resolve_templated_struct(this, sym->u.struc, instance);
       } break;
     case compiler_ast_scopes_SymbolType_Enum:
-    m_381_1:
+    m_385_1:
       {
         compiler_passes_typechecker_TypeChecker_resolve_templated_enum(this, sym->u.enom, instance);
       } break;
     case compiler_ast_scopes_SymbolType_Function:
-    m_381_2:
+    m_385_2:
       {
         compiler_passes_typechecker_TypeChecker_resolve_templated_function(this, sym->u.func, instance);
       } break;
@@ -6446,7 +6558,7 @@ switch ((sym->type)) {
 compiler_ast_scopes_Symbol *compiler_passes_typechecker_TypeChecker_resolve_scoped_identifier(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node, bool error, compiler_types_Type *hint, bool resolve_templates) {
 switch ((node->type)) {
     case compiler_ast_nodes_ASTType_NSLookup:
-    m_382_0:
+    m_386_0:
       {
         std_span_Span lhs_span = node->u.lookup.lhs->span;
         compiler_ast_scopes_Symbol *lhs = compiler_passes_typechecker_TypeChecker_resolve_scoped_identifier(this, node->u.lookup.lhs, error, NULL, resolve_templates);
@@ -6462,14 +6574,14 @@ switch ((node->type)) {
         return res;
       } break;
     case compiler_ast_nodes_ASTType_Identifier:
-    m_382_1:
+    m_386_1:
       {
         char *name = node->u.ident.name;
         compiler_ast_scopes_Symbol *res = NULL;
         if (((bool)hint)) {
 switch ((hint->base)) {
             case compiler_types_BaseType_Enum:
-            m_383_0:
+            m_387_0:
               {
                 compiler_ast_nodes_Enum *enom = hint->u.enom;
                 compiler_ast_nodes_EnumVariant *variant = compiler_ast_nodes_Enum_get_variant(enom, name);
@@ -6511,7 +6623,7 @@ switch ((hint->base)) {
         return res;
       } break;
     case compiler_ast_nodes_ASTType_Specialization:
-    m_382_2:
+    m_386_2:
       {
         compiler_ast_scopes_Symbol *base = compiler_passes_typechecker_TypeChecker_resolve_scoped_identifier(this, node->u.spec.base, error, hint, resolve_templates);
         if (!(((bool)base))) {
@@ -6651,7 +6763,7 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_constructor(c
   node->u.call.call_type=compiler_ast_nodes_CallType_StructConstructor;
   compiler_ast_nodes_AST *callee = node->u.call.callee;
   compiler_ast_scopes_Symbol *type_sym = compiler_ast_scopes_Symbol_remove_alias(callee->resolved_symbol);
-  if(!(type_sym->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:703:12: Assertion failed: `type_sym.type == Structure`", std_format("Got non-struct type in check_constructor: %s", compiler_ast_scopes_SymbolType_dbg(type_sym->type))); }
+  if(!(type_sym->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:704:12: Assertion failed: `type_sym.type == Structure`", std_format("Got non-struct type in check_constructor: %s", compiler_ast_scopes_SymbolType_dbg(type_sym->type))); }
   compiler_ast_nodes_Structure *struc = type_sym->u.struc;
   std_vector_Vector__3 *params = struc->fields;
   if (struc->is_union) {
@@ -6666,7 +6778,7 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_enum_construc
   node->u.call.call_type=compiler_ast_nodes_CallType_EnumConstructor;
   compiler_ast_nodes_AST *callee = node->u.call.callee;
   compiler_ast_scopes_Symbol *type_sym = compiler_ast_scopes_Symbol_remove_alias(callee->resolved_symbol);
-  if(!(type_sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:722:12: Assertion failed: `type_sym.type == EnumVariant`", std_format("Got non-struct type in check_constructor: %s", compiler_ast_scopes_SymbolType_dbg(type_sym->type))); }
+  if(!(type_sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:723:12: Assertion failed: `type_sym.type == EnumVariant`", std_format("Got non-struct type in check_constructor: %s", compiler_ast_scopes_SymbolType_dbg(type_sym->type))); }
   compiler_ast_nodes_EnumVariant *variant = type_sym->u.enum_var;
   compiler_ast_nodes_Enum *enom = variant->parent;
   u32 num_expected_fields = compiler_ast_nodes_EnumVariant_num_fields(variant);
@@ -6729,7 +6841,7 @@ void compiler_passes_typechecker_TypeChecker_check_call_args_labelled(compiler_p
   }
   for (u32 i = start; i < params->size; i++) {
     compiler_ast_nodes_Variable *param = std_vector_Vector__3_at(params, i);
-    if(!(((bool)param->sym))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:802:16: Assertion failed: `param.sym?`", std_format("Expected a symbol for parameter %u", i)); }
+    if(!(((bool)param->sym))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:803:16: Assertion failed: `param.sym?`", std_format("Expected a symbol for parameter %u", i)); }
     std_compact_map_Item__6 *item = std_compact_map_Map__6_get_item(kwargs, param->sym->name);
     if (((bool)item)) {
       std_vector_Vector__10_push(new_args, item->value);
@@ -6809,70 +6921,70 @@ void compiler_passes_typechecker_TypeChecker_check_call_args(compiler_passes_typ
 compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_call(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node, compiler_types_Type *hint) {
   compiler_ast_nodes_AST *callee = node->u.call.callee;
   std_vector_Vector__10 *args = node->u.call.args;
-  compiler_types_Type *res = ({compiler_types_Type *__yv_384;
+  compiler_types_Type *res = ({compiler_types_Type *__yv_388;
 switch ((callee->type)) {
       case compiler_ast_nodes_ASTType_Member:
-      m_385_0:
+      m_389_0:
         {
-          __yv_384 = compiler_passes_typechecker_TypeChecker_check_member(this, callee, true, false, NULL);
-          goto _l___yv_384;
+          __yv_388 = compiler_passes_typechecker_TypeChecker_check_member(this, callee, true, false, NULL);
+          goto _l___yv_388;
         } break;
       case compiler_ast_nodes_ASTType_TryMember:
-      m_385_1:
+      m_389_1:
         {
-          __yv_384 = compiler_passes_typechecker_TypeChecker_check_member(this, callee, true, true, NULL);
-          goto _l___yv_384;
+          __yv_388 = compiler_passes_typechecker_TypeChecker_check_member(this, callee, true, true, NULL);
+          goto _l___yv_388;
         } break;
       case compiler_ast_nodes_ASTType_Identifier:
       case compiler_ast_nodes_ASTType_NSLookup:
       case compiler_ast_nodes_ASTType_Specialization:
-      m_385_2:
+      m_389_2:
         {
           compiler_ast_scopes_Symbol *sym = compiler_passes_typechecker_TypeChecker_resolve_scoped_identifier(this, callee, true, hint, true);
-          __yv_384 = ({compiler_types_Type *__yv_386;
+          __yv_388 = ({compiler_types_Type *__yv_390;
             if (((bool)sym)) {
               sym=compiler_ast_scopes_Symbol_remove_alias(sym);
               compiler_passes_typechecker_TypeChecker_set_resolved_symbol(this, callee, sym);
-              __yv_386 = ({compiler_types_Type *__yv_387;
+              __yv_390 = ({compiler_types_Type *__yv_391;
 switch ((sym->type)) {
                   case compiler_ast_scopes_SymbolType_Structure:
                   case compiler_ast_scopes_SymbolType_TypeDef:
-                  m_388_0:
+                  m_392_0:
                     {
                       node->u.call.call_type=compiler_ast_nodes_CallType_StructConstructor;
                       return compiler_passes_typechecker_TypeChecker_check_constructor(this, node);
                     } break;
                   case compiler_ast_scopes_SymbolType_EnumVariant:
-                  m_388_1:
+                  m_392_1:
                     {
                       node->u.call.call_type=compiler_ast_nodes_CallType_EnumConstructor;
                       return compiler_passes_typechecker_TypeChecker_check_enum_constructor(this, node);
                     } break;
                   default:
                     {
-                      __yv_387 = compiler_passes_typechecker_TypeChecker_check_expression(this, callee, NULL);
-                      goto _l___yv_387;
+                      __yv_391 = compiler_passes_typechecker_TypeChecker_check_expression(this, callee, NULL);
+                      goto _l___yv_391;
                     } break;
                 }
-_l___yv_387:
-              __yv_387;});
-              goto _l___yv_386;
+_l___yv_391:
+              __yv_391;});
+              goto _l___yv_390;
             } else {
-              __yv_386 = this->o->error_type;
-              goto _l___yv_386;
+              __yv_390 = this->o->error_type;
+              goto _l___yv_390;
             }
-_l___yv_386:
-          __yv_386;});
-          goto _l___yv_384;
+_l___yv_390:
+          __yv_390;});
+          goto _l___yv_388;
         } break;
       default:
         {
-          __yv_384 = compiler_passes_typechecker_TypeChecker_check_expression(this, callee, NULL);
-          goto _l___yv_384;
+          __yv_388 = compiler_passes_typechecker_TypeChecker_check_expression(this, callee, NULL);
+          goto _l___yv_388;
         } break;
     }
-_l___yv_384:
-  __yv_384;});
+_l___yv_388:
+  __yv_388;});
   node->u.call.call_type=compiler_ast_nodes_CallType_Normal;
   if (((bool)res)) {
     if (res->base==compiler_types_BaseType_Pointer && res->u.ptr->base==compiler_types_BaseType_FunctionPtr) {
@@ -6916,7 +7028,7 @@ _l___yv_384:
 switch ((arg->type)) {
       case compiler_ast_nodes_ASTType_StringLiteral:
       case compiler_ast_nodes_ASTType_FormatStringLiteral:
-      m_389_0:
+      m_393_0:
         {
         } break;
       default:
@@ -6980,28 +7092,28 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_find_and_replace_ov
     return NULL;
   }
   compiler_ast_nodes_AST *callee = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_OverloadedOperator, node->u.binary.op_span);
-  callee->u.operator_span=({std_span_Span __yv_390;
+  callee->u.operator_span=({std_span_Span __yv_394;
 switch ((node->type)) {
       case compiler_ast_nodes_ASTType_BinaryOp:
-      m_391_0:
+      m_395_0:
         {
-          __yv_390 = node->u.binary.op_span;
-          goto _l___yv_390;
+          __yv_394 = node->u.binary.op_span;
+          goto _l___yv_394;
         } break;
       case compiler_ast_nodes_ASTType_UnaryOp:
-      m_391_1:
+      m_395_1:
         {
-          __yv_390 = node->u.unary.op_span;
-          goto _l___yv_390;
+          __yv_394 = node->u.unary.op_span;
+          goto _l___yv_394;
         } break;
       default:
         {
-          __yv_390 = node->span;
-          goto _l___yv_390;
+          __yv_394 = node->span;
+          goto _l___yv_394;
         } break;
     }
-_l___yv_390:
-  __yv_390;});
+_l___yv_394:
+  __yv_394;});
   compiler_passes_typechecker_TypeChecker_set_resolved_symbol(this, callee, func->sym);
   std_vector_Vector__10 *args = std_vector_Vector__10_new(16);
   if (((bool)arg1)) {
@@ -7031,7 +7143,7 @@ switch ((op)) {
     case compiler_ast_operators_Operator_Minus:
     case compiler_ast_operators_Operator_Multiply:
     case compiler_ast_operators_Operator_Divide:
-    m_392_0:
+    m_396_0:
       {
         if (lhs->base==compiler_types_BaseType_Pointer || rhs->base==compiler_types_BaseType_Pointer) {
           return compiler_passes_typechecker_TypeChecker_check_pointer_arith(this, node, lhs, rhs);
@@ -7049,7 +7161,7 @@ switch ((op)) {
     case compiler_ast_operators_Operator_MinusEquals:
     case compiler_ast_operators_Operator_DivideEquals:
     case compiler_ast_operators_Operator_MultiplyEquals:
-    m_392_1:
+    m_396_1:
       {
         compiler_ast_nodes_AST *lhs_node = node->u.binary.lhs;
         if (!(compiler_ast_nodes_AST_is_lvalue(lhs_node))) {
@@ -7070,7 +7182,7 @@ switch ((op)) {
     case compiler_ast_operators_Operator_LessThanEquals:
     case compiler_ast_operators_Operator_GreaterThan:
     case compiler_ast_operators_Operator_GreaterThanEquals:
-    m_392_2:
+    m_396_2:
       {
         if (!(compiler_types_Type_eq(lhs, rhs, false))) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new_note(node->span, "Operands must be of the same type", std_format("Got types '%s' and '%s'", compiler_types_Type_str(lhs), compiler_types_Type_str(rhs))));
@@ -7083,59 +7195,59 @@ switch ((op)) {
         return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
       } break;
     case compiler_ast_operators_Operator_Equals:
-    m_392_3:
+    m_396_3:
       {
-        bool is_invalid = ({bool __yv_393;
+        bool is_invalid = ({bool __yv_397;
           if (!(compiler_types_Type_eq(lhs, rhs, false))) {
-            __yv_393 = true;
-            goto _l___yv_393;
+            __yv_397 = true;
+            goto _l___yv_397;
           } else if (lhs->base==compiler_types_BaseType_Structure) {
-            __yv_393 = true;
-            goto _l___yv_393;
+            __yv_397 = true;
+            goto _l___yv_397;
           } else if (lhs->base==compiler_types_BaseType_Enum) {
-            __yv_393 = ({bool __yv_394;
+            __yv_397 = ({bool __yv_398;
               if (lhs->u.enom->has_values) {
                 compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Operator `%s` does not support non-trivial enum `%s`", compiler_ast_operators_Operator_dbg(op), compiler_types_Type_str(lhs))));
                 return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
               } else {
-                __yv_394 = false;
-                goto _l___yv_394;
+                __yv_398 = false;
+                goto _l___yv_398;
               }
-_l___yv_394:
-            __yv_394;});
-            goto _l___yv_393;
+_l___yv_398:
+            __yv_398;});
+            goto _l___yv_397;
           } else {
-            __yv_393 = false;
-            goto _l___yv_393;
+            __yv_397 = false;
+            goto _l___yv_397;
           }
 
-_l___yv_393:
-        __yv_393;});
+_l___yv_397:
+        __yv_397;});
         if (is_invalid) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Operator `%s` does not support `%s` and `%s`", compiler_ast_operators_Operator_dbg(op), compiler_types_Type_str(lhs), compiler_types_Type_str(rhs))));
         }
         return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
       } break;
     case compiler_ast_operators_Operator_NotEquals:
-    m_392_4:
+    m_396_4:
       {
-        bool is_invalid = ({bool __yv_395;
+        bool is_invalid = ({bool __yv_399;
           if (!(compiler_types_Type_eq(lhs, rhs, false))) {
-            __yv_395 = true;
-            goto _l___yv_395;
+            __yv_399 = true;
+            goto _l___yv_399;
           } else if (lhs->base==compiler_types_BaseType_Structure) {
-            __yv_395 = true;
-            goto _l___yv_395;
+            __yv_399 = true;
+            goto _l___yv_399;
           } else if (lhs->base==compiler_types_BaseType_Enum && lhs->u.enom->has_values) {
-            __yv_395 = true;
-            goto _l___yv_395;
+            __yv_399 = true;
+            goto _l___yv_399;
           } else {
-            __yv_395 = false;
-            goto _l___yv_395;
+            __yv_399 = false;
+            goto _l___yv_399;
           }
 
-_l___yv_395:
-        __yv_395;});
+_l___yv_399:
+        __yv_399;});
         if (is_invalid) {
           compiler_types_Type *res = compiler_passes_typechecker_TypeChecker_find_and_replace_overloaded_op(this, compiler_ast_operators_Operator_Equals, node, node->u.binary.lhs, node->u.binary.rhs, NULL);
           if (((bool)res)) {
@@ -7153,7 +7265,7 @@ _l___yv_395:
       } break;
     case compiler_ast_operators_Operator_And:
     case compiler_ast_operators_Operator_Or:
-    m_392_5:
+    m_396_5:
       {
         if (!(compiler_types_Type_eq(lhs, rhs, false)) || (lhs->base != compiler_types_BaseType_Bool)) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Operator `%s` does not support `%s` and `%s`", compiler_ast_operators_Operator_dbg(op), compiler_types_Type_str(lhs), compiler_types_Type_str(rhs))));
@@ -7162,7 +7274,7 @@ _l___yv_395:
         return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
       } break;
     case compiler_ast_operators_Operator_BitwiseXor:
-    m_392_6:
+    m_396_6:
       {
         if (!(compiler_types_Type_eq(lhs, rhs, false))) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Operator `%s` does not support `%s` and `%s`", compiler_ast_operators_Operator_dbg(op), compiler_types_Type_str(lhs), compiler_types_Type_str(rhs))));
@@ -7175,22 +7287,22 @@ _l___yv_395:
       } break;
     case compiler_ast_operators_Operator_BitwiseOr:
     case compiler_ast_operators_Operator_BitwiseAnd:
-    m_392_7:
+    m_396_7:
       {
-        bool valid_type = ({bool __yv_396;
+        bool valid_type = ({bool __yv_400;
           if (compiler_types_Type_is_integer(lhs) && compiler_types_Type_is_integer(rhs)) {
-            __yv_396 = true;
-            goto _l___yv_396;
+            __yv_400 = true;
+            goto _l___yv_400;
           } else if (compiler_types_Type_is_enum_flag(lhs) && compiler_types_Type_is_enum_flag(rhs)) {
-            __yv_396 = true;
-            goto _l___yv_396;
+            __yv_400 = true;
+            goto _l___yv_400;
           } else {
-            __yv_396 = false;
-            goto _l___yv_396;
+            __yv_400 = false;
+            goto _l___yv_400;
           }
 
-_l___yv_396:
-        __yv_396;});
+_l___yv_400:
+        __yv_400;});
         if (!(valid_type)) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Operator `%s` does not support `%s` and `%s`", compiler_ast_operators_Operator_dbg(op), compiler_types_Type_str(lhs), compiler_types_Type_str(rhs))));
           return NULL;
@@ -7205,7 +7317,7 @@ _l___yv_396:
     case compiler_ast_operators_Operator_RightShift:
     case compiler_ast_operators_Operator_LeftShiftEquals:
     case compiler_ast_operators_Operator_RightShiftEquals:
-    m_392_8:
+    m_396_8:
       {
         if (!(compiler_types_Type_is_integer(lhs)) || !(compiler_types_Type_is_integer(rhs))) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Operator `%s` does not support `%s` and `%s`", compiler_ast_operators_Operator_dbg(op), compiler_types_Type_str(lhs), compiler_types_Type_str(rhs))));
@@ -7218,7 +7330,7 @@ _l___yv_396:
 switch ((op)) {
           case compiler_ast_operators_Operator_LeftShiftEquals:
           case compiler_ast_operators_Operator_RightShiftEquals:
-          m_397_0:
+          m_401_0:
                           if (!(compiler_ast_nodes_AST_is_lvalue(lhs_node))) {
                 compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(lhs_node->span, std_format("Must be an l-value")));
                 return NULL;
@@ -7250,11 +7362,11 @@ switch ((typ->base)) {
     case compiler_types_BaseType_F32:
     case compiler_types_BaseType_F64:
     case compiler_types_BaseType_Pointer:
-    m_398_0:
+    m_402_0:
       {
       } break;
     case compiler_types_BaseType_Enum:
-    m_398_1:
+    m_402_1:
               if (typ->u.enom->has_values) {
           return compiler_passes_typechecker_Formattable_No;
         } else {
@@ -7275,7 +7387,7 @@ switch ((expr->type)) {
             case compiler_ast_nodes_ASTType_Identifier:
             case compiler_ast_nodes_ASTType_Member:
             case compiler_ast_nodes_ASTType_NSLookup:
-            m_399_0:
+            m_403_0:
               {
                 return compiler_passes_typechecker_Formattable_Yes;
               } break;
@@ -7310,12 +7422,12 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_format_string
     typ=compiler_types_Type_unaliased(typ);
 switch ((compiler_passes_typechecker_TypeChecker_is_formattable(this, typ, expr))) {
       case compiler_passes_typechecker_Formattable_No:
-      m_400_0:
+      m_404_0:
         {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(expr->span, std_format("Type '%s' cannot be formatted automatically", compiler_types_Type_str(typ))));
         } break;
       case compiler_passes_typechecker_Formattable_NotHere:
-      m_400_1:
+      m_404_1:
         {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new_note(expr->span, std_format("Can only format %s in simple expressions", typ->sym->display), "Try moving the expression into a variable and formatting that instead"));
         } break;
@@ -7414,12 +7526,12 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_index(compile
   lhs=compiler_types_Type_unaliased(lhs);
 switch ((lhs->base)) {
     case compiler_types_BaseType_Array:
-    m_401_0:
+    m_405_0:
       {
         return lhs->u.arr.elem_type;
       } break;
     case compiler_types_BaseType_Pointer:
-    m_401_1:
+    m_405_1:
       {
         return lhs->u.ptr;
       } break;
@@ -7442,47 +7554,47 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_assignment(co
 
 compiler_ast_nodes_AST *compiler_passes_typechecker_TypeChecker_create_match_for_error_unwrap(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node, compiler_ast_nodes_AST *expr, compiler_passes_typechecker_ErrorPropBase error_prop_base) {
   std_span_Span op_span = node->u.unary.op_span;
-  char *res_text = ({char *__yv_402;
+  char *res_text = ({char *__yv_406;
 switch ((error_prop_base)) {
       case compiler_passes_typechecker_ErrorPropBase_Result:
-      m_403_0:
+      m_407_0:
         {
           compiler_types_Type *err_type = std_vector_Vector__0_at(expr->etype->template_instance->args, 1);
-          char *panic_txt = ({char *__yv_404;
+          char *panic_txt = ({char *__yv_408;
 switch ((compiler_passes_typechecker_TypeChecker_is_formattable(this, err_type, expr))) {
               case compiler_passes_typechecker_Formattable_Yes:
-              m_405_0:
+              m_409_0:
                 {
-                  __yv_404 = std_format("Error unwrapping: {err} (%s:%u:%u)", (expr->span.end).filename, (expr->span.end).line, (expr->span.end).col);
-                  goto _l___yv_404;
+                  __yv_408 = std_format("Error unwrapping: {err} (%s:%u:%u)", (expr->span.end).filename, (expr->span.end).line, (expr->span.end).col);
+                  goto _l___yv_408;
                 } break;
               default:
                 {
-                  __yv_404 = std_format("Error unwrapping (%s:%u:%u)", (expr->span.end).filename, (expr->span.end).line, (expr->span.end).col);
-                  goto _l___yv_404;
+                  __yv_408 = std_format("Error unwrapping (%s:%u:%u)", (expr->span.end).filename, (expr->span.end).line, (expr->span.end).col);
+                  goto _l___yv_408;
                 } break;
             }
-_l___yv_404:
-          __yv_404;});
-          __yv_402 = std_format("\n            match x {\n                Ok(val) => val,\n                Error(err) => std::panic(`%s`)\n            }\n            ", panic_txt);
-          goto _l___yv_402;
+_l___yv_408:
+          __yv_408;});
+          __yv_406 = std_format("\n            match x {\n                Ok(val) => val,\n                Error(err) => std::panic(`%s`)\n            }\n            ", panic_txt);
+          goto _l___yv_406;
         } break;
       case compiler_passes_typechecker_ErrorPropBase_Option:
-      m_403_1:
+      m_407_1:
         {
-          __yv_402 = std_format("\n            match x {\n                Some(val) => val,\n                None => std::panic(`Error unwrapping: None (%s:%u:%u)`)\n            }\n            ", (expr->span.end).filename, (expr->span.end).line, (expr->span.end).col);
-          goto _l___yv_402;
+          __yv_406 = std_format("\n            match x {\n                Some(val) => val,\n                None => std::panic(`Error unwrapping: None (%s:%u:%u)`)\n            }\n            ", (expr->span.end).filename, (expr->span.end).line, (expr->span.end).col);
+          goto _l___yv_406;
         } break;
     }
-_l___yv_402:
-  __yv_402;});
+_l___yv_406:
+  __yv_406;});
   compiler_lexer_Lexer lexer = compiler_lexer_Lexer_make(res_text, op_span.start.filename, NULL);
   std_vector_Vector__13 *tokens = compiler_lexer_Lexer_lex(&lexer);
   compiler_parser_Parser parser = compiler_parser_Parser_make(this->o->program, compiler_passes_generic_pass_GenericPass_ns(this->o));
   parser.tokens=tokens;
   parser.curr=0;
   compiler_ast_nodes_AST *match_stmt = compiler_parser_Parser_parse_match(&parser);
-  compiler_passes_visitor_Visitor visitor = (compiler_passes_visitor_Visitor){.node_fn=({compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1Ctx *_C406 = alloca(sizeof(compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1Ctx));_C406->op_span = &op_span;_ClosureTy_1 _ci407 = {._C=_C406, .fn=&compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1};_ci407;}), .type_fn=({compiler_passes_visitor__Closure_4Ctx *_C408 = alloca(sizeof(compiler_passes_visitor__Closure_4Ctx));_ClosureTy_2 _ci409 = {._C=_C408, .fn=&compiler_passes_visitor__Closure_4};_ci409;})};
+  compiler_passes_visitor_Visitor visitor = (compiler_passes_visitor_Visitor){.node_fn=({compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1Ctx *_C410 = alloca(sizeof(compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1Ctx));_C410->op_span = &op_span;_ClosureTy_1 _ci411 = {._C=_C410, .fn=&compiler_passes_typechecker_create_match_for_error_unwrap__Closure_1};_ci411;}), .type_fn=({compiler_passes_visitor__Closure_4Ctx *_C412 = alloca(sizeof(compiler_passes_visitor__Closure_4Ctx));_ClosureTy_2 _ci413 = {._C=_C412, .fn=&compiler_passes_visitor__Closure_4};_ci413;})};
   compiler_passes_visitor_Visitor_visit_po(&visitor, match_stmt);
   match_stmt->u.match_stmt.expr=expr;
   return match_stmt;
@@ -7494,38 +7606,38 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_error_unwrap(
   if (!(((bool)expr_typ))) {
     return NULL;
   }
-  compiler_ast_scopes_Symbol *parent = ({compiler_ast_scopes_TemplateInstance *_t410 = expr_typ->template_instance; _t410 ? _t410->parent : NULL;});
-  compiler_passes_typechecker_ErrorPropBase error_prop_base = ({compiler_passes_typechecker_ErrorPropBase __yv_411;
+  compiler_ast_scopes_Symbol *parent = ({compiler_ast_scopes_TemplateInstance *_t414 = expr_typ->template_instance; _t414 ? _t414->parent : NULL;});
+  compiler_passes_typechecker_ErrorPropBase error_prop_base = ({compiler_passes_typechecker_ErrorPropBase __yv_415;
     if (parent==this->o->program->cached_symbols.std_result) {
-      __yv_411 = compiler_passes_typechecker_ErrorPropBase_Result;
-      goto _l___yv_411;
+      __yv_415 = compiler_passes_typechecker_ErrorPropBase_Result;
+      goto _l___yv_415;
     } else if (parent==this->o->program->cached_symbols.std_option) {
-      __yv_411 = compiler_passes_typechecker_ErrorPropBase_Option;
-      goto _l___yv_411;
+      __yv_415 = compiler_passes_typechecker_ErrorPropBase_Option;
+      goto _l___yv_415;
     } else {
       compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Can only use !! on Result/Option types, got %s", compiler_types_Type_str(expr_typ))));
       return NULL;
     }
 
-_l___yv_411:
-  __yv_411;});
-  compiler_types_Type *ok_hint = ({compiler_types_Type *__yv_412;
+_l___yv_415:
+  __yv_415;});
+  compiler_types_Type *ok_hint = ({compiler_types_Type *__yv_416;
 switch ((error_prop_base)) {
       case compiler_passes_typechecker_ErrorPropBase_Result:
-      m_413_0:
+      m_417_0:
         {
-          __yv_412 = std_vector_Vector__0_at(expr_typ->template_instance->args, 0);
-          goto _l___yv_412;
+          __yv_416 = std_vector_Vector__0_at(expr_typ->template_instance->args, 0);
+          goto _l___yv_416;
         } break;
       case compiler_passes_typechecker_ErrorPropBase_Option:
-      m_413_1:
+      m_417_1:
         {
-          __yv_412 = std_vector_Vector__0_at(expr_typ->template_instance->args, 0);
-          goto _l___yv_412;
+          __yv_416 = std_vector_Vector__0_at(expr_typ->template_instance->args, 0);
+          goto _l___yv_416;
         } break;
     }
-_l___yv_412:
-  __yv_412;});
+_l___yv_416:
+  __yv_416;});
   compiler_ast_nodes_Function *cur_func = compiler_passes_generic_pass_GenericPass_current_func(this->o);
   if (!(((bool)cur_func))) {
     compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Cannot use !! outside of a function"));
@@ -7539,30 +7651,30 @@ _l___yv_412:
 
 compiler_ast_nodes_AST *compiler_passes_typechecker_TypeChecker_create_match_for_error_prop(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node, compiler_ast_nodes_AST *expr, compiler_passes_typechecker_ErrorPropBase error_prop_base) {
   std_span_Span op_span = node->u.unary.op_span;
-  char *res_text = ({char *__yv_414;
+  char *res_text = ({char *__yv_418;
 switch ((error_prop_base)) {
       case compiler_passes_typechecker_ErrorPropBase_Result:
-      m_415_0:
+      m_419_0:
         {
-          __yv_414 = "\n            match x {\n                Ok(val) => val,\n                Error(err) => { return Error(err) }\n            }\n            ";
-          goto _l___yv_414;
+          __yv_418 = "\n            match x {\n                Ok(val) => val,\n                Error(err) => { return Error(err) }\n            }\n            ";
+          goto _l___yv_418;
         } break;
       case compiler_passes_typechecker_ErrorPropBase_Option:
-      m_415_1:
+      m_419_1:
         {
-          __yv_414 = "\n            match x {\n                Some(val) => val,\n                None => { return None }\n            }\n            ";
-          goto _l___yv_414;
+          __yv_418 = "\n            match x {\n                Some(val) => val,\n                None => { return None }\n            }\n            ";
+          goto _l___yv_418;
         } break;
     }
-_l___yv_414:
-  __yv_414;});
+_l___yv_418:
+  __yv_418;});
   compiler_lexer_Lexer lexer = compiler_lexer_Lexer_make(res_text, op_span.start.filename, NULL);
   std_vector_Vector__13 *tokens = compiler_lexer_Lexer_lex(&lexer);
   compiler_parser_Parser parser = compiler_parser_Parser_make(this->o->program, compiler_passes_generic_pass_GenericPass_ns(this->o));
   parser.tokens=tokens;
   parser.curr=0;
   compiler_ast_nodes_AST *match_stmt = compiler_parser_Parser_parse_match(&parser);
-  compiler_passes_visitor_Visitor visitor = (compiler_passes_visitor_Visitor){.node_fn=({compiler_passes_typechecker_create_match_for_error_prop__Closure_2Ctx *_C416 = alloca(sizeof(compiler_passes_typechecker_create_match_for_error_prop__Closure_2Ctx));_C416->op_span = &op_span;_ClosureTy_1 _ci417 = {._C=_C416, .fn=&compiler_passes_typechecker_create_match_for_error_prop__Closure_2};_ci417;}), .type_fn=({compiler_passes_visitor__Closure_4Ctx *_C418 = alloca(sizeof(compiler_passes_visitor__Closure_4Ctx));_ClosureTy_2 _ci419 = {._C=_C418, .fn=&compiler_passes_visitor__Closure_4};_ci419;})};
+  compiler_passes_visitor_Visitor visitor = (compiler_passes_visitor_Visitor){.node_fn=({compiler_passes_typechecker_create_match_for_error_prop__Closure_2Ctx *_C420 = alloca(sizeof(compiler_passes_typechecker_create_match_for_error_prop__Closure_2Ctx));_C420->op_span = &op_span;_ClosureTy_1 _ci421 = {._C=_C420, .fn=&compiler_passes_typechecker_create_match_for_error_prop__Closure_2};_ci421;}), .type_fn=({compiler_passes_visitor__Closure_4Ctx *_C422 = alloca(sizeof(compiler_passes_visitor__Closure_4Ctx));_ClosureTy_2 _ci423 = {._C=_C422, .fn=&compiler_passes_visitor__Closure_4};_ci423;})};
   compiler_passes_visitor_Visitor_visit_po(&visitor, match_stmt);
   match_stmt->u.match_stmt.expr=expr;
   return match_stmt;
@@ -7579,46 +7691,46 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_error_prop(co
     compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Cannot use ! outside of a function"));
     return NULL;
   }
-  compiler_ast_scopes_Symbol *parent = ({compiler_ast_scopes_TemplateInstance *_t420 = expr_typ->template_instance; _t420 ? _t420->parent : NULL;});
-  compiler_passes_typechecker_ErrorPropBase error_prop_base = ({compiler_passes_typechecker_ErrorPropBase __yv_421;
+  compiler_ast_scopes_Symbol *parent = ({compiler_ast_scopes_TemplateInstance *_t424 = expr_typ->template_instance; _t424 ? _t424->parent : NULL;});
+  compiler_passes_typechecker_ErrorPropBase error_prop_base = ({compiler_passes_typechecker_ErrorPropBase __yv_425;
     if (parent==this->o->program->cached_symbols.std_result) {
-      __yv_421 = compiler_passes_typechecker_ErrorPropBase_Result;
-      goto _l___yv_421;
+      __yv_425 = compiler_passes_typechecker_ErrorPropBase_Result;
+      goto _l___yv_425;
     } else if (parent==this->o->program->cached_symbols.std_option) {
-      __yv_421 = compiler_passes_typechecker_ErrorPropBase_Option;
-      goto _l___yv_421;
+      __yv_425 = compiler_passes_typechecker_ErrorPropBase_Option;
+      goto _l___yv_425;
     } else {
       compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Can only use ! on Result/Option types, got %s", compiler_types_Type_str(expr_typ))));
       return NULL;
     }
 
-_l___yv_421:
-  __yv_421;});
-  compiler_types_Type *ok_hint = ({compiler_types_Type *__yv_422;
+_l___yv_425:
+  __yv_425;});
+  compiler_types_Type *ok_hint = ({compiler_types_Type *__yv_426;
 switch ((error_prop_base)) {
       case compiler_passes_typechecker_ErrorPropBase_Result:
-      m_423_0:
+      m_427_0:
         {
-          __yv_422 = std_vector_Vector__0_at(expr_typ->template_instance->args, 0);
-          goto _l___yv_422;
+          __yv_426 = std_vector_Vector__0_at(expr_typ->template_instance->args, 0);
+          goto _l___yv_426;
         } break;
       case compiler_passes_typechecker_ErrorPropBase_Option:
-      m_423_1:
+      m_427_1:
         {
-          __yv_422 = std_vector_Vector__0_at(expr_typ->template_instance->args, 0);
-          goto _l___yv_422;
+          __yv_426 = std_vector_Vector__0_at(expr_typ->template_instance->args, 0);
+          goto _l___yv_426;
         } break;
     }
-_l___yv_422:
-  __yv_422;});
+_l___yv_426:
+  __yv_426;});
   compiler_types_Type *ret_type = cur_func->return_type;
-  if (({compiler_ast_scopes_TemplateInstance *_t424 = ({compiler_types_Type *_t425 = ret_type; _t425 ? _t425->template_instance : NULL;}); _t424 ? _t424->parent : NULL;}) != parent) {
+  if (({compiler_ast_scopes_TemplateInstance *_t428 = ({compiler_types_Type *_t429 = ret_type; _t429 ? _t429->template_instance : NULL;}); _t428 ? _t428->parent : NULL;}) != parent) {
     compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new_hint(node->span, std_format("Cannot use ! here, expression is %s but function returns %s", compiler_types_Type_str(expr_typ), compiler_types_Type_str(ret_type)), cur_func->parsed_return_type->span, std_format("Function returns %s", compiler_types_Type_str(ret_type))));
     return ok_hint;
   }
 switch ((error_prop_base)) {
     case compiler_passes_typechecker_ErrorPropBase_Result:
-    m_426_0:
+    m_430_0:
       {
         compiler_types_Type *expr_err_type = std_vector_Vector__0_at(expr_typ->template_instance->args, 1);
         compiler_types_Type *ret_err_type = std_vector_Vector__0_at(ret_type->template_instance->args, 1);
@@ -7628,7 +7740,7 @@ switch ((error_prop_base)) {
         }
       } break;
     case compiler_passes_typechecker_ErrorPropBase_Option:
-    m_426_1:
+    m_430_1:
       {
       } break;
   }  compiler_ast_nodes_AST *match_stmt = compiler_passes_typechecker_TypeChecker_create_match_for_error_prop(this, node, expr, error_prop_base);
@@ -7640,31 +7752,31 @@ switch ((error_prop_base)) {
 compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_expression_helper(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node, compiler_types_Type *hint) {
 switch ((node->type)) {
     case compiler_ast_nodes_ASTType_IntLiteral:
-    m_427_0:
+    m_431_0:
       {
         if (((bool)node->u.num_literal.suffix)) {
           return compiler_passes_typechecker_TypeChecker_resolve_type(this, node->u.num_literal.suffix, false, true, true);
         }
-        return ({compiler_types_Type *__yv_428;
+        return ({compiler_types_Type *__yv_432;
           if (!(((bool)hint))) {
-            __yv_428 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_U32, node->span);
-            goto _l___yv_428;
+            __yv_432 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_U32, node->span);
+            goto _l___yv_432;
           } else if (compiler_types_Type_is_integer(hint)) {
-            __yv_428 = hint;
-            goto _l___yv_428;
+            __yv_432 = hint;
+            goto _l___yv_432;
           } else if (compiler_types_Type_is_enum_flag(hint) && node->u.num_literal.as_int==((u64)0)) {
-            __yv_428 = hint;
-            goto _l___yv_428;
+            __yv_432 = hint;
+            goto _l___yv_432;
           } else {
-            __yv_428 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_U32, node->span);
-            goto _l___yv_428;
+            __yv_432 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_U32, node->span);
+            goto _l___yv_432;
           }
 
-_l___yv_428:
-        __yv_428;});
+_l___yv_432:
+        __yv_432;});
       } break;
     case compiler_ast_nodes_ASTType_FloatLiteral:
-    m_427_1:
+    m_431_1:
       {
         if (((bool)node->u.num_literal.suffix)) {
           return compiler_passes_typechecker_TypeChecker_resolve_type(this, node->u.num_literal.suffix, false, true, true);
@@ -7675,19 +7787,19 @@ _l___yv_428:
         return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_F32, node->span);
       } break;
     case compiler_ast_nodes_ASTType_StringLiteral:
-    m_427_2:
+    m_431_2:
       {
         return compiler_passes_typechecker_TypeChecker_get_type_by_name(this, "str", node->span);
       } break;
     case compiler_ast_nodes_ASTType_Null:
-    m_427_3:
+    m_431_3:
       {
         if (((bool)hint)) {
 switch ((hint->base)) {
             case compiler_types_BaseType_Pointer:
             case compiler_types_BaseType_FunctionPtr:
             case compiler_types_BaseType_Closure:
-            m_429_0:
+            m_433_0:
               {
                 return hint;
               } break;
@@ -7698,7 +7810,7 @@ switch ((hint->base)) {
         return compiler_passes_typechecker_TypeChecker_get_type_by_name(this, "untyped_ptr", node->span);
       } break;
     case compiler_ast_nodes_ASTType_Cast:
-    m_427_4:
+    m_431_4:
       {
         compiler_types_Type *typ = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.cast.lhs, NULL);
         if (!(((bool)typ))) {
@@ -7712,29 +7824,29 @@ switch ((hint->base)) {
         return target;
       } break;
     case compiler_ast_nodes_ASTType_FormatStringLiteral:
-    m_427_5:
+    m_431_5:
       {
         return compiler_passes_typechecker_TypeChecker_check_format_string(this, node);
       } break;
     case compiler_ast_nodes_ASTType_CharLiteral:
-    m_427_6:
+    m_431_6:
       {
         return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Char, node->span);
       } break;
     case compiler_ast_nodes_ASTType_BoolLiteral:
-    m_427_7:
+    m_431_7:
       {
         return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
       } break;
     case compiler_ast_nodes_ASTType_UnaryOp:
-    m_427_8:
+    m_431_8:
       {
 switch ((node->u.unary.op)) {
           case compiler_ast_operators_Operator_PreIncrement:
           case compiler_ast_operators_Operator_PostIncrement:
           case compiler_ast_operators_Operator_PreDecrement:
           case compiler_ast_operators_Operator_PostDecrement:
-          m_430_0:
+          m_434_0:
             {
               compiler_types_Type *lhs = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.unary.expr, NULL);
               if (!(((bool)lhs))) {
@@ -7750,7 +7862,7 @@ switch ((node->u.unary.op)) {
               return lhs;
             } break;
           case compiler_ast_operators_Operator_Negate:
-          m_430_1:
+          m_434_1:
             {
               if (!((((bool)hint) && compiler_types_Type_is_numeric(hint)))) {
                 hint=compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_I32, node->span);
@@ -7766,26 +7878,26 @@ switch ((node->u.unary.op)) {
               return typ;
             } break;
           case compiler_ast_operators_Operator_BitwiseNot:
-          m_430_2:
+          m_434_2:
             {
               compiler_types_Type *typ = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.unary.expr, hint);
               if (!(((bool)typ))) {
                 return NULL;
               }
-              bool valid_type = ({bool __yv_431;
+              bool valid_type = ({bool __yv_435;
                 if (compiler_types_Type_is_integer(typ)) {
-                  __yv_431 = true;
-                  goto _l___yv_431;
+                  __yv_435 = true;
+                  goto _l___yv_435;
                 } else if (compiler_types_Type_is_enum_flag(typ)) {
-                  __yv_431 = true;
-                  goto _l___yv_431;
+                  __yv_435 = true;
+                  goto _l___yv_435;
                 } else {
-                  __yv_431 = false;
-                  goto _l___yv_431;
+                  __yv_435 = false;
+                  goto _l___yv_435;
                 }
 
-_l___yv_431:
-              __yv_431;});
+_l___yv_435:
+              __yv_435;});
               if (!(valid_type)) {
                 compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Cannot do bitwise-not on type: %s", compiler_types_Type_str(typ))));
                 return NULL;
@@ -7793,7 +7905,7 @@ _l___yv_431:
               return typ;
             } break;
           case compiler_ast_operators_Operator_IsNotNull:
-          m_430_3:
+          m_434_3:
             {
               compiler_types_Type *typ = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.unary.expr, NULL);
               if (!(((bool)typ))) {
@@ -7804,7 +7916,7 @@ switch ((typ->base)) {
                 case compiler_types_BaseType_Pointer:
                 case compiler_types_BaseType_FunctionPtr:
                 case compiler_types_BaseType_Closure:
-                m_432_0:
+                m_436_0:
                   {
                   } break;
                 default:
@@ -7815,7 +7927,7 @@ switch ((typ->base)) {
               }              return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
             } break;
           case compiler_ast_operators_Operator_Not:
-          m_430_4:
+          m_434_4:
             {
               compiler_types_Type *typ = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.unary.expr, compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span));
               if (!(((bool)typ))) {
@@ -7828,7 +7940,7 @@ switch ((typ->base)) {
               return typ;
             } break;
           case compiler_ast_operators_Operator_Address:
-          m_430_5:
+          m_434_5:
             {
               compiler_types_Type *typ = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.unary.expr, NULL);
               if (!(((bool)typ))) {
@@ -7836,12 +7948,12 @@ switch ((typ->base)) {
               }
 switch ((typ->base)) {
                 case compiler_types_BaseType_Char:
-                m_433_0:
+                m_437_0:
                   {
                     return compiler_passes_typechecker_TypeChecker_get_type_by_name(this, "str", node->span);
                   } break;
                 case compiler_types_BaseType_Void:
-                m_433_1:
+                m_437_1:
                   {
                     return compiler_passes_typechecker_TypeChecker_get_type_by_name(this, "untyped_ptr", node->span);
                   } break;
@@ -7853,7 +7965,7 @@ switch ((typ->base)) {
                   } break;
               }            } break;
           case compiler_ast_operators_Operator_Dereference:
-          m_430_6:
+          m_434_6:
             {
               compiler_types_Type *typ = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.unary.expr, NULL);
               if (!(((bool)typ))) {
@@ -7866,12 +7978,12 @@ switch ((typ->base)) {
               return typ->u.ptr;
             } break;
           case compiler_ast_operators_Operator_ErrorProp:
-          m_430_7:
+          m_434_7:
             {
               return compiler_passes_typechecker_TypeChecker_check_error_prop(this, node);
             } break;
           case compiler_ast_operators_Operator_ErrorUnwrap:
-          m_430_8:
+          m_434_8:
             {
               return compiler_passes_typechecker_TypeChecker_check_error_unwrap(this, node);
             } break;
@@ -7882,17 +7994,17 @@ switch ((typ->base)) {
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_Member:
-    m_427_9:
+    m_431_9:
       {
         return compiler_passes_typechecker_TypeChecker_check_member(this, node, false, false, hint);
       } break;
     case compiler_ast_nodes_ASTType_TryMember:
-    m_427_10:
+    m_431_10:
       {
         return compiler_passes_typechecker_TypeChecker_check_member(this, node, false, true, hint);
       } break;
     case compiler_ast_nodes_ASTType_SizeOf:
-    m_427_11:
+    m_431_11:
       {
         compiler_types_Type *typ = compiler_passes_typechecker_TypeChecker_resolve_type(this, node->u.size_of_type, false, true, true);
         if (!(((bool)typ))) {
@@ -7902,19 +8014,19 @@ switch ((typ->base)) {
         return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_U32, node->span);
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_427_12:
+    m_431_12:
       {
         compiler_passes_typechecker_TypeChecker_check_if(this, node, true, hint);
         return node->etype;
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_427_13:
+    m_431_13:
       {
         compiler_passes_typechecker_TypeChecker_check_block(this, node, true, hint);
         return node->etype;
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_427_14:
+    m_431_14:
       {
         compiler_passes_typechecker_TypeChecker_check_match(this, node, true, hint);
         return node->etype;
@@ -7922,7 +8034,7 @@ switch ((typ->base)) {
     case compiler_ast_nodes_ASTType_Identifier:
     case compiler_ast_nodes_ASTType_NSLookup:
     case compiler_ast_nodes_ASTType_Specialization:
-    m_427_15:
+    m_431_15:
       {
         compiler_ast_scopes_Symbol *item = compiler_passes_typechecker_TypeChecker_resolve_scoped_identifier(this, node, true, hint, true);
         if (!(((bool)item))) {
@@ -7931,23 +8043,23 @@ switch ((typ->base)) {
         item=compiler_ast_scopes_Symbol_remove_alias(item);
 switch ((item->type)) {
           case compiler_ast_scopes_SymbolType_Function:
-          m_434_0:
+          m_438_0:
             {
               return item->u.func->type;
             } break;
           case compiler_ast_scopes_SymbolType_Variable:
           case compiler_ast_scopes_SymbolType_Constant:
-          m_434_1:
+          m_438_1:
             {
               return item->u.var->type;
             } break;
           case compiler_ast_scopes_SymbolType_ClosedVariable:
-          m_434_2:
+          m_438_2:
             {
               return item->u.closed_var.orig->type;
             } break;
           case compiler_ast_scopes_SymbolType_EnumVariant:
-          m_434_3:
+          m_438_3:
             {
               compiler_ast_nodes_EnumVariant *variant = item->u.enum_var;
               if (compiler_ast_nodes_EnumVariant_num_fields(variant) != 0) {
@@ -7956,7 +8068,7 @@ switch ((item->type)) {
               return variant->parent->type;
             } break;
           case compiler_ast_scopes_SymbolType_TypeDef:
-          m_434_4:
+          m_438_4:
             {
               compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Cannot use type `%s` as an expression", item->name)));
               return NULL;
@@ -7964,7 +8076,7 @@ switch ((item->type)) {
           case compiler_ast_scopes_SymbolType_Structure:
           case compiler_ast_scopes_SymbolType_Namespace:
           case compiler_ast_scopes_SymbolType_Enum:
-          m_434_5:
+          m_438_5:
             {
               compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Cannot use %s `%s` as an expression", compiler_ast_scopes_SymbolType_dbg(item->type), item->name)));
               return NULL;
@@ -7976,12 +8088,12 @@ switch ((item->type)) {
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_Call:
-    m_427_16:
+    m_431_16:
       {
         return compiler_passes_typechecker_TypeChecker_check_call(this, node, hint);
       } break;
     case compiler_ast_nodes_ASTType_BinaryOp:
-    m_427_17:
+    m_431_17:
       {
         compiler_ast_nodes_AST *lhs_node = node->u.binary.lhs;
         compiler_ast_nodes_AST *rhs_node = node->u.binary.rhs;
@@ -8010,7 +8122,7 @@ switch ((op)) {
           case compiler_ast_operators_Operator_RightShiftEquals:
           case compiler_ast_operators_Operator_LeftShift:
           case compiler_ast_operators_Operator_RightShift:
-          m_435_0:
+          m_439_0:
             {
               compiler_types_Type *lhs = compiler_passes_typechecker_TypeChecker_check_expression(this, lhs_node, hint);
               compiler_types_Type *rhs = compiler_passes_typechecker_TypeChecker_check_expression(this, rhs_node, lhs);
@@ -8020,7 +8132,7 @@ switch ((op)) {
               return compiler_passes_typechecker_TypeChecker_check_binary_op(this, node, compiler_types_Type_unaliased(lhs), compiler_types_Type_unaliased(rhs));
             } break;
           case compiler_ast_operators_Operator_Equals:
-          m_435_1:
+          m_439_1:
             {
               compiler_types_Type *lhs = compiler_passes_typechecker_TypeChecker_check_expression(this, lhs_node, hint);
               if ((!(((bool)lhs)) || (lhs->base != compiler_types_BaseType_Enum)) || !(lhs->u.enom->has_values)) {
@@ -8034,11 +8146,11 @@ switch ((rhs_node->type)) {
                 case compiler_ast_nodes_ASTType_Identifier:
                 case compiler_ast_nodes_ASTType_NSLookup:
                 case compiler_ast_nodes_ASTType_Specialization:
-                m_436_0:
+                m_440_0:
                   {
                   } break;
                 case compiler_ast_nodes_ASTType_Call:
-                m_436_1:
+                m_440_1:
                   {
                     compiler_ast_nodes_FuncCall call = rhs_node->u.call;
                     std_span_Span args_span = std_span_Span_join(call.open_paren_span, call.close_paren_span);
@@ -8059,7 +8171,7 @@ switch ((rhs_node->type)) {
               if (rhs_sym->type != compiler_ast_scopes_SymbolType_EnumVariant) {
                 compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(rhs_node->span, std_format("Expected enum variant, got: %s", compiler_ast_scopes_SymbolType_dbg(rhs_sym->type))));
                 return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
-              } else if (!(compiler_types_Type_eq(({compiler_ast_nodes_Enum *_t437 = ({compiler_ast_nodes_EnumVariant *_t438 = rhs_sym->u.enum_var; _t438 ? _t438->parent : NULL;}); _t437 ? _t437->type : NULL;}), lhs, false))) {
+              } else if (!(compiler_types_Type_eq(({compiler_ast_nodes_Enum *_t441 = ({compiler_ast_nodes_EnumVariant *_t442 = rhs_sym->u.enum_var; _t442 ? _t442->parent : NULL;}); _t441 ? _t441->type : NULL;}), lhs, false))) {
                 compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(rhs_node->span, std_format("Expected enum variant of type %s, got: %s", compiler_types_Type_str(lhs), compiler_types_Type_str(rhs_sym->u.enum_var->parent->type))));
                 return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
               }
@@ -8067,7 +8179,7 @@ switch ((rhs_node->type)) {
               return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
             } break;
           case compiler_ast_operators_Operator_In:
-          m_435_2:
+          m_439_2:
             {
               compiler_types_Type *lhs = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.binary.lhs, NULL);
               compiler_types_Type *rhs = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.binary.rhs, NULL);
@@ -8078,12 +8190,12 @@ switch ((rhs_node->type)) {
               return compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
             } break;
           case compiler_ast_operators_Operator_Index:
-          m_435_3:
+          m_439_3:
             {
               return compiler_passes_typechecker_TypeChecker_check_index(this, node, hint, false);
             } break;
           case compiler_ast_operators_Operator_Assignment:
-          m_435_4:
+          m_439_4:
             {
               compiler_types_Type *lhs = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.binary.lhs, NULL);
               compiler_types_Type *rhs = compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.binary.rhs, lhs);
@@ -8093,7 +8205,7 @@ switch ((rhs_node->type)) {
               return compiler_passes_typechecker_TypeChecker_check_assignment(this, node, lhs, rhs);
             } break;
           case compiler_ast_operators_Operator_IndexAssign:
-          m_435_5:
+          m_439_5:
             {
               compiler_ast_nodes_AST *index = node->u.binary.lhs;
               compiler_ast_nodes_AST *arg1 = index->u.binary.lhs;
@@ -8130,7 +8242,7 @@ switch ((rhs_node->type)) {
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_MapLiteral:
-    m_427_18:
+    m_431_18:
       {
         if (!(this->o->program->did_cache_symbols) || !(((bool)this->o->program->cached_symbols.std_map))) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Could not find std::compact_map, please import it."));
@@ -8141,7 +8253,7 @@ switch ((rhs_node->type)) {
         if (((bool)hint) && hint->base==compiler_types_BaseType_Pointer) {
           compiler_types_Type *ptr = hint->u.ptr;
           if ((((bool)ptr) && ((bool)ptr->template_instance)) && ptr->template_instance->parent==std_map) {
-            if(!(ptr->template_instance->args->size==2)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:1981:28: Assertion failed: `ptr.template_instance.args.size == 2`", NULL); }
+            if(!(ptr->template_instance->args->size==2)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:1982:28: Assertion failed: `ptr.template_instance.args.size == 2`", NULL); }
             key_hint_type=std_vector_Vector__0_at(ptr->template_instance->args, 0);
             value_hint_type=std_vector_Vector__0_at(ptr->template_instance->args, 1);
           }
@@ -8185,10 +8297,10 @@ switch ((rhs_node->type)) {
           return NULL;
         }
         compiler_ast_scopes_Symbol *res = compiler_passes_typechecker_TypeChecker_resolve_templated_symbol(this, std_map, ({
-          std_vector_Vector__0 *_vc439 = std_vector_Vector__0_new(2);
-          std_vector_Vector__0_push(_vc439, key_type);
-          std_vector_Vector__0_push(_vc439, value_type);
-          _vc439;}), node->span);
+          std_vector_Vector__0 *_vc443 = std_vector_Vector__0_new(2);
+          std_vector_Vector__0_push(_vc443, key_type);
+          std_vector_Vector__0_push(_vc443, value_type);
+          _vc443;}), node->span);
         if (!(((bool)res)) || (res->type != compiler_ast_scopes_SymbolType_Structure)) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Internal error: Failed to resolve std::compact_map specialization"));
           return NULL;
@@ -8200,7 +8312,7 @@ switch ((rhs_node->type)) {
         return ptr_type;
       } break;
     case compiler_ast_nodes_ASTType_VectorLiteral:
-    m_427_19:
+    m_431_19:
       {
         if (!(this->o->program->did_cache_symbols) || !(((bool)this->o->program->cached_symbols.std_vector))) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Could not find std::vector, please import it."));
@@ -8210,7 +8322,7 @@ switch ((rhs_node->type)) {
         if (((bool)hint) && hint->base==compiler_types_BaseType_Pointer) {
           compiler_types_Type *ptr = hint->u.ptr;
           if ((((bool)ptr) && ((bool)ptr->template_instance)) && ptr->template_instance->parent==std_vector) {
-            if(!(ptr->template_instance->args->size==1)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2063:28: Assertion failed: `ptr.template_instance.args.size == 1`", NULL); }
+            if(!(ptr->template_instance->args->size==1)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2064:28: Assertion failed: `ptr.template_instance.args.size == 1`", NULL); }
             hint_elem_type=std_vector_Vector__0_at(ptr->template_instance->args, 0);
           }
         }
@@ -8259,7 +8371,7 @@ switch ((rhs_node->type)) {
         return ptr_type;
       } break;
     case compiler_ast_nodes_ASTType_ArrayLiteral:
-    m_427_20:
+    m_431_20:
       {
         compiler_types_Type *hint_elem_type = NULL;
         if (((bool)hint) && hint->base==compiler_types_BaseType_Array) {
@@ -8295,7 +8407,7 @@ switch ((rhs_node->type)) {
         return arr;
       } break;
     case compiler_ast_nodes_ASTType_CreateNew:
-    m_427_21:
+    m_431_21:
       {
         if (!(this->o->program->did_cache_symbols)) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Cannot use `@new` without using stdlib"));
@@ -8313,29 +8425,29 @@ switch ((rhs_node->type)) {
         return typ;
       } break;
     case compiler_ast_nodes_ASTType_CreateClosure:
-    m_427_22:
+    m_431_22:
       {
         compiler_ast_nodes_Function *clos = node->u.closure;
         clos->scope=compiler_passes_generic_pass_GenericPass_ns(this->o)->scope;
         clos->closure_scope=compiler_passes_generic_pass_GenericPass_scope(this->o);
         clos->closed_vars=std_compact_map_Map__2_new(16);
-        bool hint_matches = ({bool __yv_440;
+        bool hint_matches = ({bool __yv_444;
           if (!(((bool)hint))) {
-            __yv_440 = false;
-            goto _l___yv_440;
+            __yv_444 = false;
+            goto _l___yv_444;
           } else if (hint->base != compiler_types_BaseType_Closure) {
-            __yv_440 = false;
-            goto _l___yv_440;
+            __yv_444 = false;
+            goto _l___yv_444;
           } else if (hint->u.func.params->size != clos->params->size) {
-            __yv_440 = false;
-            goto _l___yv_440;
+            __yv_444 = false;
+            goto _l___yv_444;
           } else {
-            __yv_440 = true;
-            goto _l___yv_440;
+            __yv_444 = true;
+            goto _l___yv_444;
           }
 
-_l___yv_440:
-        __yv_440;});
+_l___yv_444:
+        __yv_444;});
         if (hint_matches) {
           compiler_types_FunctionType hfunc = hint->u.func;
           for (u32 i = 0; i < clos->params->size; i+=1) {
@@ -8365,21 +8477,21 @@ _l___yv_440:
         return clos->type;
       } break;
     case compiler_ast_nodes_ASTType_Error:
-    m_427_23:
+    m_431_23:
       {
         return hint;
       } break;
     case compiler_ast_nodes_ASTType_Is:
-    m_427_24:
+    m_431_24:
       {
         compiler_ast_nodes_IsExpression is_expr = node->u.is_expr;
         compiler_types_Type *lhs_type = compiler_passes_typechecker_TypeChecker_check_expression(this, is_expr.lhs, NULL);
         std_compact_map_Map__0 *mapping = ({
-          std_compact_map_Map__0 *_mc441 = std_compact_map_Map__0_new(8);
-          _mc441;});
+          std_compact_map_Map__0 *_mc445 = std_compact_map_Map__0_new(8);
+          _mc445;});
         std_compact_map_Map__1 *current_args = ({
-          std_compact_map_Map__1 *_mc442 = std_compact_map_Map__1_new(8);
-          _mc442;});
+          std_compact_map_Map__1 *_mc446 = std_compact_map_Map__1_new(8);
+          _mc446;});
         compiler_passes_typechecker_TypeChecker_check_match_case_enum(this, is_expr.lhs, lhs_type, is_expr.conds, mapping, current_args);
         if (is_expr.conds->size > 1) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Standalone `is` expression doesn't support multiple conditions"));
@@ -8407,7 +8519,7 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_call_dbg_on_enum_va
   }
 switch ((node->etype->base)) {
     case compiler_types_BaseType_Enum:
-    m_443_0:
+    m_447_0:
       {
       } break;
     default:
@@ -8426,7 +8538,7 @@ switch ((node->etype->base)) {
 }
 
 void compiler_passes_typechecker_TypeChecker_check_match_case_enum(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *lhs_node, compiler_types_Type *enom_type, std_vector_Vector__5 *conds, std_compact_map_Map__0 *mapping, std_compact_map_Map__1 *current_args) {
-  if(!(enom_type->base==compiler_types_BaseType_Enum)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2298:12: Assertion failed: `enom_type.base == Enum`", NULL); }
+  if(!(enom_type->base==compiler_types_BaseType_Enum)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2299:12: Assertion failed: `enom_type.base == Enum`", NULL); }
   compiler_ast_nodes_Enum *enom = enom_type->u.enom;
   std_compact_map_Map__1_clear(current_args);
   for (u32 i = 0; i < conds->size; i++) {
@@ -8438,7 +8550,7 @@ switch ((expr->type)) {
       case compiler_ast_nodes_ASTType_Identifier:
       case compiler_ast_nodes_ASTType_NSLookup:
       case compiler_ast_nodes_ASTType_Specialization:
-      m_444_0:
+      m_448_0:
         {
         } break;
       default:
@@ -8466,30 +8578,30 @@ switch ((expr->type)) {
           compiler_ast_nodes_MatchCondArg *arg = std_vector_Vector__22_at(args, j);
           compiler_ast_nodes_Variable *sp_field = compiler_ast_nodes_EnumVariant_get_specific_field(variant, arg->var->sym->name);
           compiler_ast_nodes_Variable *sh_field = compiler_ast_nodes_Enum_get_shared_field(enom, arg->var->sym->name);
-          compiler_ast_nodes_Variable *field = ({compiler_ast_nodes_Variable *__yv_445;
+          compiler_ast_nodes_Variable *field = ({compiler_ast_nodes_Variable *__yv_449;
             if (((bool)sp_field)) {
-              __yv_445 = sp_field;
-              goto _l___yv_445;
+              __yv_449 = sp_field;
+              goto _l___yv_449;
             } else if (((bool)sh_field)) {
               arg->is_shared=true;
-              __yv_445 = sh_field;
-              goto _l___yv_445;
+              __yv_449 = sh_field;
+              goto _l___yv_449;
             } else if (((args->size==1 && !(((bool)arg->alias))) && compiler_ast_nodes_EnumVariant_num_fields(variant)==1) && enom->shared_fields->size==0) {
               compiler_ast_nodes_Variable *field = std_vector_Vector__3_at(variant->specific_fields, 0);
               compiler_ast_nodes_Variable *var = compiler_ast_nodes_Variable_new(field->type);
               var->sym=compiler_ast_scopes_Symbol_from_local_variable(field->sym->name, var, arg->var->sym->span);
               arg->alias=arg->var;
               arg->var=var;
-              __yv_445 = field;
-              goto _l___yv_445;
+              __yv_449 = field;
+              goto _l___yv_449;
             } else {
               compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(arg->var->sym->span, std_format("Field `%s` does not exist in enum variant %s", arg->var->sym->name, variant->sym->display)));
-              __yv_445 = NULL;
-              goto _l___yv_445;
+              __yv_449 = NULL;
+              goto _l___yv_449;
             }
 
-_l___yv_445:
-          __yv_445;});
+_l___yv_449:
+          __yv_449;});
           if (((bool)field)) {
             arg->var->type=field->type;
             char *name = compiler_ast_nodes_MatchCondArg_var_or_alias_symbol(arg)->name;
@@ -8503,30 +8615,30 @@ _l___yv_445:
         compiler_ast_nodes_MatchCondArg *arg = std_vector_Vector__22_at(args, j);
         compiler_ast_nodes_Variable *sp_field = compiler_ast_nodes_EnumVariant_get_specific_field(variant, arg->var->sym->name);
         compiler_ast_nodes_Variable *sh_field = compiler_ast_nodes_Enum_get_shared_field(enom, arg->var->sym->name);
-        compiler_ast_nodes_Variable *field = ({compiler_ast_nodes_Variable *__yv_446;
+        compiler_ast_nodes_Variable *field = ({compiler_ast_nodes_Variable *__yv_450;
           if (((bool)sp_field)) {
-            __yv_446 = sp_field;
-            goto _l___yv_446;
+            __yv_450 = sp_field;
+            goto _l___yv_450;
           } else if (((bool)sh_field)) {
             arg->is_shared=true;
-            __yv_446 = sh_field;
-            goto _l___yv_446;
+            __yv_450 = sh_field;
+            goto _l___yv_450;
           } else if (((args->size==1 && !(((bool)arg->alias))) && compiler_ast_nodes_EnumVariant_num_fields(variant)==1) && enom->shared_fields->size==0) {
             compiler_ast_nodes_Variable *field = std_vector_Vector__3_at(variant->specific_fields, 0);
             compiler_ast_nodes_Variable *var = compiler_ast_nodes_Variable_new(field->type);
             var->sym=compiler_ast_scopes_Symbol_from_local_variable(field->sym->name, var, arg->var->sym->span);
             arg->alias=arg->var;
             arg->var=var;
-            __yv_446 = field;
-            goto _l___yv_446;
+            __yv_450 = field;
+            goto _l___yv_450;
           } else {
             compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(arg->var->sym->span, "Field does not exist in enum variant"));
-            __yv_446 = NULL;
-            goto _l___yv_446;
+            __yv_450 = NULL;
+            goto _l___yv_450;
           }
 
-_l___yv_446:
-        __yv_446;});
+_l___yv_450:
+        __yv_450;});
         if (((bool)field)) {
           arg->var->type=field->type;
         }
@@ -8701,7 +8813,7 @@ void compiler_passes_typechecker_TypeChecker_check_match(compiler_passes_typeche
   compiler_passes_generic_pass_GenericPass_push_scope(this->o, match_scope);
 switch ((expr_type->base)) {
     case compiler_types_BaseType_Enum:
-    m_447_0:
+    m_451_0:
       {
         compiler_passes_typechecker_TypeChecker_check_match_for_enum(this, expr_type->u.enom, node, is_expr, hint);
         /* defers */
@@ -8709,7 +8821,7 @@ switch ((expr_type->base)) {
         return;
       } break;
     case compiler_types_BaseType_Bool:
-    m_447_1:
+    m_451_1:
       {
         compiler_passes_typechecker_TypeChecker_check_match_for_bool(this, node, is_expr, hint);
         /* defers */
@@ -8762,7 +8874,7 @@ switch ((expr_type->base)) {
 }
 
 void compiler_passes_typechecker_TypeChecker_check_is_expr_in_if_condition(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *cond) {
-  if(!(cond->type==compiler_ast_nodes_ASTType_Is)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2675:12: Assertion failed: `cond.type == Is`", std_format("Expected 'Is' node, got '%s'", compiler_ast_nodes_ASTType_dbg(cond->type))); }
+  if(!(cond->type==compiler_ast_nodes_ASTType_Is)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2676:12: Assertion failed: `cond.type == Is`", std_format("Expected 'Is' node, got '%s'", compiler_ast_nodes_ASTType_dbg(cond->type))); }
   compiler_ast_nodes_IsExpression *is_expr = &cond->u.is_expr;
   compiler_types_Type *lhs = compiler_passes_typechecker_TypeChecker_check_expression(this, is_expr->lhs, NULL);
   std_compact_map_Map__0 *mapping = std_compact_map_Map__0_new(16);
@@ -8791,7 +8903,7 @@ void compiler_passes_typechecker_TypeChecker_check_if(compiler_passes_typechecke
     {
 switch ((branch.cond->type)) {
         case compiler_ast_nodes_ASTType_Is:
-        m_448_0:
+        m_452_0:
           {
             compiler_ast_scopes_Scope *scope = compiler_ast_scopes_Scope_new(compiler_passes_typechecker_TypeChecker_scope(this));
             scope->is_for_match=true;
@@ -8824,17 +8936,17 @@ switch ((branch.cond->type)) {
 void compiler_passes_typechecker_TypeChecker_check_expression_statement(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node, compiler_ast_nodes_AST *body, bool is_expr, compiler_types_Type *hint) {
 switch ((body->type)) {
     case compiler_ast_nodes_ASTType_Match:
-    m_449_0:
+    m_453_0:
       {
         compiler_passes_typechecker_TypeChecker_check_match(this, body, is_expr, hint);
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_449_1:
+    m_453_1:
       {
         compiler_passes_typechecker_TypeChecker_check_if(this, body, is_expr, hint);
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_449_2:
+    m_453_2:
       {
         compiler_passes_typechecker_TypeChecker_check_block(this, body, is_expr, hint);
       } break;
@@ -8911,7 +9023,7 @@ void compiler_passes_typechecker_TypeChecker_check_for(compiler_passes_typecheck
 void compiler_passes_typechecker_TypeChecker_check_statement(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node) {
 switch ((node->type)) {
     case compiler_ast_nodes_ASTType_Return:
-    m_450_0:
+    m_454_0:
       {
         compiler_ast_nodes_Function *cur_func = compiler_passes_typechecker_TypeChecker_scope(this)->cur_func;
         if (!(((bool)cur_func))) {
@@ -8940,7 +9052,7 @@ switch ((node->type)) {
         node->returns=true;
       } break;
     case compiler_ast_nodes_ASTType_Assert:
-    m_450_1:
+    m_454_1:
       {
         compiler_ast_nodes_AST *expr = node->u.assertion.expr;
         compiler_types_Type *expr_typ = compiler_passes_typechecker_TypeChecker_check_expression(this, expr, compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span));
@@ -8958,12 +9070,12 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Defer:
-    m_450_2:
+    m_454_2:
       {
         compiler_passes_typechecker_TypeChecker_check_statement(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_Yield:
-    m_450_3:
+    m_454_3:
       {
         if (!(compiler_passes_typechecker_TypeChecker_scope(this)->can_yield)) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Cannot yield here"));
@@ -8971,13 +9083,13 @@ switch ((node->type)) {
         node->etype=compiler_passes_typechecker_TypeChecker_check_expression(this, node->u.child, NULL);
       } break;
     case compiler_ast_nodes_ASTType_Import:
-    m_450_4:
+    m_454_4:
       {
         compiler_passes_typechecker_TypeChecker_handle_import_statement(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Break:
     case compiler_ast_nodes_ASTType_Continue:
-    m_450_5:
+    m_454_5:
       {
         if (compiler_passes_typechecker_TypeChecker_scope(this)->loop_count==0) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("%s statement outside of loop", compiler_ast_nodes_ASTType_dbg(node->type))));
@@ -9001,32 +9113,32 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_450_6:
+    m_454_6:
       {
         compiler_passes_typechecker_TypeChecker_check_if(this, node, false, NULL);
       } break;
     case compiler_ast_nodes_ASTType_While:
-    m_450_7:
+    m_454_7:
       {
         compiler_passes_typechecker_TypeChecker_check_while(this, node);
       } break;
     case compiler_ast_nodes_ASTType_For:
-    m_450_8:
+    m_454_8:
       {
         compiler_passes_typechecker_TypeChecker_check_for(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_450_9:
+    m_454_9:
       {
         compiler_passes_typechecker_TypeChecker_check_block(this, node, false, NULL);
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_450_10:
+    m_454_10:
       {
         compiler_passes_typechecker_TypeChecker_check_match(this, node, false, NULL);
       } break;
     case compiler_ast_nodes_ASTType_VarDeclaration:
-    m_450_11:
+    m_454_11:
       {
         compiler_ast_nodes_Variable *var = node->u.var_decl;
         compiler_ast_scopes_Symbol *res = compiler_ast_scopes_Scope_lookup_local(compiler_passes_typechecker_TypeChecker_scope(this), var->sym->name);
@@ -9266,60 +9378,60 @@ void compiler_passes_typechecker_TypeChecker_resolve_doc_links(compiler_passes_t
         compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(span, std_format("Couldn't find symbol '%s' in this doc link", part)));
         return;
       }
-      char *linked_part = ({char *__yv_451;
+      char *linked_part = ({char *__yv_455;
 switch ((sym->type)) {
           case compiler_ast_scopes_SymbolType_Structure:
-          m_452_0:
+          m_456_0:
             {
               compiler_types_Type *typ = sym->u.struc->type;
               if (((bool)typ->template_instance)) {
                 compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new_note(span, std_format("Cannot link directly to specialized type '%s'", part), "Try doing `{{A}}<{{B}}>` instead of `{{A<B>}}`"));
                 return;
               }
-              __yv_451 = std_format("%x", sym->u.struc->type);
-              goto _l___yv_451;
+              __yv_455 = std_format("%x", sym->u.struc->type);
+              goto _l___yv_455;
             } break;
           case compiler_ast_scopes_SymbolType_Function:
-          m_452_1:
+          m_456_1:
             {
-              __yv_451 = std_format("%x", sym->u.func);
-              goto _l___yv_451;
+              __yv_455 = std_format("%x", sym->u.func);
+              goto _l___yv_455;
             } break;
           case compiler_ast_scopes_SymbolType_Enum:
-          m_452_2:
+          m_456_2:
             {
-              __yv_451 = std_format("%x", sym->u.enom);
-              goto _l___yv_451;
+              __yv_455 = std_format("%x", sym->u.enom);
+              goto _l___yv_455;
             } break;
           case compiler_ast_scopes_SymbolType_EnumVariant:
-          m_452_3:
+          m_456_3:
             {
-              __yv_451 = std_format("%x", sym->u.enum_var);
-              goto _l___yv_451;
+              __yv_455 = std_format("%x", sym->u.enum_var);
+              goto _l___yv_455;
             } break;
           case compiler_ast_scopes_SymbolType_TypeDef:
-          m_452_4:
+          m_456_4:
             {
-              __yv_451 = std_format("%x", sym->u.type_def);
-              goto _l___yv_451;
+              __yv_455 = std_format("%x", sym->u.type_def);
+              goto _l___yv_455;
             } break;
           case compiler_ast_scopes_SymbolType_Variable:
-          m_452_5:
+          m_456_5:
             {
-              __yv_451 = std_format("%x", sym->u.var);
-              goto _l___yv_451;
+              __yv_455 = std_format("%x", sym->u.var);
+              goto _l___yv_455;
             } break;
           case compiler_ast_scopes_SymbolType_Constant:
-          m_452_6:
+          m_456_6:
             {
-              __yv_451 = std_format("%x", sym->u.var);
-              goto _l___yv_451;
+              __yv_455 = std_format("%x", sym->u.var);
+              goto _l___yv_455;
             } break;
           case compiler_ast_scopes_SymbolType_Namespace:
-          m_452_7:
+          m_456_7:
             {
-              __yv_451 = std_format("%x", sym->u.ns);
-              goto _l___yv_451;
+              __yv_455 = std_format("%x", sym->u.ns);
+              goto _l___yv_455;
             } break;
           default:
             {
@@ -9327,8 +9439,8 @@ switch ((sym->type)) {
               return;
             } break;
         }
-_l___yv_451:
-      __yv_451;});
+_l___yv_455:
+      __yv_455;});
       std_buffer_Buffer_write_str(&buffer, "{{");
       std_buffer_Buffer_write_str_f(&buffer, linked_part);
       std_buffer_Buffer_write_str(&buffer, "}}");
@@ -9342,11 +9454,11 @@ _l___yv_451:
 }
 
 compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_const_expression(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node, compiler_types_Type *hint) {
-  compiler_types_Type *typ = ({compiler_types_Type *__yv_453;
+  compiler_types_Type *typ = ({compiler_types_Type *__yv_457;
 switch ((node->type)) {
       case compiler_ast_nodes_ASTType_Identifier:
       case compiler_ast_nodes_ASTType_NSLookup:
-      m_454_0:
+      m_458_0:
         {
           compiler_ast_scopes_Symbol *sym = compiler_passes_typechecker_TypeChecker_resolve_scoped_identifier(this, node, true, hint, true);
           if (!(((bool)sym))) {
@@ -9356,41 +9468,41 @@ switch ((node->type)) {
             compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new_hint(node->span, "Cannot use a non-constant value in a constant expression", sym->span, "Value was defined here"));
             return hint;
           }
-          __yv_453 = sym->u.var->type;
-          goto _l___yv_453;
+          __yv_457 = sym->u.var->type;
+          goto _l___yv_457;
         } break;
       case compiler_ast_nodes_ASTType_IntLiteral:
-      m_454_1:
+      m_458_1:
         {
-          __yv_453 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_I32, node->span);
-          goto _l___yv_453;
+          __yv_457 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_I32, node->span);
+          goto _l___yv_457;
         } break;
       case compiler_ast_nodes_ASTType_FloatLiteral:
-      m_454_2:
+      m_458_2:
         {
-          __yv_453 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_F32, node->span);
-          goto _l___yv_453;
+          __yv_457 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_F32, node->span);
+          goto _l___yv_457;
         } break;
       case compiler_ast_nodes_ASTType_BoolLiteral:
-      m_454_3:
+      m_458_3:
         {
-          __yv_453 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
-          goto _l___yv_453;
+          __yv_457 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Bool, node->span);
+          goto _l___yv_457;
         } break;
       case compiler_ast_nodes_ASTType_CharLiteral:
-      m_454_4:
+      m_458_4:
         {
-          __yv_453 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Char, node->span);
-          goto _l___yv_453;
+          __yv_457 = compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_Char, node->span);
+          goto _l___yv_457;
         } break;
       case compiler_ast_nodes_ASTType_StringLiteral:
-      m_454_5:
+      m_458_5:
         {
-          __yv_453 = compiler_passes_typechecker_TypeChecker_get_type_by_name(this, "str", node->span);
-          goto _l___yv_453;
+          __yv_457 = compiler_passes_typechecker_TypeChecker_get_type_by_name(this, "str", node->span);
+          goto _l___yv_457;
         } break;
       case compiler_ast_nodes_ASTType_BinaryOp:
-      m_454_6:
+      m_458_6:
         {
           compiler_types_Type *lhs = compiler_passes_typechecker_TypeChecker_check_const_expression(this, node->u.binary.lhs, NULL);
           compiler_types_Type *rhs = compiler_passes_typechecker_TypeChecker_check_const_expression(this, node->u.binary.rhs, NULL);
@@ -9400,17 +9512,17 @@ switch ((node->type)) {
           if (lhs->base==compiler_types_BaseType_Pointer || rhs->base==compiler_types_BaseType_Pointer) {
             compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Cannot do pointer arithmetic in constant expressions"));
           }
-          __yv_453 = compiler_passes_typechecker_TypeChecker_check_binary_op(this, node, compiler_types_Type_unaliased(lhs), compiler_types_Type_unaliased(rhs));
-          goto _l___yv_453;
+          __yv_457 = compiler_passes_typechecker_TypeChecker_check_binary_op(this, node, compiler_types_Type_unaliased(lhs), compiler_types_Type_unaliased(rhs));
+          goto _l___yv_457;
         } break;
       case compiler_ast_nodes_ASTType_UnaryOp:
-      m_454_7:
+      m_458_7:
         {
-          __yv_453 = ({compiler_types_Type *__yv_455;
+          __yv_457 = ({compiler_types_Type *__yv_459;
 switch ((node->u.unary.op)) {
               case compiler_ast_operators_Operator_BitwiseNot:
               case compiler_ast_operators_Operator_Negate:
-              m_456_0:
+              m_460_0:
                 {
                   if (!(((bool)hint)) || !(compiler_types_Type_is_numeric(hint))) {
                     hint=compiler_passes_typechecker_TypeChecker_get_base_type(this, compiler_types_BaseType_I32, node->span);
@@ -9423,8 +9535,8 @@ switch ((node->u.unary.op)) {
                     compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, std_format("Cannot negate non-numeric type: %s", compiler_types_Type_str(typ))));
                     return NULL;
                   }
-                  __yv_455 = typ;
-                  goto _l___yv_455;
+                  __yv_459 = typ;
+                  goto _l___yv_459;
                 } break;
               default:
                 {
@@ -9432,9 +9544,9 @@ switch ((node->u.unary.op)) {
                   return NULL;
                 } break;
             }
-_l___yv_455:
-          __yv_455;});
-          goto _l___yv_453;
+_l___yv_459:
+          __yv_459;});
+          goto _l___yv_457;
         } break;
       default:
         {
@@ -9442,8 +9554,8 @@ _l___yv_455:
           return NULL;
         } break;
     }
-_l___yv_453:
-  __yv_453;});
+_l___yv_457:
+  __yv_457;});
   node->etype=typ;
   return typ;
 }
@@ -9453,13 +9565,13 @@ void compiler_passes_typechecker_TypeChecker_handle_import_path_base(compiler_pa
     compiler_ast_nodes_ImportPart *part = std_vector_Vector__8_at(parts, i);
 switch ((part->type)) {
       case compiler_ast_nodes_ImportPartType_Wildcard:
-      m_457_0:
+      m_461_0:
         {
           compiler_passes_generic_pass_GenericPass_import_all_from_symbol(this->o, base, imp->export);
           return;
         } break;
       case compiler_ast_nodes_ImportPartType_Multiple:
-      m_457_1:
+      m_461_1:
         {
           std_vector_Vector__26 *paths = part->u.multiple.paths;
           for (u32 j = 0; j < paths->size; j+=1) {
@@ -9469,7 +9581,7 @@ switch ((part->type)) {
           return;
         } break;
       case compiler_ast_nodes_ImportPartType_Single:
-      m_457_2:
+      m_461_2:
         {
         } break;
     }    char *name = part->u.single.name;
@@ -9487,7 +9599,7 @@ switch ((part->type)) {
       break;
     }
     std_span_Span err_span = part->u.single.alias_span;
-    compiler_ast_scopes_Symbol *new_base = ({compiler_ast_scopes_Symbol *__yv_458;
+    compiler_ast_scopes_Symbol *new_base = ({compiler_ast_scopes_Symbol *__yv_462;
       if (search_in_ns_scope) {
         if (base->type != compiler_ast_scopes_SymbolType_Namespace) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(part->span, "Cannot scope-import from a non-namespace"));
@@ -9495,14 +9607,14 @@ switch ((part->type)) {
         }
         compiler_ast_scopes_Symbol *res = compiler_ast_scopes_Scope_lookup_recursive(base->u.ns->scope, name);
         search_in_ns_scope=false;
-        __yv_458 = res;
-        goto _l___yv_458;
+        __yv_462 = res;
+        goto _l___yv_462;
       } else {
-        __yv_458 = compiler_passes_generic_pass_GenericPass_find_in_symbol(this->o, base, name, false);
-        goto _l___yv_458;
+        __yv_462 = compiler_passes_generic_pass_GenericPass_find_in_symbol(this->o, base, name, false);
+        goto _l___yv_462;
       }
-_l___yv_458:
-    __yv_458;});
+_l___yv_462:
+    __yv_462;});
     if (!(((bool)new_base))) {
       compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(part->span, std_format("Invalid import, %s::%s does not exist", base->name, name)));
       return;
@@ -9524,22 +9636,22 @@ _l___yv_458:
 void compiler_passes_typechecker_TypeChecker_handle_import_statement(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *node) {
   compiler_ast_nodes_Import path = node->u.import_path;
   bool search_in_ns_scope = false;
-  compiler_ast_program_Namespace *base_ns = ({compiler_ast_program_Namespace *__yv_459;
+  compiler_ast_program_Namespace *base_ns = ({compiler_ast_program_Namespace *__yv_463;
 switch ((path.type)) {
       case compiler_ast_nodes_ImportType_GlobalNamespace:
-      m_460_0:
+      m_464_0:
         {
-          __yv_459 = this->o->program->global;
-          goto _l___yv_459;
+          __yv_463 = this->o->program->global;
+          goto _l___yv_463;
         } break;
       case compiler_ast_nodes_ImportType_ProjectNamespace:
-      m_460_1:
+      m_464_1:
         {
-          __yv_459 = compiler_ast_program_Namespace_get_project_root(compiler_passes_generic_pass_GenericPass_ns(this->o), node->span, this->o->program);
-          goto _l___yv_459;
+          __yv_463 = compiler_ast_program_Namespace_get_project_root(compiler_passes_generic_pass_GenericPass_ns(this->o), node->span, this->o->program);
+          goto _l___yv_463;
         } break;
       case compiler_ast_nodes_ImportType_ParentNamespace:
-      m_460_2:
+      m_464_2:
         {
           compiler_ast_program_Namespace *cur = compiler_passes_generic_pass_GenericPass_ns(this->o);
           for (u32 i = 0; i < path.parent_count; i+=1) {
@@ -9549,19 +9661,19 @@ switch ((path.type)) {
             }
             cur=cur->parent;
           }
-          __yv_459 = cur;
-          goto _l___yv_459;
+          __yv_463 = cur;
+          goto _l___yv_463;
         } break;
       case compiler_ast_nodes_ImportType_CurrentScope:
-      m_460_3:
+      m_464_3:
         {
           search_in_ns_scope=true;
-          __yv_459 = compiler_passes_generic_pass_GenericPass_ns(this->o);
-          goto _l___yv_459;
+          __yv_463 = compiler_passes_generic_pass_GenericPass_ns(this->o);
+          goto _l___yv_463;
         } break;
     }
-_l___yv_459:
-  __yv_459;});
+_l___yv_463:
+  __yv_463;});
   if (!(((bool)base_ns))) {
     compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(node->span, "Couldn't resolve the search base for the import"));
     return;
@@ -9584,7 +9696,7 @@ void compiler_passes_typechecker_TypeChecker_pre_check_function(compiler_passes_
     }
 switch ((parent_type->base)) {
       case compiler_types_BaseType_Structure:
-      m_461_0:
+      m_465_0:
         {
           compiler_ast_nodes_Structure *struc = parent_type->u.struc;
           compiler_ast_nodes_Variable *name = compiler_ast_nodes_Structure_get_field(struc, func->sym->name);
@@ -9593,7 +9705,7 @@ switch ((parent_type->base)) {
           }
         } break;
       case compiler_types_BaseType_Enum:
-      m_461_1:
+      m_465_1:
         {
           compiler_ast_nodes_Enum *enom = parent_type->u.enom;
           compiler_ast_nodes_EnumVariant *var = compiler_ast_nodes_Enum_get_variant(enom, func->sym->name);
@@ -9747,7 +9859,7 @@ switch ((op)) {
     case compiler_ast_operators_Operator_Equals:
     case compiler_ast_operators_Operator_NotEquals:
     case compiler_ast_operators_Operator_IsNotNull:
-    m_462_0:
+    m_466_0:
               if (func->return_type->base != compiler_types_BaseType_Bool) {
           compiler_passes_typechecker_TypeChecker_error(this, compiler_errors_Error_new(func->sym->span, "`==` operator must return a boolean"));
           return;
@@ -9789,22 +9901,22 @@ void compiler_passes_typechecker_TypeChecker_check_function_declaration(compiler
       resolve_templates=false;
     }
   }
-  std_span_Span func_span = ({std_span_Span __yv_463;
+  std_span_Span func_span = ({std_span_Span __yv_467;
 switch ((func->kind)) {
       case compiler_ast_nodes_FunctionKind_Closure:
-      m_464_0:
+      m_468_0:
         {
-          __yv_463 = func->span;
-          goto _l___yv_463;
+          __yv_467 = func->span;
+          goto _l___yv_467;
         } break;
       default:
         {
-          __yv_463 = func->sym->span;
-          goto _l___yv_463;
+          __yv_467 = func->sym->span;
+          goto _l___yv_467;
         } break;
     }
-_l___yv_463:
-  __yv_463;});
+_l___yv_467:
+  __yv_467;});
   if (((bool)func->sym) && compiler_ast_scopes_Symbol_is_templated(func->sym)) {
     allow_incomplete=true;
     error=false;
@@ -9848,8 +9960,8 @@ void compiler_passes_typechecker_TypeChecker_try_resolve_typedefs_in_namespace(c
         continue;
       }
       compiler_ast_scopes_Symbol *sym = compiler_ast_scopes_Scope_lookup_recursive(compiler_passes_generic_pass_GenericPass_scope(this->o), it->key);
-      if(!(((bool)sym))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:3669:16: Assertion failed: `sym?`", "Should have added the symbol into scope already"); }
-      if(!(sym->type==compiler_ast_scopes_SymbolType_TypeDef)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:3673:16: Assertion failed: `sym.type == TypeDef`", NULL); }
+      if(!(((bool)sym))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:3670:16: Assertion failed: `sym?`", "Should have added the symbol into scope already"); }
+      if(!(sym->type==compiler_ast_scopes_SymbolType_TypeDef)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:3674:16: Assertion failed: `sym.type == TypeDef`", NULL); }
       compiler_types_Type *res = compiler_passes_typechecker_TypeChecker_resolve_type(this, it->value, false, !(pre_import), true);
       if (!(((bool)res))) {
         continue;
@@ -9978,221 +10090,221 @@ void compiler_passes_code_generator_CodeGenerator_gen_debug_info(compiler_passes
 }
 
 char *compiler_passes_code_generator_CodeGenerator_get_op(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_nodes_AST *node) {
-  return ({char *__yv_465;
+  return ({char *__yv_469;
 switch ((node->type)) {
       case compiler_ast_nodes_ASTType_BinaryOp:
-      m_466_0:
+      m_470_0:
         {
-          __yv_465 = ({char *__yv_467;
+          __yv_469 = ({char *__yv_471;
 switch ((node->u.binary.op)) {
               case compiler_ast_operators_Operator_And:
-              m_468_0:
+              m_472_0:
                 {
-                  __yv_467 = "&&";
-                  goto _l___yv_467;
+                  __yv_471 = "&&";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_Assignment:
               case compiler_ast_operators_Operator_IndexAssign:
-              m_468_1:
+              m_472_1:
                 {
-                  __yv_467 = "=";
-                  goto _l___yv_467;
+                  __yv_471 = "=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_BitwiseAnd:
-              m_468_2:
+              m_472_2:
                 {
-                  __yv_467 = "&";
-                  goto _l___yv_467;
+                  __yv_471 = "&";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_BitwiseOr:
-              m_468_3:
+              m_472_3:
                 {
-                  __yv_467 = "|";
-                  goto _l___yv_467;
+                  __yv_471 = "|";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_BitwiseXor:
-              m_468_4:
+              m_472_4:
                 {
-                  __yv_467 = "^";
-                  goto _l___yv_467;
+                  __yv_471 = "^";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_Divide:
-              m_468_5:
+              m_472_5:
                 {
-                  __yv_467 = "/";
-                  goto _l___yv_467;
+                  __yv_471 = "/";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_Equals:
-              m_468_6:
+              m_472_6:
                 {
-                  __yv_467 = "==";
-                  goto _l___yv_467;
+                  __yv_471 = "==";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_GreaterThan:
-              m_468_7:
+              m_472_7:
                 {
-                  __yv_467 = ">";
-                  goto _l___yv_467;
+                  __yv_471 = ">";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_GreaterThanEquals:
-              m_468_8:
+              m_472_8:
                 {
-                  __yv_467 = ">=";
-                  goto _l___yv_467;
+                  __yv_471 = ">=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_LeftShift:
-              m_468_9:
+              m_472_9:
                 {
-                  __yv_467 = "<<";
-                  goto _l___yv_467;
+                  __yv_471 = "<<";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_LessThan:
-              m_468_10:
+              m_472_10:
                 {
-                  __yv_467 = "<";
-                  goto _l___yv_467;
+                  __yv_471 = "<";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_LessThanEquals:
-              m_468_11:
+              m_472_11:
                 {
-                  __yv_467 = "<=";
-                  goto _l___yv_467;
+                  __yv_471 = "<=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_Minus:
-              m_468_12:
+              m_472_12:
                 {
-                  __yv_467 = "-";
-                  goto _l___yv_467;
+                  __yv_471 = "-";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_Modulus:
-              m_468_13:
+              m_472_13:
                 {
-                  __yv_467 = "%";
-                  goto _l___yv_467;
+                  __yv_471 = "%";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_Multiply:
-              m_468_14:
+              m_472_14:
                 {
-                  __yv_467 = "*";
-                  goto _l___yv_467;
+                  __yv_471 = "*";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_NotEquals:
-              m_468_15:
+              m_472_15:
                 {
-                  __yv_467 = "!=";
-                  goto _l___yv_467;
+                  __yv_471 = "!=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_Or:
-              m_468_16:
+              m_472_16:
                 {
-                  __yv_467 = "||";
-                  goto _l___yv_467;
+                  __yv_471 = "||";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_Plus:
-              m_468_17:
+              m_472_17:
                 {
-                  __yv_467 = "+";
-                  goto _l___yv_467;
+                  __yv_471 = "+";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_PlusEquals:
-              m_468_18:
+              m_472_18:
                 {
-                  __yv_467 = "+=";
-                  goto _l___yv_467;
+                  __yv_471 = "+=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_MinusEquals:
-              m_468_19:
+              m_472_19:
                 {
-                  __yv_467 = "-=";
-                  goto _l___yv_467;
+                  __yv_471 = "-=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_MultiplyEquals:
-              m_468_20:
+              m_472_20:
                 {
-                  __yv_467 = "*=";
-                  goto _l___yv_467;
+                  __yv_471 = "*=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_DivideEquals:
-              m_468_21:
+              m_472_21:
                 {
-                  __yv_467 = "/=";
-                  goto _l___yv_467;
+                  __yv_471 = "/=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_RightShift:
-              m_468_22:
+              m_472_22:
                 {
-                  __yv_467 = ">>";
-                  goto _l___yv_467;
+                  __yv_471 = ">>";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_LeftShiftEquals:
-              m_468_23:
+              m_472_23:
                 {
-                  __yv_467 = "<<=";
-                  goto _l___yv_467;
+                  __yv_471 = "<<=";
+                  goto _l___yv_471;
                 } break;
               case compiler_ast_operators_Operator_RightShiftEquals:
-              m_468_24:
+              m_472_24:
                 {
-                  __yv_467 = ">>=";
-                  goto _l___yv_467;
+                  __yv_471 = ">>=";
+                  goto _l___yv_471;
                 } break;
               default:
                 {
                   std_panic(std_format("Unknown binary op type in get_op: %s", compiler_ast_operators_Operator_dbg(node->u.binary.op)));
-                  goto _l___yv_467;
+                  goto _l___yv_471;
                 } break;
             }
-_l___yv_467:
-          __yv_467;});
-          goto _l___yv_465;
+_l___yv_471:
+          __yv_471;});
+          goto _l___yv_469;
         } break;
       case compiler_ast_nodes_ASTType_UnaryOp:
-      m_466_1:
+      m_470_1:
         {
-          __yv_465 = ({char *__yv_469;
+          __yv_469 = ({char *__yv_473;
 switch ((node->u.unary.op)) {
               case compiler_ast_operators_Operator_PreDecrement:
-              m_470_0:
+              m_474_0:
                 {
-                  __yv_469 = "--";
-                  goto _l___yv_469;
+                  __yv_473 = "--";
+                  goto _l___yv_473;
                 } break;
               case compiler_ast_operators_Operator_PreIncrement:
-              m_470_1:
+              m_474_1:
                 {
-                  __yv_469 = "++";
-                  goto _l___yv_469;
+                  __yv_473 = "++";
+                  goto _l___yv_473;
                 } break;
               case compiler_ast_operators_Operator_PostDecrement:
-              m_470_2:
+              m_474_2:
                 {
-                  __yv_469 = "--";
-                  goto _l___yv_469;
+                  __yv_473 = "--";
+                  goto _l___yv_473;
                 } break;
               case compiler_ast_operators_Operator_PostIncrement:
-              m_470_3:
+              m_474_3:
                 {
-                  __yv_469 = "++";
-                  goto _l___yv_469;
+                  __yv_473 = "++";
+                  goto _l___yv_473;
                 } break;
               default:
                 {
                   std_panic(std_format("Unknown unary op type in get_op: %s", compiler_ast_operators_Operator_dbg(node->u.unary.op)));
-                  goto _l___yv_469;
+                  goto _l___yv_473;
                 } break;
             }
-_l___yv_469:
-          __yv_469;});
-          goto _l___yv_465;
+_l___yv_473:
+          __yv_473;});
+          goto _l___yv_469;
         } break;
       default:
         {
           std_panic(std_format("Unknown op type in get_op: %s", compiler_ast_nodes_ASTType_dbg(node->type)));
-          goto _l___yv_465;
+          goto _l___yv_469;
         } break;
     }
-_l___yv_465:
-  __yv_465;});}
+_l___yv_469:
+  __yv_469;});}
 
 void compiler_passes_code_generator_CodeGenerator_gen_start_expr_statement(compiler_passes_code_generator_CodeGenerator *this) {
     std_buffer_Buffer_write_str(&this->out, "({");
@@ -10332,49 +10444,49 @@ switch ((expr_type->base)) {
       case compiler_types_BaseType_I8:
       case compiler_types_BaseType_I16:
       case compiler_types_BaseType_I32:
-      m_471_0:
+      m_475_0:
         {
           std_buffer_Buffer_write_str(&this->out, "%d");
         } break;
       case compiler_types_BaseType_U8:
       case compiler_types_BaseType_U16:
       case compiler_types_BaseType_U32:
-      m_471_1:
+      m_475_1:
         {
           std_buffer_Buffer_write_str(&this->out, "%u");
         } break;
       case compiler_types_BaseType_I64:
-      m_471_2:
+      m_475_2:
         {
           std_buffer_Buffer_write_str(&this->out, "%\" PRId64 \"");
         } break;
       case compiler_types_BaseType_U64:
-      m_471_3:
+      m_475_3:
         {
           std_buffer_Buffer_write_str(&this->out, "%\" PRIu64 \"");
         } break;
       case compiler_types_BaseType_Bool:
-      m_471_4:
+      m_475_4:
         {
           std_buffer_Buffer_write_str(&this->out, "%s");
         } break;
       case compiler_types_BaseType_F32:
       case compiler_types_BaseType_F64:
-      m_471_5:
+      m_475_5:
         {
           std_buffer_Buffer_write_str(&this->out, "%f");
         } break;
       case compiler_types_BaseType_Char:
-      m_471_6:
+      m_475_6:
         {
           std_buffer_Buffer_write_str(&this->out, "%c");
         } break;
       case compiler_types_BaseType_Pointer:
-      m_471_7:
+      m_475_7:
         {
 switch ((expr_type->u.ptr->base)) {
             case compiler_types_BaseType_Char:
-            m_472_0:
+            m_476_0:
               {
                 std_buffer_Buffer_write_str(&this->out, "%s");
               } break;
@@ -10412,12 +10524,12 @@ switch ((expr_type->base)) {
         case compiler_types_BaseType_F64:
         case compiler_types_BaseType_Char:
         case compiler_types_BaseType_Pointer:
-        m_473_0:
+        m_477_0:
           {
             compiler_passes_code_generator_CodeGenerator_gen_expression(this, expr, false, false);
           } break;
         case compiler_types_BaseType_Bool:
-        m_473_1:
+        m_477_1:
           {
             std_buffer_Buffer_write_str(&this->out, "((");
             compiler_passes_code_generator_CodeGenerator_gen_expression(this, expr, false, false);
@@ -10752,29 +10864,29 @@ void compiler_passes_code_generator_CodeGenerator_gen_call(compiler_passes_code_
     }
   }
   if (callee->type==compiler_ast_nodes_ASTType_Identifier) {
-    bool matched = ({bool __yv_474;
+    bool matched = ({bool __yv_478;
       {
-        char *__match_var_475 = callee->u.ident.name;
-        if (str_eq(__match_var_475, "print")) {
-          __yv_474 = compiler_passes_code_generator_CodeGenerator_gen_internal_print(this, node, false, false);
-          goto _l___yv_474;
-        } else if (str_eq(__match_var_475, "println")) {
-          __yv_474 = compiler_passes_code_generator_CodeGenerator_gen_internal_print(this, node, true, false);
-          goto _l___yv_474;
-        } else if (str_eq(__match_var_475, "eprint")) {
-          __yv_474 = compiler_passes_code_generator_CodeGenerator_gen_internal_print(this, node, false, true);
-          goto _l___yv_474;
-        } else if (str_eq(__match_var_475, "eprintln")) {
-          __yv_474 = compiler_passes_code_generator_CodeGenerator_gen_internal_print(this, node, true, true);
-          goto _l___yv_474;
+        char *__match_var_479 = callee->u.ident.name;
+        if (str_eq(__match_var_479, "print")) {
+          __yv_478 = compiler_passes_code_generator_CodeGenerator_gen_internal_print(this, node, false, false);
+          goto _l___yv_478;
+        } else if (str_eq(__match_var_479, "println")) {
+          __yv_478 = compiler_passes_code_generator_CodeGenerator_gen_internal_print(this, node, true, false);
+          goto _l___yv_478;
+        } else if (str_eq(__match_var_479, "eprint")) {
+          __yv_478 = compiler_passes_code_generator_CodeGenerator_gen_internal_print(this, node, false, true);
+          goto _l___yv_478;
+        } else if (str_eq(__match_var_479, "eprintln")) {
+          __yv_478 = compiler_passes_code_generator_CodeGenerator_gen_internal_print(this, node, true, true);
+          goto _l___yv_478;
         } else  {
-          __yv_474 = false;
-          goto _l___yv_474;
+          __yv_478 = false;
+          goto _l___yv_478;
         }
       }
 
-_l___yv_474:
-    __yv_474;});
+_l___yv_478:
+    __yv_478;});
     if (matched) {
       /* defers */
       if (this->o->program->backtrace && !(this->is_global_scope)) {
@@ -10791,7 +10903,7 @@ _l___yv_474:
   if (((bool)sym)) {
 switch ((node->u.call.call_type)) {
       case compiler_ast_nodes_CallType_StructConstructor:
-      m_476_0:
+      m_480_0:
         {
           if(!(sym->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:627:24: Assertion failed: `sym.type == Structure`", NULL); }
           compiler_passes_code_generator_CodeGenerator_gen_constructor(this, node, sym->u.struc);
@@ -10806,7 +10918,7 @@ switch ((node->u.call.call_type)) {
           return;
         } break;
       case compiler_ast_nodes_CallType_EnumConstructor:
-      m_476_1:
+      m_480_1:
         {
           if(!(sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/code_generator.oc:632:24: Assertion failed: `sym.type == EnumVariant`", NULL); }
           compiler_passes_code_generator_CodeGenerator_gen_enum_constructor(this, sym->u.enum_var, node->u.call.args);
@@ -10821,7 +10933,7 @@ switch ((node->u.call.call_type)) {
           return;
         } break;
       case compiler_ast_nodes_CallType_Closure:
-      m_476_2:
+      m_480_2:
         {
           compiler_passes_code_generator_CodeGenerator_gen_closure_call(this, node, sym);
           /* defers */
@@ -10857,7 +10969,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_expression(compiler_passes
   bool needs_parens = (!(is_top_level) && !(is_statement));
 switch ((node->type)) {
     case compiler_ast_nodes_ASTType_IntLiteral:
-    m_477_0:
+    m_481_0:
       {
         compiler_ast_nodes_NumLiteral *num_lit = &node->u.num_literal;
         if ((node->etype->base != compiler_types_BaseType_I32) && (node->etype->base != compiler_types_BaseType_U32)) {
@@ -10871,7 +10983,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_CreateClosure:
-    m_477_1:
+    m_481_1:
       {
         compiler_ast_nodes_Function *func = node->u.closure;
         compiler_passes_code_generator_CodeGenerator_gen_start_expr_statement(this);
@@ -10898,7 +11010,7 @@ switch ((node->type)) {
         compiler_passes_code_generator_CodeGenerator_gen_end_expr_statement(this);
       } break;
     case compiler_ast_nodes_ASTType_FloatLiteral:
-    m_477_2:
+    m_481_2:
       {
         compiler_ast_nodes_NumLiteral *num_lit = &node->u.num_literal;
         std_buffer_Buffer_write_str_f(&this->out, std_format("%f", num_lit->as_float));
@@ -10907,7 +11019,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_ArrayLiteral:
-    m_477_3:
+    m_481_3:
       {
         std_vector_Vector__19 *elements = node->u.array_literal.elements;
         std_buffer_Buffer_write_str(&this->out, "{");
@@ -10921,22 +11033,22 @@ switch ((node->type)) {
         std_buffer_Buffer_write_str(&this->out, "}");
       } break;
     case compiler_ast_nodes_ASTType_VectorLiteral:
-    m_477_4:
+    m_481_4:
       {
         compiler_passes_code_generator_CodeGenerator_gen_vector_literal(this, node);
       } break;
     case compiler_ast_nodes_ASTType_MapLiteral:
-    m_477_5:
+    m_481_5:
       {
         compiler_passes_code_generator_CodeGenerator_gen_map_literal(this, node);
       } break;
     case compiler_ast_nodes_ASTType_FormatStringLiteral:
-    m_477_6:
+    m_481_6:
       {
         compiler_passes_code_generator_CodeGenerator_gen_format_string(this, node);
       } break;
     case compiler_ast_nodes_ASTType_StringLiteral:
-    m_477_7:
+    m_481_7:
       {
         char *str_lit = node->u.string_literal;
         std_buffer_Buffer_write_str(&this->out, "\"");
@@ -10944,7 +11056,7 @@ switch ((node->type)) {
         std_buffer_Buffer_write_str(&this->out, "\"");
       } break;
     case compiler_ast_nodes_ASTType_CharLiteral:
-    m_477_8:
+    m_481_8:
       {
         char *char_lit = node->u.char_literal;
         std_buffer_Buffer_write_str(&this->out, "'");
@@ -10952,7 +11064,7 @@ switch ((node->type)) {
         std_buffer_Buffer_write_str(&this->out, "'");
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_477_9:
+    m_481_9:
       {
         std_vector_Vector__27 *branches = node->u.if_stmt.branches;
         compiler_ast_nodes_AST *els = node->u.if_stmt.els;
@@ -10970,17 +11082,17 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_477_10:
+    m_481_10:
       {
         compiler_passes_code_generator_CodeGenerator_gen_in_yield_context(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_477_11:
+    m_481_11:
       {
         compiler_passes_code_generator_CodeGenerator_gen_in_yield_context(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Member:
-    m_477_12:
+    m_481_12:
       {
         compiler_ast_scopes_Symbol *sym = node->resolved_symbol;
         if (((bool)sym) && sym->type==compiler_ast_scopes_SymbolType_Function) {
@@ -10997,7 +11109,7 @@ switch ((node->type)) {
         std_buffer_Buffer_write_str(&this->out, node->u.member.rhs_name);
       } break;
     case compiler_ast_nodes_ASTType_TryMember:
-    m_477_13:
+    m_481_13:
       {
         compiler_ast_nodes_AST *lhs = node->u.member.lhs;
         char *rhs_name = node->u.member.rhs_name;
@@ -11015,7 +11127,7 @@ switch ((node->type)) {
     case compiler_ast_nodes_ASTType_NSLookup:
     case compiler_ast_nodes_ASTType_Specialization:
     case compiler_ast_nodes_ASTType_OverloadedOperator:
-    m_477_14:
+    m_481_14:
       {
         compiler_ast_scopes_Symbol *sym = node->resolved_symbol;
         if (!(((bool)sym))) {
@@ -11026,17 +11138,17 @@ switch ((sym->type)) {
           case compiler_ast_scopes_SymbolType_Function:
           case compiler_ast_scopes_SymbolType_Variable:
           case compiler_ast_scopes_SymbolType_Constant:
-          m_478_0:
+          m_482_0:
             {
               std_buffer_Buffer_write_str(&this->out, compiler_ast_scopes_Symbol_out_name(sym));
             } break;
           case compiler_ast_scopes_SymbolType_EnumVariant:
-          m_478_1:
+          m_482_1:
             {
               compiler_passes_code_generator_CodeGenerator_gen_enum_constructor(this, sym->u.enum_var, NULL);
             } break;
           case compiler_ast_scopes_SymbolType_ClosedVariable:
-          m_478_2:
+          m_482_2:
             {
               compiler_ast_nodes_Variable *var = sym->u.closed_var.orig;
               std_buffer_Buffer_write_str_f(&this->out, std_format("(*%s->", compiler_passes_code_generator_cls_ctx_name));
@@ -11049,34 +11161,34 @@ switch ((sym->type)) {
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_Call:
-    m_477_15:
+    m_481_15:
       {
         compiler_passes_code_generator_CodeGenerator_gen_call(this, node, !(is_statement));
       } break;
     case compiler_ast_nodes_ASTType_BoolLiteral:
-    m_477_16:
+    m_481_16:
       {
         bool bool_lit = node->u.bool_literal;
         std_buffer_Buffer_write_str(&this->out, (bool_lit ? "true" : "false"));
       } break;
     case compiler_ast_nodes_ASTType_CreateNew:
-    m_477_17:
+    m_481_17:
       {
         compiler_passes_code_generator_CodeGenerator_gen_create_new(this, node);
       } break;
     case compiler_ast_nodes_ASTType_UnaryOp:
-    m_477_18:
+    m_481_18:
       {
 switch ((node->u.unary.op)) {
           case compiler_ast_operators_Operator_Address:
-          m_479_0:
+          m_483_0:
             {
               compiler_ast_nodes_AST *expr = node->u.unary.expr;
               std_buffer_Buffer_write_str(&this->out, "&");
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, expr, false, false);
             } break;
           case compiler_ast_operators_Operator_Dereference:
-          m_479_1:
+          m_483_1:
             {
               compiler_ast_nodes_AST *expr = node->u.unary.expr;
               std_buffer_Buffer_write_str(&this->out, "(*");
@@ -11084,21 +11196,21 @@ switch ((node->u.unary.op)) {
               std_buffer_Buffer_write_str(&this->out, ")");
             } break;
           case compiler_ast_operators_Operator_Negate:
-          m_479_2:
+          m_483_2:
             {
               compiler_ast_nodes_AST *expr = node->u.unary.expr;
               std_buffer_Buffer_write_str(&this->out, "-");
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, expr, false, false);
             } break;
           case compiler_ast_operators_Operator_BitwiseNot:
-          m_479_3:
+          m_483_3:
             {
               compiler_ast_nodes_AST *expr = node->u.unary.expr;
               std_buffer_Buffer_write_str(&this->out, "~");
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, expr, false, false);
             } break;
           case compiler_ast_operators_Operator_Not:
-          m_479_4:
+          m_483_4:
             {
               compiler_ast_nodes_AST *expr = node->u.unary.expr;
               std_buffer_Buffer_write_str(&this->out, "!(");
@@ -11106,7 +11218,7 @@ switch ((node->u.unary.op)) {
               std_buffer_Buffer_write_str(&this->out, ")");
             } break;
           case compiler_ast_operators_Operator_IsNotNull:
-          m_479_5:
+          m_483_5:
             {
               compiler_ast_nodes_AST *expr = node->u.unary.expr;
               std_buffer_Buffer_write_str(&this->out, "((bool)");
@@ -11122,14 +11234,14 @@ switch ((node->u.unary.op)) {
             } break;
           case compiler_ast_operators_Operator_PreIncrement:
           case compiler_ast_operators_Operator_PreDecrement:
-          m_479_6:
+          m_483_6:
             {
               std_buffer_Buffer_write_str(&this->out, compiler_passes_code_generator_CodeGenerator_get_op(this, node));
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, node->u.unary.expr, false, false);
             } break;
           case compiler_ast_operators_Operator_PostIncrement:
           case compiler_ast_operators_Operator_PostDecrement:
-          m_479_7:
+          m_483_7:
             {
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, node->u.unary.expr, false, false);
               std_buffer_Buffer_write_str(&this->out, compiler_passes_code_generator_CodeGenerator_get_op(this, node));
@@ -11140,7 +11252,7 @@ switch ((node->u.unary.op)) {
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_Cast:
-    m_477_19:
+    m_481_19:
       {
         compiler_ast_nodes_AST *expr = node->u.cast.lhs;
         compiler_types_Type *type = node->etype;
@@ -11151,18 +11263,18 @@ switch ((node->u.unary.op)) {
         std_buffer_Buffer_write_str(&this->out, ")");
       } break;
     case compiler_ast_nodes_ASTType_SizeOf:
-    m_477_20:
+    m_481_20:
       {
         std_buffer_Buffer_write_str(&this->out, "((u32)sizeof(");
         compiler_passes_code_generator_CodeGenerator_gen_type(this, node->u.size_of_type);
         std_buffer_Buffer_write_str(&this->out, "))");
       } break;
     case compiler_ast_nodes_ASTType_Null:
-    m_477_21:
+    m_481_21:
       {
 switch ((node->etype->base)) {
           case compiler_types_BaseType_Closure:
-          m_480_0:
+          m_484_0:
             {
               std_buffer_Buffer_write_str_f(&this->out, std_format("((%s){0})", compiler_ast_scopes_Symbol_out_name(node->etype->sym)));
             } break;
@@ -11172,11 +11284,11 @@ switch ((node->etype->base)) {
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_BinaryOp:
-    m_477_22:
+    m_481_22:
       {
 switch ((node->u.binary.op)) {
           case compiler_ast_operators_Operator_Index:
-          m_481_0:
+          m_485_0:
             {
               compiler_ast_nodes_AST *lhs = node->u.binary.lhs;
               compiler_ast_nodes_AST *rhs = node->u.binary.rhs;
@@ -11204,7 +11316,7 @@ switch ((node->u.binary.op)) {
           case compiler_ast_operators_Operator_Or:
           case compiler_ast_operators_Operator_Plus:
           case compiler_ast_operators_Operator_RightShift:
-          m_481_1:
+          m_485_1:
             {
               compiler_ast_nodes_AST *lhs = node->u.binary.lhs;
               compiler_ast_nodes_AST *rhs = node->u.binary.rhs;
@@ -11227,14 +11339,14 @@ switch ((node->u.binary.op)) {
           case compiler_ast_operators_Operator_MinusEquals:
           case compiler_ast_operators_Operator_DivideEquals:
           case compiler_ast_operators_Operator_MultiplyEquals:
-          m_481_2:
+          m_485_2:
             {
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, node->u.binary.lhs, false, false);
               std_buffer_Buffer_write_str(&this->out, compiler_passes_code_generator_CodeGenerator_get_op(this, node));
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, node->u.binary.rhs, false, false);
             } break;
           case compiler_ast_operators_Operator_EqualsValueEnumVariant:
-          m_481_3:
+          m_485_3:
             {
               std_buffer_Buffer_write_str(&this->out, "(");
               compiler_passes_code_generator_CodeGenerator_gen_expression(this, node->u.binary.lhs, false, false);
@@ -11249,7 +11361,7 @@ switch ((node->u.binary.op)) {
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_Is:
-    m_477_23:
+    m_481_23:
       {
         compiler_ast_nodes_AST *lhs = node->u.is_expr.lhs;
         compiler_ast_nodes_MatchCond *cond = std_vector_Vector__5_at(node->u.is_expr.conds, 0);
@@ -11293,7 +11405,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_var_declaration(compiler_p
 switch ((var->type->base)) {
       case compiler_types_BaseType_Array:
       case compiler_types_BaseType_Structure:
-      m_482_0:
+      m_486_0:
         {
           std_buffer_Buffer_write_str(&this->out, " = {0}");
         } break;
@@ -11528,13 +11640,13 @@ void compiler_passes_code_generator_CodeGenerator_gen_match(compiler_passes_code
   }
 switch ((stmt.expr->etype->base)) {
     case compiler_types_BaseType_Bool:
-    m_483_0:
+    m_487_0:
       {
         compiler_passes_code_generator_CodeGenerator_gen_match_bool(this, node);
         return;
       } break;
     case compiler_types_BaseType_Enum:
-    m_483_1:
+    m_487_1:
       {
         compiler_passes_code_generator_CodeGenerator_gen_match_enum(this, node);
         return;
@@ -11637,7 +11749,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_if(compiler_passes_code_ge
     }
 switch ((branch.cond->type)) {
       case compiler_ast_nodes_ASTType_Is:
-      m_484_0:
+      m_488_0:
         {
           compiler_passes_code_generator_CodeGenerator_gen_if_is_expr_branch(this, node, &branch);
         } break;
@@ -11690,7 +11802,7 @@ void compiler_passes_code_generator_CodeGenerator_gen_statement(compiler_passes_
   compiler_passes_code_generator_CodeGenerator_gen_debug_info(this, node->span, false);
 switch ((node->type)) {
     case compiler_ast_nodes_ASTType_Return:
-    m_485_0:
+    m_489_0:
       {
         compiler_ast_scopes_Scope *upto = compiler_passes_code_generator_CodeGenerator_scope(this);
         for (compiler_ast_scopes_Scope *cur = compiler_passes_code_generator_CodeGenerator_scope(this); ((bool)cur) && ((bool)cur->cur_func); cur=cur->parent) {
@@ -11710,17 +11822,17 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Yield:
-    m_485_1:
+    m_489_1:
       {
         compiler_passes_code_generator_CodeGenerator_gen_yield_expression(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_Import:
-    m_485_2:
+    m_489_2:
       {
       } break;
     case compiler_ast_nodes_ASTType_Break:
     case compiler_ast_nodes_ASTType_Continue:
-    m_485_3:
+    m_489_3:
       {
         u32 loop_count = compiler_passes_code_generator_CodeGenerator_scope(this)->loop_count;
         compiler_ast_scopes_Scope *upto = compiler_passes_code_generator_CodeGenerator_scope(this);
@@ -11742,36 +11854,36 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_VarDeclaration:
-    m_485_4:
+    m_489_4:
       {
         compiler_passes_code_generator_CodeGenerator_gen_indent(this);
         compiler_passes_code_generator_CodeGenerator_gen_var_declaration(this, node);
         std_buffer_Buffer_write_str(&this->out, ";\n");
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_485_5:
+    m_489_5:
       {
         compiler_passes_code_generator_CodeGenerator_gen_indent(this);
         compiler_passes_code_generator_CodeGenerator_gen_block(this, node, true);
         std_buffer_Buffer_write_str(&this->out, "\n");
       } break;
     case compiler_ast_nodes_ASTType_Defer:
-    m_485_6:
+    m_489_6:
       {
         std_vector_Vector__19_push(compiler_passes_code_generator_CodeGenerator_scope(this)->defers, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_485_7:
+    m_489_7:
       {
         compiler_passes_code_generator_CodeGenerator_gen_if(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_485_8:
+    m_489_8:
       {
         compiler_passes_code_generator_CodeGenerator_gen_match(this, node);
       } break;
     case compiler_ast_nodes_ASTType_While:
-    m_485_9:
+    m_489_9:
       {
         compiler_ast_nodes_AST *cond = node->u.loop.cond;
         compiler_ast_nodes_AST *body = node->u.loop.body;
@@ -11788,7 +11900,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_For:
-    m_485_10:
+    m_489_10:
       {
         compiler_ast_nodes_AST *init = node->u.loop.init;
         compiler_ast_nodes_AST *cond = node->u.loop.cond;
@@ -11821,7 +11933,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Assert:
-    m_485_11:
+    m_489_11:
       {
         compiler_ast_nodes_AST *expr = node->u.assertion.expr;
         compiler_passes_code_generator_CodeGenerator_gen_indent(this);
@@ -11859,7 +11971,7 @@ switch ((node->type)) {
         std_buffer_Buffer_write_str(&this->out, " }\n");
       } break;
     case compiler_ast_nodes_ASTType_StringLiteral:
-    m_485_12:
+    m_489_12:
       {
       } break;
     default:
@@ -11943,37 +12055,37 @@ switch ((cur->base)) {
     case compiler_types_BaseType_U64:
     case compiler_types_BaseType_F32:
     case compiler_types_BaseType_F64:
-    m_486_0:
+    m_490_0:
       {
         str_replace(&acc, std_format("%s %s", compiler_types_BaseType_str(cur->base), acc));
       } break;
     case compiler_types_BaseType_Structure:
-    m_486_1:
+    m_490_1:
       {
         str_replace(&acc, std_format("%s %s", compiler_ast_scopes_Symbol_out_name(cur->u.struc->sym), acc));
       } break;
     case compiler_types_BaseType_Enum:
-    m_486_2:
+    m_490_2:
       {
         str_replace(&acc, std_format("%s %s", compiler_ast_scopes_Symbol_out_name(cur->u.enom->sym), acc));
       } break;
     case compiler_types_BaseType_Alias:
-    m_486_3:
+    m_490_3:
       {
         acc=compiler_passes_code_generator_CodeGenerator_helper_gen_type(this, top, cur->u.ptr, acc, false);
       } break;
     case compiler_types_BaseType_Closure:
-    m_486_4:
+    m_490_4:
       {
         str_replace(&acc, std_format("%s %s", compiler_ast_scopes_Symbol_out_name(cur->sym), acc));
       } break;
     case compiler_types_BaseType_FunctionPtr:
-    m_486_5:
+    m_490_5:
       {
         acc=compiler_passes_code_generator_CodeGenerator_helper_gen_function_type(this, top, cur, acc, is_func_def, NULL, NULL);
       } break;
     case compiler_types_BaseType_Pointer:
-    m_486_6:
+    m_490_6:
       {
         bool needs_parens = (((bool)cur->u.ptr) && cur->u.ptr->base==compiler_types_BaseType_Array);
         if (is_func_def) {
@@ -11985,7 +12097,7 @@ switch ((cur->base)) {
         acc=compiler_passes_code_generator_CodeGenerator_helper_gen_type(this, top, cur->u.ptr, acc, false);
       } break;
     case compiler_types_BaseType_Array:
-    m_486_7:
+    m_490_7:
       {
         std_buffer_Buffer prev_buffer = this->out;
         this->out=std_buffer_Buffer_make(16);
@@ -12298,22 +12410,22 @@ void compiler_passes_code_generator_CodeGenerator_gen_closure_func(compiler_pass
 void compiler_passes_code_generator_CodeGenerator_gen_sym_typedef(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_scopes_Symbol *sym) {
   switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Structure:
-    m_487_0:
+    m_491_0:
       {
         compiler_passes_code_generator_CodeGenerator_gen_struct_typedef(this, sym->u.struc);
       } break;
     case compiler_ast_scopes_SymbolType_Enum:
-    m_487_1:
+    m_491_1:
       {
         compiler_passes_code_generator_CodeGenerator_gen_enum_typedef(this, sym->u.enom);
       } break;
     case compiler_ast_scopes_SymbolType_Closure:
-    m_487_2:
+    m_491_2:
       {
         compiler_passes_code_generator_CodeGenerator_gen_closure_typedef(this, sym->u.func);
       } break;
     case compiler_ast_scopes_SymbolType_ClosureType:
-    m_487_3:
+    m_491_3:
       {
         compiler_passes_code_generator_CodeGenerator_gen_closure_type_typedef(this, sym);
       } break;
@@ -12326,22 +12438,22 @@ void compiler_passes_code_generator_CodeGenerator_gen_sym_typedef(compiler_passe
 void compiler_passes_code_generator_CodeGenerator_gen_sym_def(compiler_passes_code_generator_CodeGenerator *this, compiler_ast_scopes_Symbol *sym) {
   switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Structure:
-    m_488_0:
+    m_492_0:
       {
         compiler_passes_code_generator_CodeGenerator_gen_struct_def(this, sym->u.struc);
       } break;
     case compiler_ast_scopes_SymbolType_Enum:
-    m_488_1:
+    m_492_1:
       {
         compiler_passes_code_generator_CodeGenerator_gen_enum_def(this, sym->u.enom);
       } break;
     case compiler_ast_scopes_SymbolType_Closure:
-    m_488_2:
+    m_492_2:
       {
         compiler_passes_code_generator_CodeGenerator_gen_closure_def(this, sym->u.func);
       } break;
     case compiler_ast_scopes_SymbolType_ClosureType:
-    m_488_3:
+    m_492_3:
       {
         compiler_passes_code_generator_CodeGenerator_gen_closure_type_def(this, sym);
       } break;
@@ -12631,13 +12743,13 @@ void compiler_passes_reorder_symbols_ReorderSymbols_dfs_type(compiler_passes_reo
   std_set_Set__1_add(this->done, typ);
 switch ((typ->base)) {
     case compiler_types_BaseType_Array:
-    m_489_0:
+    m_493_0:
       {
         compiler_passes_reorder_symbols_ReorderSymbols_dfs_type(this, typ->u.arr.elem_type);
       } break;
     case compiler_types_BaseType_Structure:
     case compiler_types_BaseType_Enum:
-    m_489_1:
+    m_493_1:
       {
         compiler_passes_reorder_symbols_ReorderSymbols_dfs(this, typ->sym);
       } break;
@@ -12654,7 +12766,7 @@ void compiler_passes_reorder_symbols_ReorderSymbols_dfs(compiler_passes_reorder_
   std_set_Set__1_add(this->done, sym);
 switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Structure:
-    m_490_0:
+    m_494_0:
       {
         for (std_vector_Iterator__3 _i133 = std_vector_Vector__3_iter(sym->u.struc->fields); std_vector_Iterator__3_has_value(&_i133); std_vector_Iterator__3_next(&_i133)) {
           compiler_ast_nodes_Variable *field = std_vector_Iterator__3_cur(&_i133);
@@ -12667,7 +12779,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Enum:
-    m_490_1:
+    m_494_1:
       {
         for (std_vector_Iterator__3 _i134 = std_vector_Vector__3_iter(sym->u.enom->shared_fields); std_vector_Iterator__3_has_value(&_i134); std_vector_Iterator__3_next(&_i134)) {
           compiler_ast_nodes_Variable *field = std_vector_Iterator__3_cur(&_i134);
@@ -12693,7 +12805,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Closure:
-    m_490_2:
+    m_494_2:
       {
         compiler_ast_nodes_Function *func = sym->u.func;
         for (std_vector_Iterator__3 _i137 = std_vector_Vector__3_iter(func->params); std_vector_Iterator__3_has_value(&_i137); std_vector_Iterator__3_next(&_i137)) {
@@ -12705,7 +12817,7 @@ switch ((sym->type)) {
         compiler_passes_reorder_symbols_ReorderSymbols_dfs(this, func->return_type->sym);
       } break;
     case compiler_ast_scopes_SymbolType_ClosureType:
-    m_490_3:
+    m_494_3:
       {
         compiler_passes_reorder_symbols_ReorderSymbols_dfs(this, sym->u.type_def->sym);
       } break;
@@ -12877,64 +12989,64 @@ void compiler_parser_Parser_clear_attributes(compiler_parser_Parser *this) {
 }
 
 bool compiler_parser_Parser_is_compound_operator(compiler_parser_Parser *this, compiler_ast_operators_Operator op) {
-  return ({bool __yv_491;
+  return ({bool __yv_495;
 switch ((op)) {
       case compiler_ast_operators_Operator_LeftShift:
-      m_492_0:
+      m_496_0:
         {
-          __yv_491 = (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_LessThan) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_LessThan));
-          goto _l___yv_491;
+          __yv_495 = (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_LessThan) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_LessThan));
+          goto _l___yv_495;
         } break;
       case compiler_ast_operators_Operator_RightShift:
-      m_492_1:
+      m_496_1:
         {
-          __yv_491 = (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_GreaterThan) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_GreaterThan));
-          goto _l___yv_491;
+          __yv_495 = (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_GreaterThan) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_GreaterThan));
+          goto _l___yv_495;
         } break;
       case compiler_ast_operators_Operator_LeftShiftEquals:
-      m_492_2:
+      m_496_2:
         {
-          __yv_491 = (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_LessThan) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_LessThanEquals));
-          goto _l___yv_491;
+          __yv_495 = (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_LessThan) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_LessThanEquals));
+          goto _l___yv_495;
         } break;
       case compiler_ast_operators_Operator_RightShiftEquals:
-      m_492_3:
+      m_496_3:
         {
-          __yv_491 = (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_GreaterThan) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_GreaterThanEquals));
-          goto _l___yv_491;
+          __yv_495 = (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_GreaterThan) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_GreaterThanEquals));
+          goto _l___yv_495;
         } break;
       default:
         {
-          __yv_491 = false;
-          goto _l___yv_491;
+          __yv_495 = false;
+          goto _l___yv_495;
         } break;
     }
-_l___yv_491:
-  __yv_491;});}
+_l___yv_495:
+  __yv_495;});}
 
 std_span_Span compiler_parser_Parser_consume_compound_operator(compiler_parser_Parser *this, compiler_ast_operators_Operator op) {
   std_span_Span span = compiler_parser_Parser_token(this)->span;
 switch ((op)) {
     case compiler_ast_operators_Operator_LeftShift:
-    m_493_0:
+    m_497_0:
       {
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_LessThan);
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_LessThan);
       } break;
     case compiler_ast_operators_Operator_RightShift:
-    m_493_1:
+    m_497_1:
       {
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_GreaterThan);
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_GreaterThan);
       } break;
     case compiler_ast_operators_Operator_LeftShiftEquals:
-    m_493_2:
+    m_497_2:
       {
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_LessThan);
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_LessThanEquals);
       } break;
     case compiler_ast_operators_Operator_RightShiftEquals:
-    m_493_3:
+    m_497_3:
       {
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_GreaterThan);
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_GreaterThanEquals);
@@ -12948,58 +13060,58 @@ switch ((op)) {
 }
 
 compiler_types_Type *compiler_parser_Parser_parse_type(compiler_parser_Parser *this) {
-  return ({compiler_types_Type *__yv_494;
+  return ({compiler_types_Type *__yv_498;
 switch ((compiler_parser_Parser_token(this)->type)) {
       case compiler_tokens_TokenType_Identifier:
-      m_495_0:
+      m_499_0:
         {
           compiler_ast_nodes_AST *ident = compiler_parser_Parser_parse_scoped_identifier(this, true);
           char *name = (ident->type==compiler_ast_nodes_ASTType_Identifier ? ident->u.ident.name : "<unresolved>");
           compiler_types_Type *typ = compiler_types_Type_new_unresolved(name, ident->span);
           typ->u.unresolved=ident;
-          __yv_494 = typ;
-          goto _l___yv_494;
+          __yv_498 = typ;
+          goto _l___yv_498;
         } break;
       case compiler_tokens_TokenType_Ampersand:
-      m_495_1:
+      m_499_1:
         {
           compiler_tokens_Token *amp = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Ampersand);
           compiler_types_Type *base = compiler_parser_Parser_parse_type(this);
           compiler_types_Type *typ = compiler_types_Type_new_resolved(compiler_types_BaseType_Pointer, std_span_Span_join(amp->span, base->span));
           typ->u.ptr=base;
-          __yv_494 = typ;
-          goto _l___yv_494;
+          __yv_498 = typ;
+          goto _l___yv_498;
         } break;
       case compiler_tokens_TokenType_AtSign:
       case compiler_tokens_TokenType_Fn:
-      m_495_2:
+      m_499_2:
         {
           std_span_Span start_span = compiler_parser_Parser_token(this)->span;
-          compiler_types_BaseType base_type = ({compiler_types_BaseType __yv_496;
+          compiler_types_BaseType base_type = ({compiler_types_BaseType __yv_500;
 switch ((compiler_parser_Parser_token(this)->type)) {
               case compiler_tokens_TokenType_AtSign:
-              m_497_0:
+              m_501_0:
                 {
                   compiler_parser_Parser_consume(this, compiler_tokens_TokenType_AtSign);
                   compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Fn);
-                  __yv_496 = compiler_types_BaseType_Closure;
-                  goto _l___yv_496;
+                  __yv_500 = compiler_types_BaseType_Closure;
+                  goto _l___yv_500;
                 } break;
               case compiler_tokens_TokenType_Fn:
-              m_497_1:
+              m_501_1:
                 {
                   compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Fn);
-                  __yv_496 = compiler_types_BaseType_FunctionPtr;
-                  goto _l___yv_496;
+                  __yv_500 = compiler_types_BaseType_FunctionPtr;
+                  goto _l___yv_500;
                 } break;
               default:
                 {
                   std_panic("unreachable");
-                  goto _l___yv_496;
+                  goto _l___yv_500;
                 } break;
             }
-_l___yv_496:
-          __yv_496;});
+_l___yv_500:
+          __yv_500;});
           compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenParen);
           std_vector_Vector__3 *params = std_vector_Vector__3_new(16);
           bool is_variadic = false;
@@ -13026,11 +13138,11 @@ _l___yv_496:
           }
           compiler_types_Type *type = compiler_types_Type_new_resolved(base_type, std_span_Span_join(start_span, close->span));
           type->u.func=(compiler_types_FunctionType){.orig=NULL, .params=params, .return_type=return_type, .is_variadic=is_variadic};
-          __yv_494 = type;
-          goto _l___yv_494;
+          __yv_498 = type;
+          goto _l___yv_498;
         } break;
       case compiler_tokens_TokenType_OpenSquare:
-      m_495_3:
+      m_499_3:
         {
           std_span_Span start_span = compiler_parser_Parser_token(this)->span;
           compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenSquare);
@@ -13040,17 +13152,17 @@ _l___yv_496:
           compiler_tokens_Token *close = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_CloseSquare);
           compiler_types_Type *typ = compiler_types_Type_new_resolved(compiler_types_BaseType_Array, std_span_Span_join(start_span, close->span));
           typ->u.arr=(compiler_types_ArrayType){.elem_type=elem_type, .size_expr=size_expr, .size_known=false, .size=0};
-          __yv_494 = typ;
-          goto _l___yv_494;
+          __yv_498 = typ;
+          goto _l___yv_498;
         } break;
       case compiler_tokens_TokenType_Dollar:
-      m_495_4:
+      m_499_4:
         {
           compiler_tokens_Token *dollar = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Dollar);
-          __yv_494 = ({compiler_types_Type *__yv_498;
+          __yv_498 = ({compiler_types_Type *__yv_502;
 switch ((compiler_parser_Parser_token(this)->type)) {
               case compiler_tokens_TokenType_OpenSquare:
-              m_499_0:
+              m_503_0:
                 {
                   compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenSquare);
                   compiler_types_Type *elem_type = compiler_parser_Parser_parse_type(this);
@@ -13058,11 +13170,11 @@ switch ((compiler_parser_Parser_token(this)->type)) {
                   compiler_types_Type *typ = compiler_types_Type_new_resolved(compiler_types_BaseType_VectorShorthand, std_span_Span_join(dollar->span, close->span));
                   typ->u.ptr=elem_type;
                   compiler_parser_Parser_import_from_stdlib(this, "vector", typ->span);
-                  __yv_498 = typ;
-                  goto _l___yv_498;
+                  __yv_502 = typ;
+                  goto _l___yv_502;
                 } break;
               case compiler_tokens_TokenType_OpenCurly:
-              m_499_1:
+              m_503_1:
                 {
                   compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenCurly);
                   compiler_types_Type *key_type = compiler_parser_Parser_parse_type(this);
@@ -13072,29 +13184,29 @@ switch ((compiler_parser_Parser_token(this)->type)) {
                   compiler_types_Type *typ = compiler_types_Type_new_resolved(compiler_types_BaseType_MapShorthand, std_span_Span_join(dollar->span, close->span));
                   typ->u.map_types=(compiler_types_MapShorthandType){.key=key_type, .value=value_type};
                   compiler_parser_Parser_import_from_stdlib(this, "compact_map", typ->span);
-                  __yv_498 = typ;
-                  goto _l___yv_498;
+                  __yv_502 = typ;
+                  goto _l___yv_502;
                 } break;
               default:
                 {
                   compiler_parser_Parser_error(this, compiler_errors_Error_new(compiler_parser_Parser_token(this)->span, "Unexpected token after `$`"));
-                  __yv_498 = NULL;
-                  goto _l___yv_498;
+                  __yv_502 = NULL;
+                  goto _l___yv_502;
                 } break;
             }
-_l___yv_498:
-          __yv_498;});
-          goto _l___yv_494;
+_l___yv_502:
+          __yv_502;});
+          goto _l___yv_498;
         } break;
       default:
         {
           compiler_parser_Parser_unhandled_type(this, "parse_type");
-          __yv_494 = compiler_types_Type_new_unresolved_base(compiler_types_BaseType_Error, compiler_parser_Parser_token(this)->span);
-          goto _l___yv_494;
+          __yv_498 = compiler_types_Type_new_unresolved_base(compiler_types_BaseType_Error, compiler_parser_Parser_token(this)->span);
+          goto _l___yv_498;
         } break;
     }
-_l___yv_494:
-  __yv_494;});}
+_l___yv_498:
+  __yv_498;});}
 
 compiler_ast_nodes_AST *compiler_parser_Parser_parse_identifier(compiler_parser_Parser *this) {
   compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Identifier);
@@ -13108,7 +13220,7 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_scoped_identifier(compiler_
   while (true) {
 switch ((compiler_parser_Parser_token(this)->type)) {
       case compiler_tokens_TokenType_ColonColon:
-      m_500_0:
+      m_504_0:
         {
           compiler_tokens_Token *colons = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_ColonColon);
           compiler_ast_nodes_AST *lookup = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_NSLookup, node->span);
@@ -13126,7 +13238,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
           }
         } break;
       case compiler_tokens_TokenType_LessThan:
-      m_500_1:
+      m_504_1:
         {
           if (!(consume_template)) {
             return node;
@@ -13167,7 +13279,7 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_format_string(compiler_pars
   compiler_tokens_Token *fstr = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_FormatStringLiteral);
   u32 fstr_len = strlen(fstr->text);
   std_vector_Vector__11 *expr_parts = std_vector_Vector__11_new(16);
-  std_vector_Vector__40 *expr_start = std_vector_Vector__40_new(16);
+  std_vector_Vector__31 *expr_start = std_vector_Vector__31_new(16);
   std_vector_Vector__11 *format_parts = std_vector_Vector__11_new(16);
   std_vector_Vector__11 *specifiers = std_vector_Vector__11_new(16);
   u32 specifier_loc = 0;
@@ -13194,7 +13306,7 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_format_string(compiler_pars
             u32 len = (specifier_loc - cur_start);
             char *part = str_substring(fstr->text, cur_start, len);
             std_vector_Vector__11_push(expr_parts, part);
-            std_vector_Vector__40_push(expr_start, cur_start);
+            std_vector_Vector__31_push(expr_start, cur_start);
             specifier_loc+=1;
             while ((specifier_loc < i) && fstr->text[specifier_loc]==' ') {
               specifier_loc+=1;
@@ -13211,7 +13323,7 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_format_string(compiler_pars
           } else {
             char *part = str_substring(fstr->text, cur_start, (i - cur_start));
             std_vector_Vector__11_push(expr_parts, part);
-            std_vector_Vector__40_push(expr_start, cur_start);
+            std_vector_Vector__31_push(expr_start, cur_start);
             std_vector_Vector__11_push(specifiers, NULL);
           }
           cur_start=(i + 1);
@@ -13244,10 +13356,11 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_format_string(compiler_pars
   std_vector_Vector__19 *expr_nodes = std_vector_Vector__19_new(16);
   for (u32 i = 0; i < expr_parts->size; i+=1) {
     char *part = std_vector_Vector__11_at(expr_parts, i);
-    u32 start = std_vector_Vector__40_at(expr_start, i);
+    u32 start = std_vector_Vector__31_at(expr_start, i);
     compiler_lexer_Lexer lexer = compiler_lexer_Lexer_make(part, fstr_start.filename, this->program->errors);
     lexer.loc=fstr_start;
     lexer.loc.col+=(start + 1);
+    lexer.loc.index+=(start + 1);
     std_vector_Vector__13 *tokens = compiler_lexer_Lexer_lex(&lexer);
     compiler_parser_Parser sub_parser = compiler_parser_Parser_make(this->program, this->ns);
     sub_parser.tokens=tokens;
@@ -13262,7 +13375,7 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_format_string(compiler_pars
   node->u.fmt_str.exprs=expr_nodes;
   node->u.fmt_str.specs=specifiers;
   std_vector_Vector__11_free(expr_parts);
-  std_vector_Vector__40_free(expr_start);
+  std_vector_Vector__31_free(expr_start);
   return node;
 }
 
@@ -13283,7 +13396,7 @@ std_vector_Vector__5 *compiler_parser_Parser_parse_match_case_conds(compiler_par
           alias=compiler_ast_nodes_Variable_new(NULL);
           alias->sym=compiler_ast_scopes_Symbol_from_local_variable(alias_name->text, var, alias_name->span);
         }
-        std_vector_Vector__22_push(args, ({compiler_ast_nodes_MatchCondArg *_new_501 = std_mem_state_alloc_fn(std_mem_state_allocator, sizeof(compiler_ast_nodes_MatchCondArg)); *_new_501 = (compiler_ast_nodes_MatchCondArg){.var=var, .alias=alias, .is_shared=false}; _new_501; }));
+        std_vector_Vector__22_push(args, ({compiler_ast_nodes_MatchCondArg *_new_505 = std_mem_state_alloc_fn(std_mem_state_allocator, sizeof(compiler_ast_nodes_MatchCondArg)); *_new_505 = (compiler_ast_nodes_MatchCondArg){.var=var, .alias=alias, .is_shared=false}; _new_505; }));
         if (!(compiler_parser_Parser_consume_if(this, compiler_tokens_TokenType_Comma))) {
           break;
         }
@@ -13427,29 +13540,29 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_var_declaration(compiler_pa
 }
 
 compiler_ast_nodes_AST *compiler_parser_Parser_parse_global_value(compiler_parser_Parser *this, bool is_const) {
-  compiler_tokens_Token *start_token = ({compiler_tokens_Token *__yv_502;
+  compiler_tokens_Token *start_token = ({compiler_tokens_Token *__yv_506;
     if (is_const) {
-      __yv_502 = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Const);
-      goto _l___yv_502;
+      __yv_506 = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Const);
+      goto _l___yv_506;
     } else {
-      __yv_502 = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Let);
-      goto _l___yv_502;
+      __yv_506 = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Let);
+      goto _l___yv_506;
     }
 
-_l___yv_502:
-  __yv_502;});
+_l___yv_506:
+  __yv_506;});
   compiler_ast_nodes_AST *node = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_VarDeclaration, compiler_parser_Parser_token(this)->span);
-  compiler_tokens_Token *name = ({compiler_tokens_Token *__yv_503;
+  compiler_tokens_Token *name = ({compiler_tokens_Token *__yv_507;
     if (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_Identifier)) {
-      __yv_503 = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Identifier);
-      goto _l___yv_503;
+      __yv_507 = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Identifier);
+      goto _l___yv_507;
     } else {
       compiler_parser_Parser_error(this, compiler_errors_Error_new(compiler_parser_Parser_token(this)->span, "Expected identifier"));
       return node;
     }
 
-_l___yv_503:
-  __yv_503;});
+_l___yv_507:
+  __yv_507;});
   compiler_types_Type *type = NULL;
   if (compiler_parser_Parser_consume_if(this, compiler_tokens_TokenType_Colon)) {
     type=compiler_parser_Parser_parse_type(this);
@@ -13466,12 +13579,12 @@ _l___yv_503:
     {
 switch ((attr->type)) {
         case compiler_attributes_AttributeType_Extern:
-        m_504_0:
+        m_508_0:
           {
             compiler_parser_Parser_get_extern_from_attr(this, var->sym, attr);
           } break;
         case compiler_attributes_AttributeType_Atomic:
-        m_504_1:
+        m_508_1:
           {
             var->is_atomic=true;
           } break;
@@ -13495,24 +13608,24 @@ switch ((attr->type)) {
 
 u64 compiler_parser_Parser_parse_num_literal_int(compiler_parser_Parser *this, char *text) {
   u32 offset = 2;
-  u64 base = ({u64 __yv_505;
+  u64 base = ({u64 __yv_509;
     if (str_starts_with(text, "0x")) {
-      __yv_505 = ((u64)16);
-      goto _l___yv_505;
+      __yv_509 = ((u64)16);
+      goto _l___yv_509;
     } else if (str_starts_with(text, "0o")) {
-      __yv_505 = ((u64)8);
-      goto _l___yv_505;
+      __yv_509 = ((u64)8);
+      goto _l___yv_509;
     } else if (str_starts_with(text, "0b")) {
-      __yv_505 = ((u64)2);
-      goto _l___yv_505;
+      __yv_509 = ((u64)2);
+      goto _l___yv_509;
     } else {
       offset=0;
-      __yv_505 = ((u64)10);
-      goto _l___yv_505;
+      __yv_509 = ((u64)10);
+      goto _l___yv_509;
     }
 
-_l___yv_505:
-  __yv_505;});
+_l___yv_509:
+  __yv_509;});
   u32 len = strlen(text);
   u64 value = ((u64)0);
   for (u32 i = offset; i < len; i+=1) {
@@ -13528,7 +13641,7 @@ _l___yv_505:
 f64 compiler_parser_Parser_parse_num_literal_float(compiler_parser_Parser *this, char *text) {
   u32 len = strlen(text);
   char buf[32] = {0};
-  if(!(len < 32)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:770:12: Assertion failed: `len < 32`", NULL); }
+  if(!(len < 32)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:771:12: Assertion failed: `len < 32`", NULL); }
   u32 j = 0;
   for (u32 i = 0; i < len; i+=1) {
     char c = text[i];
@@ -13546,74 +13659,74 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_atom(compiler_parser_Parser
   compiler_ast_nodes_AST *node = NULL;
 switch ((compiler_parser_Parser_token(this)->type)) {
     case compiler_tokens_TokenType_If:
-    m_506_0:
+    m_510_0:
       {
         node=compiler_parser_Parser_parse_if(this);
       } break;
     case compiler_tokens_TokenType_Match:
-    m_506_1:
+    m_510_1:
       {
         node=compiler_parser_Parser_parse_match(this);
       } break;
     case compiler_tokens_TokenType_OpenCurly:
-    m_506_2:
+    m_510_2:
       {
         node=compiler_parser_Parser_parse_block(this);
       } break;
     case compiler_tokens_TokenType_FormatStringLiteral:
-    m_506_3:
+    m_510_3:
       {
         node=compiler_parser_Parser_parse_format_string(this);
       } break;
     case compiler_tokens_TokenType_Null:
-    m_506_4:
+    m_510_4:
       {
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Null);
         node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Null, tok->span);
       } break;
     case compiler_tokens_TokenType_IntLiteral:
-    m_506_5:
+    m_510_5:
       {
         node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_IntLiteral, compiler_parser_Parser_token(this)->span);
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_IntLiteral);
         node->u.num_literal=(compiler_ast_nodes_NumLiteral){.text=tok->text, .suffix=compiler_parser_Parser_parse_literal_suffix_type(this, tok->suffix), .as_float=0.000000, .as_int=compiler_parser_Parser_parse_num_literal_int(this, tok->text)};
       } break;
     case compiler_tokens_TokenType_FloatLiteral:
-    m_506_6:
+    m_510_6:
       {
         node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_FloatLiteral, compiler_parser_Parser_token(this)->span);
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_FloatLiteral);
         node->u.num_literal=(compiler_ast_nodes_NumLiteral){.text=tok->text, .suffix=compiler_parser_Parser_parse_literal_suffix_type(this, tok->suffix), .as_float=compiler_parser_Parser_parse_num_literal_float(this, tok->text), .as_int=((u64)0)};
       } break;
     case compiler_tokens_TokenType_StringLiteral:
-    m_506_7:
+    m_510_7:
       {
         node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_StringLiteral, compiler_parser_Parser_token(this)->span);
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_StringLiteral);
         node->u.string_literal=tok->text;
       } break;
     case compiler_tokens_TokenType_CharLiteral:
-    m_506_8:
+    m_510_8:
       {
         node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_CharLiteral, compiler_parser_Parser_token(this)->span);
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_CharLiteral);
         node->u.char_literal=tok->text;
       } break;
     case compiler_tokens_TokenType_Identifier:
-    m_506_9:
+    m_510_9:
       {
         node=compiler_parser_Parser_parse_scoped_identifier(this, true);
       } break;
     case compiler_tokens_TokenType_True:
     case compiler_tokens_TokenType_False:
-    m_506_10:
+    m_510_10:
       {
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_parser_Parser_token(this)->type);
         node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_BoolLiteral, tok->span);
         node->u.bool_literal=tok->type==compiler_tokens_TokenType_True;
       } break;
     case compiler_tokens_TokenType_OpenParen:
-    m_506_11:
+    m_510_11:
       {
         compiler_tokens_Token *start = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenParen);
         node=compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_CloseParen);
@@ -13622,12 +13735,12 @@ switch ((compiler_parser_Parser_token(this)->type)) {
         node->paren=true;
       } break;
     case compiler_tokens_TokenType_OpenSquare:
-    m_506_12:
+    m_510_12:
       {
         node=compiler_parser_Parser_parse_array_literal(this);
       } break;
     case compiler_tokens_TokenType_Dot:
-    m_506_13:
+    m_510_13:
       {
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Dot);
         if ((!(((bool)this->curr_func)) || !(this->curr_func->kind==compiler_ast_nodes_FunctionKind_Method)) || this->curr_func->is_static) {
@@ -13650,13 +13763,13 @@ switch ((compiler_parser_Parser_token(this)->type)) {
         }
       } break;
     case compiler_tokens_TokenType_EOF:
-    m_506_14:
+    m_510_14:
       {
         compiler_parser_Parser_error(this, compiler_errors_Error_new(compiler_parser_Parser_token(this)->span, "Unexpected end of file"));
         return compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Error, compiler_parser_Parser_token(this)->span);
       } break;
     case compiler_tokens_TokenType_Line:
-    m_506_15:
+    m_510_15:
       {
         std_span_Location start_loc = compiler_parser_Parser_token(this)->span.start;
         compiler_ast_nodes_Function *closure_func = compiler_parser_Parser_parse_closure(this);
@@ -13671,12 +13784,12 @@ switch ((compiler_parser_Parser_token(this)->type)) {
         return node;
       } break;
     case compiler_tokens_TokenType_Dollar:
-    m_506_16:
+    m_510_16:
       {
         compiler_tokens_Token *dollar = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Dollar);
 switch ((compiler_parser_Parser_token(this)->type)) {
           case compiler_tokens_TokenType_OpenSquare:
-          m_507_0:
+          m_511_0:
             {
               compiler_tokens_Token *start = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenSquare);
               std_vector_Vector__19 *elements = std_vector_Vector__19_new(16);
@@ -13694,12 +13807,12 @@ switch ((compiler_parser_Parser_token(this)->type)) {
               return node;
             } break;
           case compiler_tokens_TokenType_OpenCurly:
-          m_507_1:
+          m_511_1:
             {
               compiler_tokens_Token *start = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenCurly);
               std_vector_Vector__29 *elements = ({
-                std_vector_Vector__29 *_vc508 = std_vector_Vector__29_new(8);
-                _vc508;});
+                std_vector_Vector__29 *_vc512 = std_vector_Vector__29_new(8);
+                _vc512;});
               while (!(compiler_parser_Parser_token_is_eof_or(this, compiler_tokens_TokenType_CloseCurly))) {
                 compiler_ast_nodes_AST *key = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_Colon);
                 compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Colon);
@@ -13746,44 +13859,44 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_postfix(compiler_parser_Par
   bool running = true;
   while (running) {
     if (compiler_parser_Parser_token_is(this, end_type)) {
-      goto _While_break_509;
+      goto _While_break_513;
     }
 switch ((compiler_parser_Parser_token(this)->type)) {
       case compiler_tokens_TokenType_OpenParen:
-      m_510_0:
+      m_514_0:
         {
           node=compiler_parser_Parser_parse_call(this, node);
         } break;
       case compiler_tokens_TokenType_Dot:
       case compiler_tokens_TokenType_QuestionDot:
-      m_510_1:
+      m_514_1:
         {
           if (compiler_parser_Parser_token_is(this, end_type)) {
-            goto _While_break_509;
+            goto _While_break_513;
           }
           compiler_tokens_Token *op = compiler_parser_Parser_consume(this, compiler_parser_Parser_token(this)->type);
-          compiler_ast_nodes_AST *member = ({compiler_ast_nodes_AST *__yv_511;
+          compiler_ast_nodes_AST *member = ({compiler_ast_nodes_AST *__yv_515;
 switch ((op->type)) {
               case compiler_tokens_TokenType_QuestionDot:
-              m_512_0:
+              m_516_0:
                 {
-                  __yv_511 = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_TryMember, node->span);
-                  goto _l___yv_511;
+                  __yv_515 = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_TryMember, node->span);
+                  goto _l___yv_515;
                 } break;
               case compiler_tokens_TokenType_Dot:
-              m_512_1:
+              m_516_1:
                 {
-                  __yv_511 = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Member, node->span);
-                  goto _l___yv_511;
+                  __yv_515 = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Member, node->span);
+                  goto _l___yv_515;
                 } break;
               default:
                 {
                   std_panic("Unreachable");
-                  goto _l___yv_511;
+                  goto _l___yv_515;
                 } break;
             }
-_l___yv_511:
-          __yv_511;});
+_l___yv_515:
+          __yv_515;});
           member->u.member.lhs=node;
           node=member;
           if (compiler_parser_Parser_token_is(this, end_type) || !(compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_Identifier))) {
@@ -13797,27 +13910,27 @@ _l___yv_511:
           }
         } break;
       case compiler_tokens_TokenType_Question:
-      m_510_2:
+      m_514_2:
         {
           compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Question);
           node=compiler_ast_nodes_AST_new_unop(compiler_ast_operators_Operator_IsNotNull, std_span_Span_join(node->span, tok->span), node);
         } break;
       case compiler_tokens_TokenType_Exclamation:
-      m_510_3:
+      m_514_3:
         {
           compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Exclamation);
           node=compiler_ast_nodes_AST_new_unop(compiler_ast_operators_Operator_ErrorProp, std_span_Span_join(node->span, tok->span), node);
           compiler_parser_Parser_import_from_stdlib(this, "result", node->span);
         } break;
       case compiler_tokens_TokenType_ExclamationExclamation:
-      m_510_4:
+      m_514_4:
         {
           compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_ExclamationExclamation);
           node=compiler_ast_nodes_AST_new_unop(compiler_ast_operators_Operator_ErrorUnwrap, std_span_Span_join(node->span, tok->span), node);
           compiler_parser_Parser_import_from_stdlib(this, "result", node->span);
         } break;
       case compiler_tokens_TokenType_OpenSquare:
-      m_510_5:
+      m_514_5:
         {
           compiler_tokens_Token *open = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenSquare);
           compiler_ast_nodes_AST *index = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_CloseSquare);
@@ -13831,22 +13944,22 @@ _l___yv_511:
         } break;
       case compiler_tokens_TokenType_MinusMinus:
       case compiler_tokens_TokenType_PlusPlus:
-      m_510_6:
+      m_514_6:
         {
           std_span_Span span = std_span_Span_join(node->span, compiler_parser_Parser_token(this)->span);
-          compiler_ast_operators_Operator op = ({compiler_ast_operators_Operator __yv_513;
+          compiler_ast_operators_Operator op = ({compiler_ast_operators_Operator __yv_517;
             if (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_MinusMinus)) {
               compiler_parser_Parser_consume(this, compiler_tokens_TokenType_MinusMinus);
-              __yv_513 = compiler_ast_operators_Operator_PostDecrement;
-              goto _l___yv_513;
+              __yv_517 = compiler_ast_operators_Operator_PostDecrement;
+              goto _l___yv_517;
             } else {
               compiler_parser_Parser_consume(this, compiler_tokens_TokenType_PlusPlus);
-              __yv_513 = compiler_ast_operators_Operator_PostIncrement;
-              goto _l___yv_513;
+              __yv_517 = compiler_ast_operators_Operator_PostIncrement;
+              goto _l___yv_517;
             }
 
-_l___yv_513:
-          __yv_513;});
+_l___yv_517:
+          __yv_517;});
           node=compiler_ast_nodes_AST_new_unop(op, span, node);
         } break;
       default:
@@ -13854,14 +13967,14 @@ _l___yv_513:
           running=false;
         } break;
     }  }
-  _While_break_509:;
+  _While_break_513:;
   return node;
 }
 
 compiler_ast_nodes_AST *compiler_parser_Parser_parse_prefix(compiler_parser_Parser *this, compiler_tokens_TokenType end_type) {
 switch ((compiler_parser_Parser_token(this)->type)) {
     case compiler_tokens_TokenType_Ampersand:
-    m_514_0:
+    m_518_0:
       {
         compiler_tokens_Token *amp = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Ampersand);
         compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_prefix(this, end_type);
@@ -13870,27 +13983,27 @@ switch ((compiler_parser_Parser_token(this)->type)) {
       } break;
     case compiler_tokens_TokenType_MinusMinus:
     case compiler_tokens_TokenType_PlusPlus:
-    m_514_1:
+    m_518_1:
       {
         std_span_Span start_span = compiler_parser_Parser_token(this)->span;
-        compiler_ast_operators_Operator op = ({compiler_ast_operators_Operator __yv_515;
+        compiler_ast_operators_Operator op = ({compiler_ast_operators_Operator __yv_519;
           if (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_MinusMinus)) {
             compiler_parser_Parser_consume(this, compiler_tokens_TokenType_MinusMinus);
-            __yv_515 = compiler_ast_operators_Operator_PreDecrement;
-            goto _l___yv_515;
+            __yv_519 = compiler_ast_operators_Operator_PreDecrement;
+            goto _l___yv_519;
           } else {
             compiler_parser_Parser_consume(this, compiler_tokens_TokenType_PlusPlus);
-            __yv_515 = compiler_ast_operators_Operator_PreIncrement;
-            goto _l___yv_515;
+            __yv_519 = compiler_ast_operators_Operator_PreIncrement;
+            goto _l___yv_519;
           }
 
-_l___yv_515:
-        __yv_515;});
+_l___yv_519:
+        __yv_519;});
         compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_prefix(this, end_type);
         return compiler_ast_nodes_AST_new_unop(op, std_span_Span_join(start_span, expr->span), expr);
       } break;
     case compiler_tokens_TokenType_SizeOf:
-    m_514_2:
+    m_518_2:
       {
         compiler_tokens_Token *start = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_SizeOf);
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_OpenParen);
@@ -13901,7 +14014,7 @@ _l___yv_515:
         return node;
       } break;
     case compiler_tokens_TokenType_AtSign:
-    m_514_3:
+    m_518_3:
       {
         compiler_tokens_Token *atsign = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_AtSign);
         if (!(compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_Identifier))) {
@@ -13910,17 +14023,17 @@ _l___yv_515:
         }
         compiler_tokens_Token *ident = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Identifier);
         {
-          char *__match_var_516 = ident->text;
-          if (str_eq(__match_var_516, "new")) {
+          char *__match_var_520 = ident->text;
+          if (str_eq(__match_var_520, "new")) {
             compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_prefix(this, end_type);
             compiler_ast_nodes_AST *node = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_CreateNew, std_span_Span_join(atsign->span, expr->span));
             node->u.child=expr;
             return node;
-          } else if (str_eq(__match_var_516, "current_file")) {
+          } else if (str_eq(__match_var_520, "current_file")) {
             compiler_ast_nodes_AST *node = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_StringLiteral, std_span_Span_join(atsign->span, ident->span));
             node->u.string_literal=ident->span.start.filename;
             return node;
-          } else if (str_eq(__match_var_516, "current_dir")) {
+          } else if (str_eq(__match_var_520, "current_dir")) {
             compiler_ast_nodes_AST *node = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_StringLiteral, std_span_Span_join(atsign->span, ident->span));
             node->u.string_literal=strdup(dirname(ident->span.start.filename));
             return node;
@@ -13931,7 +14044,7 @@ _l___yv_515:
         }
       } break;
     case compiler_tokens_TokenType_Star:
-    m_514_4:
+    m_518_4:
       {
         compiler_tokens_Token *star = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Star);
         compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_prefix(this, end_type);
@@ -13939,7 +14052,7 @@ _l___yv_515:
         return node;
       } break;
     case compiler_tokens_TokenType_Minus:
-    m_514_5:
+    m_518_5:
       {
         compiler_tokens_Token *minus = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Minus);
         compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_prefix(this, end_type);
@@ -13947,7 +14060,7 @@ _l___yv_515:
         return node;
       } break;
     case compiler_tokens_TokenType_Tilde:
-    m_514_6:
+    m_518_6:
       {
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Tilde);
         compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_prefix(this, end_type);
@@ -14008,17 +14121,17 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_additive(compiler_parser_Pa
 compiler_ast_nodes_AST *compiler_parser_Parser_parse_shift(compiler_parser_Parser *this, compiler_tokens_TokenType end_type) {
   compiler_ast_nodes_AST *lhs = compiler_parser_Parser_parse_additive(this, end_type);
   while (compiler_parser_Parser_is_compound_operator(this, compiler_ast_operators_Operator_LeftShift) || compiler_parser_Parser_is_compound_operator(this, compiler_ast_operators_Operator_RightShift)) {
-    compiler_ast_operators_Operator op = ({compiler_ast_operators_Operator __yv_517;
+    compiler_ast_operators_Operator op = ({compiler_ast_operators_Operator __yv_521;
       if (compiler_parser_Parser_token(this)->type==compiler_tokens_TokenType_LessThan) {
-        __yv_517 = compiler_ast_operators_Operator_LeftShift;
-        goto _l___yv_517;
+        __yv_521 = compiler_ast_operators_Operator_LeftShift;
+        goto _l___yv_521;
       } else {
-        __yv_517 = compiler_ast_operators_Operator_RightShift;
-        goto _l___yv_517;
+        __yv_521 = compiler_ast_operators_Operator_RightShift;
+        goto _l___yv_521;
       }
 
-_l___yv_517:
-    __yv_517;});
+_l___yv_521:
+    __yv_521;});
     std_span_Span op_span = compiler_parser_Parser_consume_compound_operator(this, op);
     compiler_ast_nodes_AST *rhs = compiler_parser_Parser_parse_additive(this, end_type);
     lhs=compiler_ast_nodes_AST_new_binop(op, lhs, rhs, op_span);
@@ -14076,28 +14189,28 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_relational(compiler_parser_
     if (compiler_parser_Parser_token_is(this, end_type)) {
       break;
     }
-    bool done = ({bool __yv_518;
+    bool done = ({bool __yv_522;
 switch ((compiler_parser_Parser_token(this)->type)) {
         case compiler_tokens_TokenType_LessThan:
-        m_519_0:
+        m_523_0:
           {
-            __yv_518 = compiler_parser_Parser_is_compound_operator(this, compiler_ast_operators_Operator_LeftShiftEquals);
-            goto _l___yv_518;
+            __yv_522 = compiler_parser_Parser_is_compound_operator(this, compiler_ast_operators_Operator_LeftShiftEquals);
+            goto _l___yv_522;
           } break;
         case compiler_tokens_TokenType_GreaterThan:
-        m_519_1:
+        m_523_1:
           {
-            __yv_518 = compiler_parser_Parser_is_compound_operator(this, compiler_ast_operators_Operator_RightShiftEquals);
-            goto _l___yv_518;
+            __yv_522 = compiler_parser_Parser_is_compound_operator(this, compiler_ast_operators_Operator_RightShiftEquals);
+            goto _l___yv_522;
           } break;
         default:
           {
-            __yv_518 = false;
-            goto _l___yv_518;
+            __yv_522 = false;
+            goto _l___yv_522;
           } break;
       }
-_l___yv_518:
-    __yv_518;});
+_l___yv_522:
+    __yv_522;});
     if (done) {
       break;
     }
@@ -14136,7 +14249,7 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_is(compiler_parser_Parser *
   if (!(compiler_parser_Parser_token_is_identifier(this, "is"))) {
     return lhs;
   }
-  if(!(str_eq(compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Identifier)->text, "is"))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:1270:12: Assertion failed: `.consume(Identifier).text.eq(\"is\")`", NULL); }
+  if(!(str_eq(compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Identifier)->text, "is"))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:1271:12: Assertion failed: `.consume(Identifier).text.eq(\"is\")`", NULL); }
   std_vector_Vector__5 *conds = compiler_parser_Parser_parse_match_case_conds(this, end_type);
   std_span_Span prev_tok_span = std_vector_Vector__13_at(this->tokens, (this->curr - 1))->span;
   compiler_ast_nodes_AST *node = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Is, std_span_Span_join(lhs->span, prev_tok_span));
@@ -14189,32 +14302,32 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_expression(compiler_parser_
       break;
     }
     std_span_Span op_span = {0};
-    compiler_ast_operators_Operator op = ({compiler_ast_operators_Operator __yv_520;
+    compiler_ast_operators_Operator op = ({compiler_ast_operators_Operator __yv_524;
 switch ((compiler_parser_Parser_token(this)->type)) {
         case compiler_tokens_TokenType_LessThan:
-        m_521_0:
+        m_525_0:
           {
             op_span=compiler_parser_Parser_consume_compound_operator(this, compiler_ast_operators_Operator_LeftShiftEquals);
-            __yv_520 = compiler_ast_operators_Operator_LeftShiftEquals;
-            goto _l___yv_520;
+            __yv_524 = compiler_ast_operators_Operator_LeftShiftEquals;
+            goto _l___yv_524;
           } break;
         case compiler_tokens_TokenType_GreaterThan:
-        m_521_1:
+        m_525_1:
           {
             op_span=compiler_parser_Parser_consume_compound_operator(this, compiler_ast_operators_Operator_RightShiftEquals);
-            __yv_520 = compiler_ast_operators_Operator_RightShiftEquals;
-            goto _l___yv_520;
+            __yv_524 = compiler_ast_operators_Operator_RightShiftEquals;
+            goto _l___yv_524;
           } break;
         default:
           {
             compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_parser_Parser_token(this)->type);
             op_span=tok->span;
-            __yv_520 = compiler_ast_operators_Operator_from_token(tok);
-            goto _l___yv_520;
+            __yv_524 = compiler_ast_operators_Operator_from_token(tok);
+            goto _l___yv_524;
           } break;
       }
-_l___yv_520:
-    __yv_520;});
+_l___yv_524:
+    __yv_524;});
     if ((op==compiler_ast_operators_Operator_Assignment && lhs->type==compiler_ast_nodes_ASTType_BinaryOp) && lhs->u.binary.op==compiler_ast_operators_Operator_Index) {
       op=compiler_ast_operators_Operator_IndexAssign;
     }
@@ -14295,18 +14408,18 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_for_each(compiler_parser_Pa
   compiler_parser_Parser_consume(this, compiler_parser_Parser_token(this)->type);
   compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_Newline);
   char *iter_var_name = std_format("_i%u", this->program->uid++);
-  compiler_ast_nodes_AST *init = ({compiler_ast_nodes_AST *__yv_522;
+  compiler_ast_nodes_AST *init = ({compiler_ast_nodes_AST *__yv_526;
     compiler_ast_nodes_AST *node = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_VarDeclaration, start_span);
     compiler_ast_nodes_Variable *var = compiler_ast_nodes_Variable_new(NULL);
     var->sym=compiler_ast_scopes_Symbol_from_local_variable(iter_var_name, var, start_span);
     var->default_value=expr;
     node->u.var_decl=var;
-    __yv_522 = node;
-    goto _l___yv_522;
+    __yv_526 = node;
+    goto _l___yv_526;
   
-_l___yv_522:
-  __yv_522;});
-  compiler_ast_nodes_AST *cond = ({compiler_ast_nodes_AST *__yv_523;
+_l___yv_526:
+  __yv_526;});
+  compiler_ast_nodes_AST *cond = ({compiler_ast_nodes_AST *__yv_527;
     compiler_ast_nodes_AST *iter_name = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Identifier, start_span);
     iter_name->u.ident.name=iter_var_name;
     compiler_ast_nodes_AST *member = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Member, start_span);
@@ -14318,12 +14431,12 @@ _l___yv_522:
     node->u.call.args=std_vector_Vector__10_new(16);
     node->u.call.open_paren_span=name->span;
     node->u.call.close_paren_span=name->span;
-    __yv_523 = node;
-    goto _l___yv_523;
+    __yv_527 = node;
+    goto _l___yv_527;
   
-_l___yv_523:
-  __yv_523;});
-  compiler_ast_nodes_AST *step = ({compiler_ast_nodes_AST *__yv_524;
+_l___yv_527:
+  __yv_527;});
+  compiler_ast_nodes_AST *step = ({compiler_ast_nodes_AST *__yv_528;
     compiler_ast_nodes_AST *iter_name = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Identifier, start_span);
     iter_name->u.ident.name=iter_var_name;
     compiler_ast_nodes_AST *member = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Member, start_span);
@@ -14335,12 +14448,12 @@ _l___yv_523:
     node->u.call.args=std_vector_Vector__10_new(16);
     node->u.call.open_paren_span=name->span;
     node->u.call.close_paren_span=name->span;
-    __yv_524 = node;
-    goto _l___yv_524;
+    __yv_528 = node;
+    goto _l___yv_528;
   
-_l___yv_524:
-  __yv_524;});
-  compiler_ast_nodes_AST *loop_var_decl = ({compiler_ast_nodes_AST *__yv_525;
+_l___yv_528:
+  __yv_528;});
+  compiler_ast_nodes_AST *loop_var_decl = ({compiler_ast_nodes_AST *__yv_529;
     compiler_ast_nodes_Variable *var = compiler_ast_nodes_Variable_new(NULL);
     var->sym=compiler_ast_scopes_Symbol_from_local_variable(name->text, var, name->span);
     compiler_ast_nodes_AST *iter_name = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Identifier, start_span);
@@ -14357,11 +14470,11 @@ _l___yv_524:
     compiler_ast_nodes_AST *node = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_VarDeclaration, start_span);
     var->default_value=call;
     node->u.var_decl=var;
-    __yv_525 = node;
-    goto _l___yv_525;
+    __yv_529 = node;
+    goto _l___yv_529;
   
-_l___yv_525:
-  __yv_525;});
+_l___yv_529:
+  __yv_529;});
   compiler_ast_nodes_AST *inner_body = compiler_parser_Parser_parse_block(this);
   std_vector_Vector__19 *statements = std_vector_Vector__19_new(16);
   std_vector_Vector__19_push(statements, loop_var_decl);
@@ -14390,31 +14503,31 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_for(compiler_parser_Parser 
     init=compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_Semicolon);
     compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Semicolon);
   }
-  void *cond = ({void *__yv_526;
+  void *cond = ({void *__yv_530;
     if (compiler_parser_Parser_consume_if(this, compiler_tokens_TokenType_Semicolon)) {
-      __yv_526 = NULL;
-      goto _l___yv_526;
+      __yv_530 = NULL;
+      goto _l___yv_530;
     } else {
       compiler_ast_nodes_AST *res = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_Semicolon);
       compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Semicolon);
-      __yv_526 = res;
-      goto _l___yv_526;
+      __yv_530 = res;
+      goto _l___yv_530;
     }
 
-_l___yv_526:
-  __yv_526;});
-  void *step = ({void *__yv_527;
+_l___yv_530:
+  __yv_530;});
+  void *step = ({void *__yv_531;
     if (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_OpenCurly)) {
-      __yv_527 = NULL;
-      goto _l___yv_527;
+      __yv_531 = NULL;
+      goto _l___yv_531;
     } else {
       compiler_ast_nodes_AST *res = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_OpenCurly);
-      __yv_527 = res;
-      goto _l___yv_527;
+      __yv_531 = res;
+      goto _l___yv_531;
     }
 
-_l___yv_527:
-  __yv_527;});
+_l___yv_531:
+  __yv_531;});
   compiler_ast_nodes_AST *body = compiler_parser_Parser_parse_block(this);
   compiler_ast_nodes_AST *node = compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_For, std_span_Span_join(tok->span, body->span));
   node->u.loop.init=init;
@@ -14431,12 +14544,12 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_statement(compiler_parser_P
   std_span_Span start_span = compiler_parser_Parser_token(this)->span;
 switch ((compiler_parser_Parser_token(this)->type)) {
     case compiler_tokens_TokenType_OpenCurly:
-    m_528_0:
+    m_532_0:
       {
         node=compiler_parser_Parser_parse_block(this);
       } break;
     case compiler_tokens_TokenType_Return:
-    m_528_1:
+    m_532_1:
       {
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Return);
         compiler_ast_nodes_AST *expr = NULL;
@@ -14449,7 +14562,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
         compiler_parser_Parser_consume_end_of_statement(this);
       } break;
     case compiler_tokens_TokenType_Yield:
-    m_528_2:
+    m_532_2:
       {
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Yield);
         compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_Newline);
@@ -14458,21 +14571,21 @@ switch ((compiler_parser_Parser_token(this)->type)) {
         compiler_parser_Parser_consume_end_of_statement(this);
       } break;
     case compiler_tokens_TokenType_Break:
-    m_528_3:
+    m_532_3:
       {
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Break);
         node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Break, std_span_Span_join(start_span, compiler_parser_Parser_token(this)->span));
         compiler_parser_Parser_consume_end_of_statement(this);
       } break;
     case compiler_tokens_TokenType_Continue:
-    m_528_4:
+    m_532_4:
       {
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Continue);
         node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Continue, std_span_Span_join(start_span, compiler_parser_Parser_token(this)->span));
         compiler_parser_Parser_consume_end_of_statement(this);
       } break;
     case compiler_tokens_TokenType_While:
-    m_528_5:
+    m_532_5:
       {
         compiler_tokens_Token *tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_While);
         compiler_ast_nodes_AST *cond = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_OpenCurly);
@@ -14484,7 +14597,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
         node->u.loop.break_label=NULL;
       } break;
     case compiler_tokens_TokenType_Assert:
-    m_528_6:
+    m_532_6:
       {
         compiler_tokens_Token *start = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Assert);
         compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_Newline);
@@ -14500,39 +14613,39 @@ switch ((compiler_parser_Parser_token(this)->type)) {
         return node;
       } break;
     case compiler_tokens_TokenType_Defer:
-    m_528_7:
+    m_532_7:
       {
         compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Defer);
         compiler_ast_nodes_AST *expr = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_Newline);
-        node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Defer, std_span_Span_join(start_span, compiler_parser_Parser_token(this)->span));
+        node=compiler_ast_nodes_AST_new(compiler_ast_nodes_ASTType_Defer, std_span_Span_join(start_span, expr->span));
         node->u.child=expr;
         compiler_parser_Parser_consume_end_of_statement(this);
       } break;
     case compiler_tokens_TokenType_Import:
-    m_528_8:
+    m_532_8:
       {
         node=compiler_parser_Parser_parse_import(this);
         compiler_parser_Parser_consume_end_of_statement(this);
       } break;
     case compiler_tokens_TokenType_For:
-    m_528_9:
+    m_532_9:
       {
         node=compiler_parser_Parser_parse_for(this);
       } break;
     case compiler_tokens_TokenType_Let:
-    m_528_10:
+    m_532_10:
       {
         node=compiler_parser_Parser_parse_var_declaration(this);
       } break;
     case compiler_tokens_TokenType_TypeDef:
-    m_528_11:
+    m_532_11:
       {
         compiler_parser_Parser_error(this, compiler_errors_Error_new(compiler_parser_Parser_token(this)->span, "TypeDefs are only allowed in the global scope"));
         this->curr+=1;
         compiler_parser_Parser_consume_tokens_until_newline(this);
       } break;
     case compiler_tokens_TokenType_Const:
-    m_528_12:
+    m_532_12:
       {
         compiler_parser_Parser_error(this, compiler_errors_Error_new(compiler_parser_Parser_token(this)->span, "Constants are only allowed in the global scope"));
         this->curr+=1;
@@ -14701,16 +14814,16 @@ compiler_ast_nodes_Function *compiler_parser_Parser_parse_function(compiler_pars
   func->name_ast=ident;
   func->is_static=true;
   func->kind=compiler_ast_nodes_FunctionKind_Normal;
-  char *name = ({char *__yv_529;
+  char *name = ({char *__yv_533;
 switch ((ident->type)) {
       case compiler_ast_nodes_ASTType_Identifier:
-      m_530_0:
+      m_534_0:
         {
-          __yv_529 = ident->u.ident.name;
-          goto _l___yv_529;
+          __yv_533 = ident->u.ident.name;
+          goto _l___yv_533;
         } break;
       case compiler_ast_nodes_ASTType_NSLookup:
-      m_530_1:
+      m_534_1:
         {
           parent_type=compiler_types_Type_new_unresolved("<unresolved>", ident->span);
           parent_type->u.unresolved=ident->u.lookup.lhs;
@@ -14718,18 +14831,18 @@ switch ((ident->type)) {
           name_span=ident->u.lookup.rhs_span;
           func->parent_type=parent_type;
           func->kind=compiler_ast_nodes_FunctionKind_Method;
-          __yv_529 = ident->u.lookup.rhs_name;
-          goto _l___yv_529;
+          __yv_533 = ident->u.lookup.rhs_name;
+          goto _l___yv_533;
         } break;
       default:
         {
           compiler_parser_Parser_error(this, compiler_errors_Error_new(ident->span, "Expected identifier"));
-          __yv_529 = "<error>";
-          goto _l___yv_529;
+          __yv_533 = "<error>";
+          goto _l___yv_533;
         } break;
     }
-_l___yv_529:
-  __yv_529;});
+_l___yv_533:
+  __yv_533;});
   func->sym=compiler_ast_scopes_Symbol_new_with_parent(compiler_ast_scopes_SymbolType_Function, this->ns, this->ns->sym, name, name_span);
   func->sym->u.func=func;
   compiler_parser_Parser_add_doc_comment(this, func->sym, start);
@@ -14761,17 +14874,17 @@ _l___yv_529:
     {
 switch ((attr->type)) {
         case compiler_attributes_AttributeType_Exits:
-        m_531_0:
+        m_535_0:
           {
             func->exits=true;
           } break;
         case compiler_attributes_AttributeType_Extern:
-        m_531_1:
+        m_535_1:
           {
             compiler_parser_Parser_get_extern_from_attr(this, func->sym, attr);
           } break;
         case compiler_attributes_AttributeType_VariadicFormat:
-        m_531_2:
+        m_535_2:
           {
             if (!(func->is_variadic)) {
               compiler_parser_Parser_error(this, compiler_errors_Error_new(attr->span, "Variadic format attribute can only be used on variadic functions"));
@@ -14779,7 +14892,7 @@ switch ((attr->type)) {
             func->is_variadic_format=true;
           } break;
         case compiler_attributes_AttributeType_Operator:
-        m_531_3:
+        m_535_3:
           {
             compiler_ast_operators_Operator op = compiler_ast_operators_Operator_from_operator_overload(std_vector_Vector__11_at(attr->args, 0), func->params);
             if (op==compiler_ast_operators_Operator_Error) {
@@ -14792,17 +14905,17 @@ switch ((attr->type)) {
             std_vector_Vector__25_push(func->operator_overloads, op);
           } break;
         case compiler_attributes_AttributeType_Alive:
-        m_531_4:
+        m_535_4:
           {
             std_vector_Vector__12_push(this->program->explicit_alive_symbols, func->sym);
           } break;
         case compiler_attributes_AttributeType_Test:
-        m_531_5:
+        m_535_5:
           {
             func->is_test_function=true;
           } break;
         case compiler_attributes_AttributeType_Flatten:
-        m_531_6:
+        m_535_6:
           {
             func->flatten_attr=true;
           } break;
@@ -14840,7 +14953,7 @@ void compiler_parser_Parser_parse_extern_into_symbol(compiler_parser_Parser *thi
 }
 
 void compiler_parser_Parser_get_extern_from_attr(compiler_parser_Parser *this, compiler_ast_scopes_Symbol *sym, compiler_attributes_Attribute *attr) {
-  if(!(attr->type==compiler_attributes_AttributeType_Extern)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:1963:12: Assertion failed: `attr.type == Extern`", NULL); }
+  if(!(attr->type==compiler_attributes_AttributeType_Extern)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:1964:12: Assertion failed: `attr.type == Extern`", NULL); }
   sym->is_extern=true;
   if (attr->args->size > 0) {
     sym->extern_name=std_vector_Vector__11_at(attr->args, 0);
@@ -14914,38 +15027,38 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_import(compiler_parser_Pars
   std_span_Span span = compiler_parser_Parser_token(this)->span;
   compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Import);
   u32 parent_count = 0;
-  compiler_ast_nodes_ImportType type = ({compiler_ast_nodes_ImportType __yv_532;
+  compiler_ast_nodes_ImportType type = ({compiler_ast_nodes_ImportType __yv_536;
 switch ((compiler_parser_Parser_token(this)->type)) {
       case compiler_tokens_TokenType_AtSign:
-      m_533_0:
+      m_537_0:
         {
           compiler_parser_Parser_consume(this, compiler_tokens_TokenType_AtSign);
-          __yv_532 = compiler_ast_nodes_ImportType_ProjectNamespace;
-          goto _l___yv_532;
+          __yv_536 = compiler_ast_nodes_ImportType_ProjectNamespace;
+          goto _l___yv_536;
         } break;
       case compiler_tokens_TokenType_ColonColon:
       case compiler_tokens_TokenType_Slash:
-      m_533_1:
+      m_537_1:
         {
           compiler_parser_Parser_consume(this, compiler_parser_Parser_token(this)->type);
-          __yv_532 = compiler_ast_nodes_ImportType_CurrentScope;
-          goto _l___yv_532;
+          __yv_536 = compiler_ast_nodes_ImportType_CurrentScope;
+          goto _l___yv_536;
         } break;
       case compiler_tokens_TokenType_Dot:
       case compiler_tokens_TokenType_Ellipsis:
-      m_533_2:
+      m_537_2:
         {
           bool done = false;
           while (!(done)) {
 switch ((compiler_parser_Parser_token(this)->type)) {
               case compiler_tokens_TokenType_Dot:
-              m_534_0:
+              m_538_0:
                 {
                   compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Dot);
                   parent_count+=1;
                 } break;
               case compiler_tokens_TokenType_Ellipsis:
-              m_534_1:
+              m_538_1:
                 {
                   compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Ellipsis);
                   parent_count+=3;
@@ -14955,17 +15068,17 @@ switch ((compiler_parser_Parser_token(this)->type)) {
                   done=true;
                 } break;
             }          }
-          __yv_532 = compiler_ast_nodes_ImportType_ParentNamespace;
-          goto _l___yv_532;
+          __yv_536 = compiler_ast_nodes_ImportType_ParentNamespace;
+          goto _l___yv_536;
         } break;
       default:
         {
-          __yv_532 = compiler_ast_nodes_ImportType_GlobalNamespace;
-          goto _l___yv_532;
+          __yv_536 = compiler_ast_nodes_ImportType_GlobalNamespace;
+          goto _l___yv_536;
         } break;
     }
-_l___yv_532:
-  __yv_532;});
+_l___yv_536:
+  __yv_536;});
   if (this->ns->is_dir_with_mod) {
     parent_count-=1;
   }
@@ -14984,7 +15097,7 @@ _l___yv_532:
     {
 switch ((attr->type)) {
         case compiler_attributes_AttributeType_Export:
-        m_535_0:
+        m_539_0:
           {
             node->u.import_path.export=true;
           } break;
@@ -15022,12 +15135,12 @@ bool compiler_parser_Parser_parse_struct_field(compiler_parser_Parser *this, com
       {
 switch ((attr->type)) {
           case compiler_attributes_AttributeType_Extern:
-          m_536_0:
+          m_540_0:
             {
               compiler_parser_Parser_get_extern_from_attr(this, field->sym, attr);
             } break;
           case compiler_attributes_AttributeType_Atomic:
-          m_536_1:
+          m_540_1:
             {
               field->is_atomic=true;
             } break;
@@ -15064,19 +15177,19 @@ switch ((attr->type)) {
 
 compiler_ast_nodes_Structure *compiler_parser_Parser_parse_struct(compiler_parser_Parser *this) {
   compiler_tokens_Token *start = compiler_parser_Parser_token(this);
-  bool is_union = ({bool __yv_537;
+  bool is_union = ({bool __yv_541;
     if (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_Union)) {
       compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Union);
-      __yv_537 = true;
-      goto _l___yv_537;
+      __yv_541 = true;
+      goto _l___yv_541;
     } else {
       compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Struct);
-      __yv_537 = false;
-      goto _l___yv_537;
+      __yv_541 = false;
+      goto _l___yv_541;
     }
 
-_l___yv_537:
-  __yv_537;});
+_l___yv_541:
+  __yv_541;});
   compiler_tokens_Token *name = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Identifier);
   compiler_ast_nodes_Structure *struc = compiler_ast_nodes_Structure_new();
   struc->is_union=is_union;
@@ -15092,12 +15205,12 @@ _l___yv_537:
     {
 switch ((attr->type)) {
         case compiler_attributes_AttributeType_Extern:
-        m_538_0:
+        m_542_0:
           {
             compiler_parser_Parser_get_extern_from_attr(this, struc->sym, attr);
           } break;
         case compiler_attributes_AttributeType_Formatting:
-        m_538_1:
+        m_542_1:
           {
             struc->format_spec=std_vector_Vector__11_at(attr->args, 0);
             struc->format_args=std_vector_Vector__11_at(attr->args, 1);
@@ -15147,13 +15260,13 @@ compiler_ast_nodes_Enum *compiler_parser_Parser_parse_enum(compiler_parser_Parse
     {
 switch ((attr->type)) {
         case compiler_attributes_AttributeType_Extern:
-        m_539_0:
+        m_543_0:
           {
             compiler_parser_Parser_get_extern_from_attr(this, enom->sym, attr);
             is_extern=true;
           } break;
         case compiler_attributes_AttributeType_Flags:
-        m_539_1:
+        m_543_1:
           {
             enom->is_flag_enum=true;
           } break;
@@ -15220,7 +15333,7 @@ switch ((attr->type)) {
       {
 switch ((attr->type)) {
           case compiler_attributes_AttributeType_Extern:
-          m_540_0:
+          m_544_0:
             {
               compiler_parser_Parser_get_extern_from_attr(this, variant->sym, attr);
               if (enom->has_values) {
@@ -15295,7 +15408,7 @@ void compiler_parser_Parser_parse_namespace_until(compiler_parser_Parser *this, 
     compiler_parser_Parser_parse_attributes_if_any(this);
 switch ((compiler_parser_Parser_token(this)->type)) {
       case compiler_tokens_TokenType_Def:
-      m_541_0:
+      m_545_0:
         {
           compiler_ast_nodes_Function *func = compiler_parser_Parser_parse_function(this);
           if (((bool)func)) {
@@ -15303,7 +15416,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
           }
         } break;
       case compiler_tokens_TokenType_Import:
-      m_541_1:
+      m_545_1:
         {
           compiler_ast_nodes_AST *import_ = compiler_parser_Parser_parse_import(this);
           if (((bool)import_)) {
@@ -15311,7 +15424,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
           }
         } break;
       case compiler_tokens_TokenType_Namespace:
-      m_541_2:
+      m_545_2:
         {
           if (this->attrs->size > 0) {
             compiler_parser_Parser_error(this, compiler_errors_Error_new(compiler_parser_Parser_token(this)->span, "Attributes are not allowed on namespaces"));
@@ -15333,7 +15446,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
         } break;
       case compiler_tokens_TokenType_Struct:
       case compiler_tokens_TokenType_Union:
-      m_541_3:
+      m_545_3:
         {
           compiler_ast_nodes_Structure *struc = compiler_parser_Parser_parse_struct(this);
           if (((bool)struc)) {
@@ -15341,7 +15454,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
           }
         } break;
       case compiler_tokens_TokenType_TypeDef:
-      m_541_4:
+      m_545_4:
         {
           if (this->attrs->size > 0) {
             compiler_parser_Parser_error(this, compiler_errors_Error_new(compiler_parser_Parser_token(this)->span, "Attributes are not allowed on typedefs"));
@@ -15359,7 +15472,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
           }
         } break;
       case compiler_tokens_TokenType_Enum:
-      m_541_5:
+      m_545_5:
         {
           compiler_ast_nodes_Enum *enom = compiler_parser_Parser_parse_enum(this);
           if (((bool)enom)) {
@@ -15367,7 +15480,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
           }
         } break;
       case compiler_tokens_TokenType_Let:
-      m_541_6:
+      m_545_6:
         {
           compiler_ast_nodes_AST *var = compiler_parser_Parser_parse_global_value(this, false);
           if (((bool)var)) {
@@ -15375,7 +15488,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
           }
         } break;
       case compiler_tokens_TokenType_Const:
-      m_541_7:
+      m_545_7:
         {
           compiler_ast_nodes_AST *con = compiler_parser_Parser_parse_global_value(this, true);
           if (((bool)con)) {
@@ -15383,7 +15496,7 @@ switch ((compiler_parser_Parser_token(this)->type)) {
           }
         } break;
       case compiler_tokens_TokenType_AtSign:
-      m_541_8:
+      m_545_8:
         {
           compiler_parser_Parser_parse_compiler_option(this);
         } break;
@@ -15413,14 +15526,14 @@ void compiler_parser_Parser_parse_compiler_option(compiler_parser_Parser *this) 
   }
   compiler_tokens_Token *name = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Identifier);
   {
-    char *__match_var_542 = name->text;
-    if (str_eq(__match_var_542, "c_include")) {
+    char *__match_var_546 = name->text;
+    if (str_eq(__match_var_546, "c_include")) {
       compiler_tokens_Token *filename = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_StringLiteral);
       std_vector_Vector__11_push(this->program->c_includes, filename->text);
-    } else if (str_eq(__match_var_542, "c_flag")) {
+    } else if (str_eq(__match_var_546, "c_flag")) {
       compiler_tokens_Token *flag = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_StringLiteral);
       std_vector_Vector__11_push(this->program->c_flags, flag->text);
-    } else if (str_eq(__match_var_542, "c_embed")) {
+    } else if (str_eq(__match_var_546, "c_embed")) {
       compiler_tokens_Token *path = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_StringLiteral);
       if (this->program->format_mode) {
         return;
@@ -15428,17 +15541,17 @@ void compiler_parser_Parser_parse_compiler_option(compiler_parser_Parser *this) 
       if (!(this->ns->is_dir_with_mod) && !(((bool)this->ns->parent))) {
         return;
       }
-      char *cur_dir = ({char *__yv_543;
+      char *cur_dir = ({char *__yv_547;
         if (this->ns->is_dir_with_mod) {
-          __yv_543 = this->ns->path;
-          goto _l___yv_543;
+          __yv_547 = this->ns->path;
+          goto _l___yv_547;
         } else {
-          __yv_543 = this->ns->parent->path;
-          goto _l___yv_543;
+          __yv_547 = this->ns->parent->path;
+          goto _l___yv_547;
         }
 
-_l___yv_543:
-      __yv_543;});
+_l___yv_547:
+      __yv_547;});
       char *full_path = std_format("%s/%s", cur_dir, path->text);
       if (!(std_fs_file_exists(full_path))) {
         compiler_parser_Parser_error(this, compiler_errors_Error_new(path->span, std_format("File '%s' does not exist", full_path)));
@@ -15508,13 +15621,13 @@ bool compiler_parser_Parser_load_import_path_from_base(compiler_parser_Parser *t
     compiler_ast_nodes_ImportPart *part = std_vector_Vector__8_at(parts, i);
 switch ((part->type)) {
       case compiler_ast_nodes_ImportPartType_Wildcard:
-      m_544_0:
+      m_548_0:
         {
           compiler_parser_Parser_error(this, compiler_errors_Error_new(part->span, std_format("Wildcard import is not allowed from non-module")));
           return false;
         } break;
       case compiler_ast_nodes_ImportPartType_Multiple:
-      m_544_1:
+      m_548_1:
         {
           std_vector_Vector__26 *paths = part->u.multiple.paths;
           bool success = true;
@@ -15527,7 +15640,7 @@ switch ((part->type)) {
           return success;
         } break;
       case compiler_ast_nodes_ImportPartType_Single:
-      m_544_2:
+      m_548_2:
         {
           base=compiler_parser_Parser_load_single_import_part(this, base, part->u.single.name, part->span);
           if (!(((bool)base))) {
@@ -15591,14 +15704,14 @@ compiler_ast_program_Namespace *compiler_parser_Parser_import_external_lib(compi
 
 bool compiler_parser_Parser_load_import_path(compiler_parser_Parser *this, compiler_ast_nodes_AST *import_stmt) {
   compiler_ast_nodes_Import *path = &import_stmt->u.import_path;
-  compiler_ast_program_Namespace *base = ({compiler_ast_program_Namespace *__yv_545;
+  compiler_ast_program_Namespace *base = ({compiler_ast_program_Namespace *__yv_549;
 switch ((path->type)) {
       case compiler_ast_nodes_ImportType_GlobalNamespace:
-      m_546_0:
+      m_550_0:
         {
           std_vector_Vector__8 *parts = path->parts;
-          if(!(parts->size > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:2711:20: Assertion failed: `parts.size > 0`", "Expected at least one part in import path"); }
-          if(!(std_vector_Vector__8_at(parts, 0)->type==compiler_ast_nodes_ImportPartType_Single)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:2712:20: Assertion failed: `parts.at(0).type == Single`", "Expected first part to be a single import"); }
+          if(!(parts->size > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:2712:20: Assertion failed: `parts.size > 0`", "Expected at least one part in import path"); }
+          if(!(std_vector_Vector__8_at(parts, 0)->type==compiler_ast_nodes_ImportPartType_Single)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:2713:20: Assertion failed: `parts.at(0).type == Single`", "Expected first part to be a single import"); }
           compiler_ast_nodes_ImportPartSingle first_part = std_vector_Vector__8_at(parts, 0)->u.single;
           char *lib_name = first_part.name;
           if (!(std_map_Map__3_contains(this->program->global->namespaces, lib_name))) {
@@ -15609,17 +15722,17 @@ switch ((path->type)) {
             }
             std_map_Map__3_insert(this->program->global->namespaces, lib_name, lib);
           }
-          __yv_545 = this->program->global;
-          goto _l___yv_545;
+          __yv_549 = this->program->global;
+          goto _l___yv_549;
         } break;
       case compiler_ast_nodes_ImportType_ProjectNamespace:
-      m_546_1:
+      m_550_1:
         {
-          __yv_545 = compiler_ast_program_Namespace_get_project_root(this->ns, import_stmt->span, this->program);
-          goto _l___yv_545;
+          __yv_549 = compiler_ast_program_Namespace_get_project_root(this->ns, import_stmt->span, this->program);
+          goto _l___yv_549;
         } break;
       case compiler_ast_nodes_ImportType_ParentNamespace:
-      m_546_2:
+      m_550_2:
         {
           compiler_ast_program_Namespace *cur = this->ns;
           for (u32 i = 0; i < path->parent_count; i+=1) {
@@ -15630,17 +15743,17 @@ switch ((path->type)) {
             }
             cur=cur->parent;
           }
-          __yv_545 = cur;
-          goto _l___yv_545;
+          __yv_549 = cur;
+          goto _l___yv_549;
         } break;
       case compiler_ast_nodes_ImportType_CurrentScope:
-      m_546_3:
+      m_550_3:
         {
           return true;
         } break;
     }
-_l___yv_545:
-  __yv_545;});
+_l___yv_549:
+  __yv_549;});
   if (!(((bool)base))) {
     return false;
   }
@@ -15864,26 +15977,26 @@ bool compiler_lexer_is_valid_ident_char(char c) {
 
 bool compiler_lexer_is_valid_utf8_start(char c, u32 *out_sz) {
   u8 cu8 = ((u8)c);
-  u32 sz = ({u32 __yv_547;
+  u32 sz = ({u32 __yv_551;
     if ((cu8 & ((u8)128))==((u8)0)) {
-      __yv_547 = 1;
-      goto _l___yv_547;
+      __yv_551 = 1;
+      goto _l___yv_551;
     } else if ((cu8 & ((u8)224))==((u8)192)) {
-      __yv_547 = 2;
-      goto _l___yv_547;
+      __yv_551 = 2;
+      goto _l___yv_551;
     } else if ((cu8 & ((u8)240))==((u8)224)) {
-      __yv_547 = 3;
-      goto _l___yv_547;
+      __yv_551 = 3;
+      goto _l___yv_551;
     } else if ((cu8 & ((u8)248))==((u8)240)) {
-      __yv_547 = 4;
-      goto _l___yv_547;
+      __yv_551 = 4;
+      goto _l___yv_551;
     } else {
-      __yv_547 = 1;
-      goto _l___yv_547;
+      __yv_551 = 1;
+      goto _l___yv_551;
     }
 
-_l___yv_547:
-  __yv_547;});
+_l___yv_551:
+  __yv_551;});
   if (((bool)out_sz)) {
     (*out_sz)=sz;
   }
@@ -16069,24 +16182,24 @@ void compiler_lexer_Lexer_lex_numeric_literal(compiler_lexer_Lexer *this) {
       compiler_lexer_Lexer_inc(this);
     }
     u32 len = (this->i - start);
-    char *suffix = ({char *__yv_548;
+    char *suffix = ({char *__yv_552;
       if (len > 1) {
-        __yv_548 = str_substring(this->source, start, len);
-        goto _l___yv_548;
+        __yv_552 = str_substring(this->source, start, len);
+        goto _l___yv_552;
       } else if (initial_char=='i') {
-        __yv_548 = "i32";
-        goto _l___yv_548;
+        __yv_552 = "i32";
+        goto _l___yv_552;
       } else if (initial_char=='u') {
-        __yv_548 = "u32";
-        goto _l___yv_548;
+        __yv_552 = "u32";
+        goto _l___yv_552;
       } else {
         std_vector_Vector__15_push(this->errors, compiler_errors_Error_new((std_span_Span){.start=start_loc, .end=this->loc}, "Invalid numeric literal suffix"));
-        __yv_548 = str_substring(this->source, start, len);
-        goto _l___yv_548;
+        __yv_552 = str_substring(this->source, start, len);
+        goto _l___yv_552;
       }
 
-_l___yv_548:
-    __yv_548;});
+_l___yv_552:
+    __yv_552;});
     token->suffix=compiler_tokens_Token_from_ident(suffix, (std_span_Span){.start=start_loc, .end=this->loc});
   }
   compiler_lexer_Lexer_push(this, token);
@@ -16119,11 +16232,14 @@ void compiler_lexer_Lexer_lex_comment(compiler_lexer_Lexer *this) {
     compiler_lexer_Lexer_inc(this);
   }
   while ((this->i < this->source_len) && (compiler_lexer_Lexer_cur(this) != '\n')) {
-    if (save_doc_comment) {
-      std_buffer_Buffer_write_char(&this->comment, compiler_lexer_Lexer_cur(this));
-    }
-    std_buffer_Buffer_write_char(&comment_buf, compiler_lexer_Lexer_cur(this));
+    u32 start = this->i;
     compiler_lexer_Lexer_inc(this);
+    u32 byte_len = (this->i - start);
+    std_sv_SV sv = (std_sv_SV){.data=(this->source + start), .len=byte_len};
+    if (save_doc_comment) {
+      std_buffer_Buffer_write_sv(&this->comment, sv);
+    }
+    std_buffer_Buffer_write_sv(&comment_buf, sv);
   }
   if (save_doc_comment) {
     std_buffer_Buffer_write_char(&this->comment, '\n');
@@ -16720,10 +16836,10 @@ compiler_ast_scopes_Symbol *compiler_ast_scopes_Symbol_from_local_variable(char 
 }
 
 compiler_ast_scopes_Symbol *compiler_ast_scopes_Symbol_remove_alias(compiler_ast_scopes_Symbol *this) {
-  return ({compiler_ast_scopes_Symbol *__yv_549;
+  return ({compiler_ast_scopes_Symbol *__yv_553;
 switch ((this->type)) {
       case compiler_ast_scopes_SymbolType_TypeDef:
-      m_550_0:
+      m_554_0:
         {
           if (this->u.type_def->sym != this) {
             return compiler_ast_scopes_Symbol_remove_alias(this->u.type_def->sym);
@@ -16732,12 +16848,12 @@ switch ((this->type)) {
         } break;
       default:
         {
-          __yv_549 = this;
-          goto _l___yv_549;
+          __yv_553 = this;
+          goto _l___yv_553;
         } break;
     }
-_l___yv_549:
-  __yv_549;});}
+_l___yv_553:
+  __yv_553;});}
 
 void compiler_ast_scopes_Symbol_add_reference(compiler_ast_scopes_Symbol *this, compiler_ast_scopes_ReferenceType type, std_span_Span span) {
   if (!(((bool)this))) {
@@ -16748,28 +16864,28 @@ void compiler_ast_scopes_Symbol_add_reference(compiler_ast_scopes_Symbol *this, 
     compiler_ast_scopes_Symbol_add_reference(this->u.type_def->sym, type, span);
     return;
   }
-  compiler_types_Type *parent_type = ({compiler_types_Type *__yv_551;
+  compiler_types_Type *parent_type = ({compiler_types_Type *__yv_555;
 switch ((this->type)) {
       case compiler_ast_scopes_SymbolType_Structure:
-      m_552_0:
+      m_556_0:
         {
-          __yv_551 = this->u.struc->type;
-          goto _l___yv_551;
+          __yv_555 = this->u.struc->type;
+          goto _l___yv_555;
         } break;
       case compiler_ast_scopes_SymbolType_Function:
-      m_552_1:
+      m_556_1:
         {
-          __yv_551 = this->u.func->type;
-          goto _l___yv_551;
+          __yv_555 = this->u.func->type;
+          goto _l___yv_555;
         } break;
       default:
         {
-          __yv_551 = NULL;
-          goto _l___yv_551;
+          __yv_555 = NULL;
+          goto _l___yv_555;
         } break;
     }
-_l___yv_551:
-  __yv_551;});
+_l___yv_555:
+  __yv_555;});
   if (!(((bool)parent_type))) {
     return;
   }
@@ -16813,267 +16929,413 @@ void compiler_ast_scopes_Scope_insert(compiler_ast_scopes_Scope *this, char *nam
   std_map_Map__4_insert(this->items, name, symbol);
 }
 
-compiler_ast_operators_Operator compiler_ast_operators_Operator_from_operator_overload(char *s, std_vector_Vector__3 *params) {
-  return ({compiler_ast_operators_Operator __yv_553;
-    {
-      char *__match_var_554 = s;
-      if (str_eq(__match_var_554, "+")) {
-        __yv_553 = compiler_ast_operators_Operator_Plus;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "-")) {
-        __yv_553 = ({compiler_ast_operators_Operator __yv_555;
-          switch (params->size) {
-            case 1: {
-              __yv_555 = compiler_ast_operators_Operator_Negate;
-              goto _l___yv_555;
-            } break;
-            default: {
-              __yv_555 = compiler_ast_operators_Operator_Minus;
-              goto _l___yv_555;
-            } break;
-          }
-
-_l___yv_555:
-        __yv_555;});
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "*")) {
-        __yv_553 = compiler_ast_operators_Operator_Multiply;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "/")) {
-        __yv_553 = compiler_ast_operators_Operator_Divide;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "==")) {
-        __yv_553 = compiler_ast_operators_Operator_Equals;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "!=")) {
-        __yv_553 = compiler_ast_operators_Operator_NotEquals;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "[]")) {
-        __yv_553 = compiler_ast_operators_Operator_Index;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "<<")) {
-        __yv_553 = compiler_ast_operators_Operator_LeftShift;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, ">>")) {
-        __yv_553 = compiler_ast_operators_Operator_RightShift;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "&")) {
-        __yv_553 = ({compiler_ast_operators_Operator __yv_556;
-          switch (params->size) {
-            case 1: {
-              __yv_556 = compiler_ast_operators_Operator_Address;
-              goto _l___yv_556;
-            } break;
-            default: {
-              __yv_556 = compiler_ast_operators_Operator_BitwiseAnd;
-              goto _l___yv_556;
-            } break;
-          }
-
-_l___yv_556:
-        __yv_556;});
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "|")) {
-        __yv_553 = compiler_ast_operators_Operator_BitwiseOr;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "+=")) {
-        __yv_553 = compiler_ast_operators_Operator_PlusEquals;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "-=")) {
-        __yv_553 = compiler_ast_operators_Operator_MinusEquals;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "*=")) {
-        __yv_553 = compiler_ast_operators_Operator_MultiplyEquals;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "/=")) {
-        __yv_553 = compiler_ast_operators_Operator_DivideEquals;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "[]=")) {
-        __yv_553 = compiler_ast_operators_Operator_IndexAssign;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "<<=")) {
-        __yv_553 = compiler_ast_operators_Operator_LeftShiftEquals;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, ">>=")) {
-        __yv_553 = compiler_ast_operators_Operator_RightShiftEquals;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "%")) {
-        __yv_553 = compiler_ast_operators_Operator_Modulus;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "in")) {
-        __yv_553 = compiler_ast_operators_Operator_In;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "not")) {
-        __yv_553 = compiler_ast_operators_Operator_Not;
-        goto _l___yv_553;
-      } else if (str_eq(__match_var_554, "?")) {
-        __yv_553 = compiler_ast_operators_Operator_IsNotNull;
-        goto _l___yv_553;
-      } else  {
-        __yv_553 = compiler_ast_operators_Operator_Error;
-        goto _l___yv_553;
-      }
-    }
-
-_l___yv_553:
-  __yv_553;});}
-
-compiler_ast_operators_Operator compiler_ast_operators_Operator_from_token(compiler_tokens_Token *tok) {
-  return ({compiler_ast_operators_Operator __yv_557;
-switch ((tok->type)) {
-      case compiler_tokens_TokenType_Ampersand:
+char *compiler_ast_operators_Operator_str(compiler_ast_operators_Operator this) {
+  return ({char *__yv_557;
+switch ((this)) {
+      case compiler_ast_operators_Operator_Plus:
       m_558_0:
         {
-          __yv_557 = compiler_ast_operators_Operator_BitwiseAnd;
+          __yv_557 = "+";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_And:
+      case compiler_ast_operators_Operator_Minus:
+      case compiler_ast_operators_Operator_Negate:
       m_558_1:
         {
-          __yv_557 = compiler_ast_operators_Operator_And;
+          __yv_557 = "-";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Caret:
+      case compiler_ast_operators_Operator_Multiply:
       m_558_2:
         {
-          __yv_557 = compiler_ast_operators_Operator_BitwiseXor;
+          __yv_557 = "*";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_EqualEquals:
+      case compiler_ast_operators_Operator_Divide:
       m_558_3:
         {
-          __yv_557 = compiler_ast_operators_Operator_Equals;
+          __yv_557 = "/";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Equals:
+      case compiler_ast_operators_Operator_Equals:
       m_558_4:
         {
-          __yv_557 = compiler_ast_operators_Operator_Assignment;
+          __yv_557 = "==";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_GreaterThan:
+      case compiler_ast_operators_Operator_NotEquals:
       m_558_5:
         {
-          __yv_557 = compiler_ast_operators_Operator_GreaterThan;
+          __yv_557 = "!=";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_GreaterThanEquals:
+      case compiler_ast_operators_Operator_Index:
       m_558_6:
         {
-          __yv_557 = compiler_ast_operators_Operator_GreaterThanEquals;
+          __yv_557 = "[]";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_LessThan:
+      case compiler_ast_operators_Operator_IndexAssign:
       m_558_7:
         {
-          __yv_557 = compiler_ast_operators_Operator_LessThan;
+          __yv_557 = "[]=";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_LessThanEquals:
+      case compiler_ast_operators_Operator_LeftShift:
       m_558_8:
         {
-          __yv_557 = compiler_ast_operators_Operator_LessThanEquals;
+          __yv_557 = "<<";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Line:
+      case compiler_ast_operators_Operator_RightShift:
       m_558_9:
         {
-          __yv_557 = compiler_ast_operators_Operator_BitwiseOr;
+          __yv_557 = ">>";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Minus:
+      case compiler_ast_operators_Operator_BitwiseAnd:
+      case compiler_ast_operators_Operator_Address:
       m_558_10:
         {
-          __yv_557 = compiler_ast_operators_Operator_Minus;
+          __yv_557 = "&";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_MinusEquals:
+      case compiler_ast_operators_Operator_BitwiseOr:
       m_558_11:
         {
-          __yv_557 = compiler_ast_operators_Operator_MinusEquals;
+          __yv_557 = "|";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_NotEquals:
+      case compiler_ast_operators_Operator_PlusEquals:
       m_558_12:
         {
-          __yv_557 = compiler_ast_operators_Operator_NotEquals;
+          __yv_557 = "+=";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Or:
+      case compiler_ast_operators_Operator_MinusEquals:
       m_558_13:
         {
-          __yv_557 = compiler_ast_operators_Operator_Or;
+          __yv_557 = "-=";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Percent:
+      case compiler_ast_operators_Operator_MultiplyEquals:
       m_558_14:
         {
-          __yv_557 = compiler_ast_operators_Operator_Modulus;
+          __yv_557 = "*=";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Plus:
+      case compiler_ast_operators_Operator_DivideEquals:
       m_558_15:
         {
-          __yv_557 = compiler_ast_operators_Operator_Plus;
+          __yv_557 = "/=";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_PlusEquals:
+      case compiler_ast_operators_Operator_LeftShiftEquals:
       m_558_16:
         {
-          __yv_557 = compiler_ast_operators_Operator_PlusEquals;
+          __yv_557 = "<<=";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Slash:
+      case compiler_ast_operators_Operator_RightShiftEquals:
       m_558_17:
         {
-          __yv_557 = compiler_ast_operators_Operator_Divide;
+          __yv_557 = ">>=";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_SlashEquals:
+      case compiler_ast_operators_Operator_Modulus:
       m_558_18:
         {
-          __yv_557 = compiler_ast_operators_Operator_DivideEquals;
+          __yv_557 = "%";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Star:
+      case compiler_ast_operators_Operator_In:
       m_558_19:
         {
-          __yv_557 = compiler_ast_operators_Operator_Multiply;
+          __yv_557 = "in";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_StarEquals:
+      case compiler_ast_operators_Operator_Not:
       m_558_20:
         {
-          __yv_557 = compiler_ast_operators_Operator_MultiplyEquals;
+          __yv_557 = "not";
           goto _l___yv_557;
         } break;
-      case compiler_tokens_TokenType_Identifier:
+      case compiler_ast_operators_Operator_IsNotNull:
       m_558_21:
         {
-          __yv_557 = ({compiler_ast_operators_Operator __yv_559;
-            {
-              char *__match_var_560 = tok->text;
-              if (str_eq(__match_var_560, "in")) {
-                __yv_559 = compiler_ast_operators_Operator_In;
-                goto _l___yv_559;
-              } else  std_panic(std_format("Unhandled identifier in Operator::from_token: %s", tok->text));
-            }
-
-_l___yv_559:
-          __yv_559;});
+          __yv_557 = "?";
           goto _l___yv_557;
         } break;
       default:
         {
-          std_panic(std_format("Unhandled token type in Operator::from_token: %s", compiler_tokens_TokenType_str(tok->type)));
+          std_panic(std_format("No string representation for operator: %s", compiler_ast_operators_Operator_dbg(this)));
           goto _l___yv_557;
         } break;
     }
 _l___yv_557:
   __yv_557;});}
 
+compiler_ast_operators_Operator compiler_ast_operators_Operator_from_operator_overload(char *s, std_vector_Vector__3 *params) {
+  return ({compiler_ast_operators_Operator __yv_559;
+    {
+      char *__match_var_560 = s;
+      if (str_eq(__match_var_560, "+")) {
+        __yv_559 = compiler_ast_operators_Operator_Plus;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "-")) {
+        __yv_559 = ({compiler_ast_operators_Operator __yv_561;
+          switch (params->size) {
+            case 1: {
+              __yv_561 = compiler_ast_operators_Operator_Negate;
+              goto _l___yv_561;
+            } break;
+            default: {
+              __yv_561 = compiler_ast_operators_Operator_Minus;
+              goto _l___yv_561;
+            } break;
+          }
+
+_l___yv_561:
+        __yv_561;});
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "*")) {
+        __yv_559 = compiler_ast_operators_Operator_Multiply;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "/")) {
+        __yv_559 = compiler_ast_operators_Operator_Divide;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "==")) {
+        __yv_559 = compiler_ast_operators_Operator_Equals;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "!=")) {
+        __yv_559 = compiler_ast_operators_Operator_NotEquals;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "[]")) {
+        __yv_559 = compiler_ast_operators_Operator_Index;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "<<")) {
+        __yv_559 = compiler_ast_operators_Operator_LeftShift;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, ">>")) {
+        __yv_559 = compiler_ast_operators_Operator_RightShift;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "&")) {
+        __yv_559 = ({compiler_ast_operators_Operator __yv_562;
+          switch (params->size) {
+            case 1: {
+              __yv_562 = compiler_ast_operators_Operator_Address;
+              goto _l___yv_562;
+            } break;
+            default: {
+              __yv_562 = compiler_ast_operators_Operator_BitwiseAnd;
+              goto _l___yv_562;
+            } break;
+          }
+
+_l___yv_562:
+        __yv_562;});
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "|")) {
+        __yv_559 = compiler_ast_operators_Operator_BitwiseOr;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "+=")) {
+        __yv_559 = compiler_ast_operators_Operator_PlusEquals;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "-=")) {
+        __yv_559 = compiler_ast_operators_Operator_MinusEquals;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "*=")) {
+        __yv_559 = compiler_ast_operators_Operator_MultiplyEquals;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "/=")) {
+        __yv_559 = compiler_ast_operators_Operator_DivideEquals;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "[]=")) {
+        __yv_559 = compiler_ast_operators_Operator_IndexAssign;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "<<=")) {
+        __yv_559 = compiler_ast_operators_Operator_LeftShiftEquals;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, ">>=")) {
+        __yv_559 = compiler_ast_operators_Operator_RightShiftEquals;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "%")) {
+        __yv_559 = compiler_ast_operators_Operator_Modulus;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "in")) {
+        __yv_559 = compiler_ast_operators_Operator_In;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "not")) {
+        __yv_559 = compiler_ast_operators_Operator_Not;
+        goto _l___yv_559;
+      } else if (str_eq(__match_var_560, "?")) {
+        __yv_559 = compiler_ast_operators_Operator_IsNotNull;
+        goto _l___yv_559;
+      } else  {
+        __yv_559 = compiler_ast_operators_Operator_Error;
+        goto _l___yv_559;
+      }
+    }
+
+_l___yv_559:
+  __yv_559;});}
+
+compiler_ast_operators_Operator compiler_ast_operators_Operator_from_token(compiler_tokens_Token *tok) {
+  return ({compiler_ast_operators_Operator __yv_563;
+switch ((tok->type)) {
+      case compiler_tokens_TokenType_Ampersand:
+      m_564_0:
+        {
+          __yv_563 = compiler_ast_operators_Operator_BitwiseAnd;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_And:
+      m_564_1:
+        {
+          __yv_563 = compiler_ast_operators_Operator_And;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Caret:
+      m_564_2:
+        {
+          __yv_563 = compiler_ast_operators_Operator_BitwiseXor;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_EqualEquals:
+      m_564_3:
+        {
+          __yv_563 = compiler_ast_operators_Operator_Equals;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Equals:
+      m_564_4:
+        {
+          __yv_563 = compiler_ast_operators_Operator_Assignment;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_GreaterThan:
+      m_564_5:
+        {
+          __yv_563 = compiler_ast_operators_Operator_GreaterThan;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_GreaterThanEquals:
+      m_564_6:
+        {
+          __yv_563 = compiler_ast_operators_Operator_GreaterThanEquals;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_LessThan:
+      m_564_7:
+        {
+          __yv_563 = compiler_ast_operators_Operator_LessThan;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_LessThanEquals:
+      m_564_8:
+        {
+          __yv_563 = compiler_ast_operators_Operator_LessThanEquals;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Line:
+      m_564_9:
+        {
+          __yv_563 = compiler_ast_operators_Operator_BitwiseOr;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Minus:
+      m_564_10:
+        {
+          __yv_563 = compiler_ast_operators_Operator_Minus;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_MinusEquals:
+      m_564_11:
+        {
+          __yv_563 = compiler_ast_operators_Operator_MinusEquals;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_NotEquals:
+      m_564_12:
+        {
+          __yv_563 = compiler_ast_operators_Operator_NotEquals;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Or:
+      m_564_13:
+        {
+          __yv_563 = compiler_ast_operators_Operator_Or;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Percent:
+      m_564_14:
+        {
+          __yv_563 = compiler_ast_operators_Operator_Modulus;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Plus:
+      m_564_15:
+        {
+          __yv_563 = compiler_ast_operators_Operator_Plus;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_PlusEquals:
+      m_564_16:
+        {
+          __yv_563 = compiler_ast_operators_Operator_PlusEquals;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Slash:
+      m_564_17:
+        {
+          __yv_563 = compiler_ast_operators_Operator_Divide;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_SlashEquals:
+      m_564_18:
+        {
+          __yv_563 = compiler_ast_operators_Operator_DivideEquals;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Star:
+      m_564_19:
+        {
+          __yv_563 = compiler_ast_operators_Operator_Multiply;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_StarEquals:
+      m_564_20:
+        {
+          __yv_563 = compiler_ast_operators_Operator_MultiplyEquals;
+          goto _l___yv_563;
+        } break;
+      case compiler_tokens_TokenType_Identifier:
+      m_564_21:
+        {
+          __yv_563 = ({compiler_ast_operators_Operator __yv_565;
+            {
+              char *__match_var_566 = tok->text;
+              if (str_eq(__match_var_566, "in")) {
+                __yv_565 = compiler_ast_operators_Operator_In;
+                goto _l___yv_565;
+              } else  std_panic(std_format("Unhandled identifier in Operator::from_token: %s", tok->text));
+            }
+
+_l___yv_565:
+          __yv_565;});
+          goto _l___yv_563;
+        } break;
+      default:
+        {
+          std_panic(std_format("Unhandled token type in Operator::from_token: %s", compiler_tokens_TokenType_str(tok->type)));
+          goto _l___yv_563;
+        } break;
+    }
+_l___yv_563:
+  __yv_563;});}
+
 u32 compiler_ast_operators_Operator_num_overload_params(compiler_ast_operators_Operator this) {
-  return ({u32 __yv_561;
+  return ({u32 __yv_567;
 switch ((this)) {
       case compiler_ast_operators_Operator_Address:
       case compiler_ast_operators_Operator_Dereference:
@@ -17087,10 +17349,10 @@ switch ((this)) {
       case compiler_ast_operators_Operator_PostDecrement:
       case compiler_ast_operators_Operator_ErrorProp:
       case compiler_ast_operators_Operator_ErrorUnwrap:
-      m_562_0:
+      m_568_0:
         {
-          __yv_561 = 1;
-          goto _l___yv_561;
+          __yv_567 = 1;
+          goto _l___yv_567;
         } break;
       case compiler_ast_operators_Operator_And:
       case compiler_ast_operators_Operator_Assignment:
@@ -17120,80 +17382,80 @@ switch ((this)) {
       case compiler_ast_operators_Operator_RightShift:
       case compiler_ast_operators_Operator_In:
       case compiler_ast_operators_Operator_EqualsValueEnumVariant:
-      m_562_1:
+      m_568_1:
         {
-          __yv_561 = 2;
-          goto _l___yv_561;
+          __yv_567 = 2;
+          goto _l___yv_567;
         } break;
       case compiler_ast_operators_Operator_IndexAssign:
-      m_562_2:
+      m_568_2:
         {
-          __yv_561 = 3;
-          goto _l___yv_561;
+          __yv_567 = 3;
+          goto _l___yv_567;
         } break;
       case compiler_ast_operators_Operator_Error:
-      m_562_3:
+      m_568_3:
         {
-          __yv_561 = 0;
-          goto _l___yv_561;
+          __yv_567 = 0;
+          goto _l___yv_567;
         } break;
     }
-_l___yv_561:
-  __yv_561;});}
+_l___yv_567:
+  __yv_567;});}
 
 bool compiler_ast_operators_Operator_needs_lhs_pointer_for_overload(compiler_ast_operators_Operator this) {
-  return ({bool __yv_563;
+  return ({bool __yv_569;
 switch ((this)) {
       case compiler_ast_operators_Operator_MultiplyEquals:
-      m_564_0:
+      m_570_0:
         {
-          __yv_563 = true;
-          goto _l___yv_563;
+          __yv_569 = true;
+          goto _l___yv_569;
         } break;
       case compiler_ast_operators_Operator_DivideEquals:
-      m_564_1:
+      m_570_1:
         {
-          __yv_563 = true;
-          goto _l___yv_563;
+          __yv_569 = true;
+          goto _l___yv_569;
         } break;
       case compiler_ast_operators_Operator_PlusEquals:
-      m_564_2:
+      m_570_2:
         {
-          __yv_563 = true;
-          goto _l___yv_563;
+          __yv_569 = true;
+          goto _l___yv_569;
         } break;
       case compiler_ast_operators_Operator_MinusEquals:
-      m_564_3:
+      m_570_3:
         {
-          __yv_563 = true;
-          goto _l___yv_563;
+          __yv_569 = true;
+          goto _l___yv_569;
         } break;
       case compiler_ast_operators_Operator_IndexAssign:
-      m_564_4:
+      m_570_4:
         {
-          __yv_563 = true;
-          goto _l___yv_563;
+          __yv_569 = true;
+          goto _l___yv_569;
         } break;
       case compiler_ast_operators_Operator_LeftShiftEquals:
-      m_564_5:
+      m_570_5:
         {
-          __yv_563 = true;
-          goto _l___yv_563;
+          __yv_569 = true;
+          goto _l___yv_569;
         } break;
       case compiler_ast_operators_Operator_RightShiftEquals:
-      m_564_6:
+      m_570_6:
         {
-          __yv_563 = true;
-          goto _l___yv_563;
+          __yv_569 = true;
+          goto _l___yv_569;
         } break;
       default:
         {
-          __yv_563 = false;
-          goto _l___yv_563;
+          __yv_569 = false;
+          goto _l___yv_569;
         } break;
     }
-_l___yv_563:
-  __yv_563;});}
+_l___yv_569:
+  __yv_569;});}
 
 u32 compiler_ast_operators_OperatorOverload_hash(compiler_ast_operators_OperatorOverload this) {
   u32 hash = u32_hash(((u32)this.op));
@@ -17372,295 +17634,212 @@ compiler_ast_nodes_AST *compiler_ast_nodes_AST_new_binop(compiler_ast_operators_
 }
 
 std_span_Span compiler_ast_nodes_AST_display_span(compiler_ast_nodes_AST *this) {
-  return ({std_span_Span __yv_565;
+  return ({std_span_Span __yv_571;
 switch ((this->type)) {
       case compiler_ast_nodes_ASTType_Match:
-      m_566_0:
-        {
-          __yv_565 = this->u.match_stmt.match_span;
-          goto _l___yv_565;
-        } break;
-      case compiler_ast_nodes_ASTType_If:
-      m_566_1:
-        {
-          __yv_565 = this->u.if_stmt.if_span;
-          goto _l___yv_565;
-        } break;
-      default:
-        {
-          __yv_565 = this->span;
-          goto _l___yv_565;
-        } break;
-    }
-_l___yv_565:
-  __yv_565;});}
-
-compiler_ast_scopes_Symbol *compiler_ast_nodes_AST_symbol(compiler_ast_nodes_AST *this) {
-  return this->resolved_symbol;}
-
-bool compiler_ast_nodes_AST_is_lvalue(compiler_ast_nodes_AST *this) {
-  return ({bool __yv_567;
-switch ((this->type)) {
-      case compiler_ast_nodes_ASTType_Identifier:
-      m_568_0:
-        {
-          __yv_567 = !(this->u.ident.is_function);
-          goto _l___yv_567;
-        } break;
-      case compiler_ast_nodes_ASTType_Member:
-      m_568_1:
-        {
-          __yv_567 = true;
-          goto _l___yv_567;
-        } break;
-      case compiler_ast_nodes_ASTType_UnaryOp:
-      m_568_2:
-        {
-          __yv_567 = this->u.unary.op==compiler_ast_operators_Operator_Dereference;
-          goto _l___yv_567;
-        } break;
-      case compiler_ast_nodes_ASTType_BinaryOp:
-      m_568_3:
-        {
-          __yv_567 = this->u.binary.op==compiler_ast_operators_Operator_Index;
-          goto _l___yv_567;
-        } break;
-      case compiler_ast_nodes_ASTType_NSLookup:
-      m_568_4:
-        {
-          compiler_ast_scopes_Symbol *sym = this->resolved_symbol;
-          return ((bool)sym) && sym->type==compiler_ast_scopes_SymbolType_Variable;
-        } break;
-      default:
-        {
-          __yv_567 = false;
-          goto _l___yv_567;
-        } break;
-    }
-_l___yv_567:
-  __yv_567;});}
-
-char *compiler_formatter_operator_str(compiler_ast_operators_Operator op) {
-  return ({char *__yv_569;
-switch ((op)) {
-      case compiler_ast_operators_Operator_Plus:
-      m_570_0:
-        {
-          __yv_569 = "+";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Minus:
-      m_570_1:
-        {
-          __yv_569 = "-";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Negate:
-      m_570_2:
-        {
-          __yv_569 = "-";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Multiply:
-      m_570_3:
-        {
-          __yv_569 = "*";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Divide:
-      m_570_4:
-        {
-          __yv_569 = "/";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Equals:
-      m_570_5:
-        {
-          __yv_569 = "==";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_NotEquals:
-      m_570_6:
-        {
-          __yv_569 = "!=";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Index:
-      m_570_7:
-        {
-          __yv_569 = "[]";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_IndexAssign:
-      m_570_8:
-        {
-          __yv_569 = "[]=";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_LeftShift:
-      m_570_9:
-        {
-          __yv_569 = "<<";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_RightShift:
-      m_570_10:
-        {
-          __yv_569 = ">>";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_BitwiseAnd:
-      m_570_11:
-        {
-          __yv_569 = "&";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Address:
-      m_570_12:
-        {
-          __yv_569 = "&";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_BitwiseOr:
-      m_570_13:
-        {
-          __yv_569 = "|";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_PlusEquals:
-      m_570_14:
-        {
-          __yv_569 = "+=";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_MinusEquals:
-      m_570_15:
-        {
-          __yv_569 = "-=";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_MultiplyEquals:
-      m_570_16:
-        {
-          __yv_569 = "*=";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_DivideEquals:
-      m_570_17:
-        {
-          __yv_569 = "/=";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_LeftShiftEquals:
-      m_570_18:
-        {
-          __yv_569 = "<<=";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_RightShiftEquals:
-      m_570_19:
-        {
-          __yv_569 = ">>=";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Modulus:
-      m_570_20:
-        {
-          __yv_569 = "%";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_In:
-      m_570_21:
-        {
-          __yv_569 = "in";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_Not:
-      m_570_22:
-        {
-          __yv_569 = "not";
-          goto _l___yv_569;
-        } break;
-      case compiler_ast_operators_Operator_IsNotNull:
-      m_570_23:
-        {
-          __yv_569 = "?";
-          goto _l___yv_569;
-        } break;
-      default:
-        {
-          __yv_569 = "?";
-          goto _l___yv_569;
-        } break;
-    }
-_l___yv_569:
-  __yv_569;});}
-
-u32 compiler_formatter_decl_end_line(compiler_formatter_Decl *d) {
-  return ({u32 __yv_571;
-switch ((d->type)) {
-      case compiler_formatter_DeclType_Function:
       m_572_0:
         {
-          __yv_571 = d->u.func->span.end.line;
+          __yv_571 = this->u.match_stmt.match_span;
           goto _l___yv_571;
         } break;
-      case compiler_formatter_DeclType_Structure:
+      case compiler_ast_nodes_ASTType_If:
       m_572_1:
         {
-          __yv_571 = d->u.struc->span.end.line;
+          __yv_571 = this->u.if_stmt.if_span;
           goto _l___yv_571;
         } break;
-      case compiler_formatter_DeclType_Enum:
-      m_572_2:
+      default:
         {
-          __yv_571 = d->u.enom->span.end.line;
-          goto _l___yv_571;
-        } break;
-      case compiler_formatter_DeclType_Constant:
-      case compiler_formatter_DeclType_Variable:
-      m_572_3:
-        {
-          __yv_571 = d->u.var_node->span.end.line;
-          goto _l___yv_571;
-        } break;
-      case compiler_formatter_DeclType_Import:
-      m_572_4:
-        {
-          __yv_571 = d->u.import_node->span.end.line;
-          goto _l___yv_571;
-        } break;
-      case compiler_formatter_DeclType_Namespace:
-      m_572_5:
-        {
-          __yv_571 = d->u.ns->span.end.line;
-          goto _l___yv_571;
-        } break;
-      case compiler_formatter_DeclType_TypeDef:
-      m_572_6:
-        {
-          __yv_571 = d->u.type_def.span.end.line;
+          __yv_571 = this->span;
           goto _l___yv_571;
         } break;
     }
 _l___yv_571:
   __yv_571;});}
 
+compiler_ast_scopes_Symbol *compiler_ast_nodes_AST_symbol(compiler_ast_nodes_AST *this) {
+  return this->resolved_symbol;}
+
+bool compiler_ast_nodes_AST_is_lvalue(compiler_ast_nodes_AST *this) {
+  return ({bool __yv_573;
+switch ((this->type)) {
+      case compiler_ast_nodes_ASTType_Identifier:
+      m_574_0:
+        {
+          __yv_573 = !(this->u.ident.is_function);
+          goto _l___yv_573;
+        } break;
+      case compiler_ast_nodes_ASTType_Member:
+      m_574_1:
+        {
+          __yv_573 = true;
+          goto _l___yv_573;
+        } break;
+      case compiler_ast_nodes_ASTType_UnaryOp:
+      m_574_2:
+        {
+          __yv_573 = this->u.unary.op==compiler_ast_operators_Operator_Dereference;
+          goto _l___yv_573;
+        } break;
+      case compiler_ast_nodes_ASTType_BinaryOp:
+      m_574_3:
+        {
+          __yv_573 = this->u.binary.op==compiler_ast_operators_Operator_Index;
+          goto _l___yv_573;
+        } break;
+      case compiler_ast_nodes_ASTType_NSLookup:
+      m_574_4:
+        {
+          compiler_ast_scopes_Symbol *sym = this->resolved_symbol;
+          return ((bool)sym) && sym->type==compiler_ast_scopes_SymbolType_Variable;
+        } break;
+      default:
+        {
+          __yv_573 = false;
+          goto _l___yv_573;
+        } break;
+    }
+_l___yv_573:
+  __yv_573;});}
+
+compiler_formatter_FormatOptions compiler_formatter_FormatOptions_default(void) {
+  return (compiler_formatter_FormatOptions){.indent_size=4, .line_width=0};
+}
+
+bool compiler_formatter_should_break_collection(u32 start_line, u32 end_line, bool has_comments, compiler_formatter_FormatOptions *options) {
+  return (start_line != end_line) && has_comments;
+}
+
+bool compiler_formatter_should_break_list_literal(u32 start_line, u32 end_line, compiler_formatter_FormatOptions *options) {
+  return start_line != end_line;
+}
+
+bool compiler_formatter_should_break_params(u32 first_param_line, u32 last_param_line, bool has_comments, compiler_formatter_FormatOptions *options) {
+  return (last_param_line > first_param_line) && has_comments;
+}
+
+bool compiler_formatter_should_break_binary_rhs(u32 op_line, u32 rhs_start_line, bool in_format_str, compiler_formatter_FormatOptions *options) {
+  return (rhs_start_line > op_line) && !(in_format_str);
+}
+
+u32 compiler_formatter_decl_end_line(compiler_formatter_Decl *decl) {
+  return ({u32 __yv_575;
+switch ((decl->type)) {
+      case compiler_formatter_DeclType_Function:
+      m_576_0:
+        {
+          __yv_575 = decl->u.func->span.end.line;
+          goto _l___yv_575;
+        } break;
+      case compiler_formatter_DeclType_Structure:
+      m_576_1:
+        {
+          __yv_575 = decl->u.struc->span.end.line;
+          goto _l___yv_575;
+        } break;
+      case compiler_formatter_DeclType_Enum:
+      m_576_2:
+        {
+          __yv_575 = decl->u.enom->span.end.line;
+          goto _l___yv_575;
+        } break;
+      case compiler_formatter_DeclType_Constant:
+      case compiler_formatter_DeclType_Variable:
+      m_576_3:
+        {
+          __yv_575 = decl->u.var_node->span.end.line;
+          goto _l___yv_575;
+        } break;
+      case compiler_formatter_DeclType_Import:
+      m_576_4:
+        {
+          __yv_575 = decl->u.import_node->span.end.line;
+          goto _l___yv_575;
+        } break;
+      case compiler_formatter_DeclType_Namespace:
+      m_576_5:
+        {
+          __yv_575 = decl->u.ns->span.end.line;
+          goto _l___yv_575;
+        } break;
+      case compiler_formatter_DeclType_TypeDef:
+      m_576_6:
+        {
+          __yv_575 = decl->u.type_def.span.end.line;
+          goto _l___yv_575;
+        } break;
+    }
+_l___yv_575:
+  __yv_575;});}
+
+compiler_formatter_CommentIndex compiler_formatter_CommentIndex_build(std_vector_Vector__16 *all_comments, u32 num_lines) {
+  std_vector_Vector__35 *line_to_comments = std_vector_Vector__35_new(16);
+  for (u32 i = 0; i <= num_lines; i++) {
+    std_vector_Vector__35_push(line_to_comments, std_vector_Vector__31_new(16));
+  }
+  for (u32 i = 0; i < all_comments->size; i++) {
+    u32 line = std_vector_Vector__16_at(all_comments, i).span.start.line;
+    if (line <= num_lines) {
+      std_vector_Vector__31_push(std_vector_Vector__35_at(line_to_comments, line), i);
+    }
+  }
+  return (compiler_formatter_CommentIndex){.line_to_comments=line_to_comments, .num_lines=num_lines};
+}
+
+std_vector_Vector__31 *compiler_formatter_CommentIndex_comments_on_line(compiler_formatter_CommentIndex *this, u32 line) {
+  if (line > this->num_lines) {
+    return std_vector_Vector__31_new(16);
+  }
+  return std_vector_Vector__35_at(this->line_to_comments, line);
+}
+
+std_vector_Vector__31 *compiler_formatter_build_line_offsets(char *source) {
+  std_vector_Vector__31 *offsets = std_vector_Vector__31_new(16);
+  std_vector_Vector__31_push(offsets, 0);
+  for (u32 i = 0; source[i] != '\0'; i++) {
+    if (source[i]=='\n') {
+      std_vector_Vector__31_push(offsets, (i + 1));
+    }
+  }
+  return offsets;
+}
+
 compiler_formatter_Formatter compiler_formatter_Formatter_make(compiler_ast_program_Program *program, compiler_ast_program_Namespace *ns, char *source, char *filename) {
+  char *debug_cursor_env = getenv("OCEN_FORMAT_DEBUG_CURSOR");
+  bool debug_cursor = (((bool)debug_cursor_env) && (strlen(debug_cursor_env) > 0));
   std_vector_Vector__16 *filtered = std_vector_Vector__16_new(16);
   for (std_vector_Iterator__16 _i4 = std_vector_Vector__16_iter(program->comments); std_vector_Iterator__16_has_value(&_i4); std_vector_Iterator__16_next(&_i4)) {
-    compiler_tokens_Comment c = std_vector_Iterator__16_cur(&_i4);
+    compiler_tokens_Comment comment = std_vector_Iterator__16_cur(&_i4);
     {
-      if (str_eq(c.span.start.filename, filename)) {
-        std_vector_Vector__16_push(filtered, c);
+      if (str_eq(comment.span.start.filename, filename)) {
+        std_vector_Vector__16_push(filtered, comment);
       }
     }
   }
-  return (compiler_formatter_Formatter){.output=std_buffer_Buffer_make(16), .indent=0, .indent_size=4, .source=source, .filename=filename, .comments=filtered, .comment_index=0, .program=program, .ns=ns, .range_start=0, .range_end=0, .output_line=1, .decl_mappings=std_vector_Vector__32_new(16)};
+  std_vector_Vector__36 *emitted = std_vector_Vector__36_new(16);
+  for (u32 i = 0; i < filtered->size; i++) {
+    std_vector_Vector__36_push(emitted, false);
+  }
+  std_vector_Vector__31 *line_offsets = compiler_formatter_build_line_offsets(source);
+  u32 num_lines = ((u32)line_offsets->size);
+  compiler_formatter_CommentIndex comment_line_index = compiler_formatter_CommentIndex_build(filtered, num_lines);
+  return (compiler_formatter_Formatter){.output=std_buffer_Buffer_make(16), .indent=0, .options=compiler_formatter_FormatOptions_default(), .source=source, .line_offsets=line_offsets, .filename=filename, .comments=filtered, .comment_index=0, .program=program, .ns=ns, .range_start=0, .range_end=0, .output_line=1, .decl_mappings=std_vector_Vector__34_new(16), .stmt_mappings=std_vector_Vector__34_new(16), .track_stmts=false, .in_format_str=false, .ic_lines=std_vector_Vector__31_new(16), .last_comment_request_line=0, .debug_cursor=debug_cursor, .cursor_regressions=0, .comment_emitted=emitted, .comment_line_index=comment_line_index};
+}
+
+void compiler_formatter_Formatter_note_cursor_regression(compiler_formatter_Formatter *this, char *kind, u32 requested) {
+  this->cursor_regressions++;
+  if (this->debug_cursor) {
+    fprintf(stderr, "[formatter] comment cursor regression (%s): requested=%u, last=%u, file=%s""\n", kind, requested, this->last_comment_request_line, this->filename);
+  }
 }
 
 void compiler_formatter_Formatter_write(compiler_formatter_Formatter *this, char *s) {
   std_buffer_Buffer_write_str(&this->output, s);
+  for (u32 i = 0; i < strlen(s); i++) {
+    if (s[i]=='\n') {
+      this->output_line++;
+    }
+  }
 }
 
 void compiler_formatter_Formatter_newline(compiler_formatter_Formatter *this) {
@@ -17668,14 +17847,27 @@ void compiler_formatter_Formatter_newline(compiler_formatter_Formatter *this) {
   this->output_line++;
 }
 
+void compiler_formatter_Formatter_push_indent(compiler_formatter_Formatter *this) {
+  this->indent++;
+}
+
+void compiler_formatter_Formatter_pop_indent(compiler_formatter_Formatter *this) {
+  if(!(this->indent > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:510:12: Assertion failed: `.indent > 0`", "Formatter indent underflow"); }
+  this->indent--;
+}
+
 void compiler_formatter_Formatter_write_indent(compiler_formatter_Formatter *this) {
-  for (u32 i = 0; i < (this->indent * this->indent_size); i++) {
+  for (u32 i = 0; i < (this->indent * this->options.indent_size); i++) {
     std_buffer_Buffer_write_char(&this->output, ' ');
   }
 }
 
 char *compiler_formatter_Formatter_source_text(compiler_formatter_Formatter *this, std_span_Span span) {
-  return compiler_ast_program_Program_get_source_text(this->program, span);
+  char *text = compiler_ast_program_Program_get_source_text(this->program, span);
+  if (!(((bool)text))) {
+    return "";
+  }
+  return text;
 }
 
 bool compiler_formatter_Formatter_has_explicit_return_type(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func) {
@@ -17685,76 +17877,656 @@ bool compiler_formatter_Formatter_has_explicit_return_type(compiler_formatter_Fo
   if (func->parsed_return_type->base==compiler_types_BaseType_Void) {
     return false;
   }
-  char *rt_text = compiler_formatter_Formatter_source_text(this, func->parsed_return_type->span);
-  if (str_eq(rt_text, func->sym->name)) {
+  std_span_Location rt_start = func->parsed_return_type->span.start;
+  std_span_Location name_start = func->sym->span.start;
+  if (rt_start.line==name_start.line && rt_start.col==name_start.col) {
     return false;
   }
   return true;
 }
 
-void compiler_formatter_Formatter_emit_comments_before(compiler_formatter_Formatter *this, u32 line) {
+bool compiler_formatter_Formatter_is_implicit_void_function_type(compiler_formatter_Formatter *this, compiler_types_Type *type) {
+  if (!(((bool)type)) || !(((bool)type->u.func.return_type))) {
+    return false;
+  }
+  compiler_types_Type *return_type = type->u.func.return_type;
+  if (return_type->base != compiler_types_BaseType_Unresolved) {
+    return false;
+  }
+  if (!(((bool)return_type->u.unresolved)) || (return_type->u.unresolved->type != compiler_ast_nodes_ASTType_Identifier)) {
+    return false;
+  }
+  if (!(str_eq(return_type->u.unresolved->u.ident.name, "void"))) {
+    return false;
+  }
+  return return_type->span.start.line==type->span.start.line && return_type->span.start.col==type->span.start.col;
+}
+
+u32 compiler_formatter_Formatter_emit_comments_before(compiler_formatter_Formatter *this, u32 line, bool preserve_blanks, u32 prev_end_line) {
+  if (line < this->last_comment_request_line) {
+    compiler_formatter_Formatter_note_cursor_regression(this, "before", line);
+  }
+  if (line > this->last_comment_request_line) {
+    this->last_comment_request_line=line;
+  }
+  u32 comment_end = prev_end_line;
   while (this->comment_index < this->comments->size) {
-    compiler_tokens_Comment c = std_vector_Vector__16_at(this->comments, this->comment_index);
-    if (c.span.start.line >= line) {
+    compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, this->comment_index);
+    if (comment.span.start.line >= line) {
       break;
     }
-    if (c.is_inline) {
+    if (comment.is_inline) {
       this->comment_index++;
       continue;
     }
+    if ((preserve_blanks && (comment_end > prev_end_line)) && (comment.span.start.line > (comment_end + 1))) {
+      compiler_formatter_Formatter_newline(this);
+    }
     compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, c.text);
+    compiler_formatter_Formatter_write(this, comment.text);
     compiler_formatter_Formatter_newline(this);
+    this->comment_emitted->data[this->comment_index]=true;
+    comment_end=comment.span.end.line;
+    this->comment_index++;
+  }
+  return comment_end;
+}
+
+void compiler_formatter_Formatter_emit_inline_comment(compiler_formatter_Formatter *this, u32 line) {
+  if (line < this->last_comment_request_line) {
+    compiler_formatter_Formatter_note_cursor_regression(this, "inline", line);
+    compiler_formatter_Formatter_emit_inline_comment_backward(this, line);
+    return;
+  }
+  if (line > this->last_comment_request_line) {
+    this->last_comment_request_line=line;
+  }
+  bool emitted = false;
+  while (this->comment_index < this->comments->size) {
+    compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, this->comment_index);
+    if (comment.span.start.line < line) {
+      if (comment.is_inline) {
+        this->comment_index++;
+        continue;
+      }
+      break;
+    }
+    if (comment.span.start.line > line) {
+      break;
+    }
+    if (!(comment.is_inline)) {
+      break;
+    }
+    if (!(emitted)) {
+      std_vector_Vector__31_push(this->ic_lines, this->output_line);
+      emitted=true;
+    }
+    compiler_formatter_Formatter_write(this, " ");
+    compiler_formatter_Formatter_write(this, comment.text);
+    this->comment_emitted->data[this->comment_index]=true;
     this->comment_index++;
   }
 }
 
-void compiler_formatter_Formatter_emit_inline_comment(compiler_formatter_Formatter *this, u32 line) {
-  if (this->comment_index < this->comments->size) {
-    compiler_tokens_Comment c = std_vector_Vector__16_at(this->comments, this->comment_index);
-    if (c.span.start.line==line && c.is_inline) {
+void compiler_formatter_Formatter_emit_inline_comment_backward(compiler_formatter_Formatter *this, u32 line) {
+  bool emitted = false;
+  std_vector_Vector__31 *indices = compiler_formatter_CommentIndex_comments_on_line(&this->comment_line_index, line);
+  for (u32 i = 0; i < indices->size; i++) {
+    u32 ci = std_vector_Vector__31_at(indices, i);
+    compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, ci);
+    if (comment.is_inline && !(std_vector_Vector__36_at(this->comment_emitted, ci))) {
+      if (!(emitted)) {
+        std_vector_Vector__31_push(this->ic_lines, this->output_line);
+        emitted=true;
+      }
       compiler_formatter_Formatter_write(this, " ");
-      compiler_formatter_Formatter_write(this, c.text);
-      this->comment_index++;
+      compiler_formatter_Formatter_write(this, comment.text);
+      this->comment_emitted->data[ci]=true;
     }
   }
 }
 
 void compiler_formatter_Formatter_emit_remaining_comments(compiler_formatter_Formatter *this, u32 max_line) {
   while (this->comment_index < this->comments->size) {
-    compiler_tokens_Comment c = std_vector_Vector__16_at(this->comments, this->comment_index);
-    if ((max_line > 0) && (c.span.start.line > max_line)) {
+    compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, this->comment_index);
+    if ((max_line > 0) && (comment.span.start.line > max_line)) {
       break;
     }
-    if (c.is_inline) {
+    if (comment.is_inline) {
       this->comment_index++;
       continue;
     }
     compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, c.text);
+    compiler_formatter_Formatter_write(this, comment.text);
     compiler_formatter_Formatter_newline(this);
+    this->comment_emitted->data[this->comment_index]=true;
     this->comment_index++;
   }
 }
 
 bool compiler_formatter_Formatter_has_inline_comments_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line) {
+  if (this->in_format_str) {
+    return false;
+  }
   for (u32 ci = this->comment_index; ci < this->comments->size; ci++) {
-    compiler_tokens_Comment c = std_vector_Vector__16_at(this->comments, ci);
-    if (c.span.start.line > end_line) {
+    compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, ci);
+    if (comment.span.start.line > end_line) {
       break;
     }
-    if ((c.span.start.line >= start_line) && c.is_inline) {
+    if ((comment.span.start.line >= start_line) && comment.is_inline) {
       return true;
     }
   }
   return false;
 }
 
+bool compiler_formatter_Formatter_has_unemitted_inline_comment_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line) {
+  if (this->in_format_str) {
+    return false;
+  }
+  for (u32 line = start_line; line <= end_line; line++) {
+    std_vector_Vector__31 *indices = compiler_formatter_CommentIndex_comments_on_line(&this->comment_line_index, line);
+    for (u32 i = 0; i < indices->size; i++) {
+      u32 ci = std_vector_Vector__31_at(indices, i);
+      compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, ci);
+      if (comment.is_inline && !(std_vector_Vector__36_at(this->comment_emitted, ci))) {
+        return true;
+      }
+    }
+  }
+  return false;
+}
+
+void compiler_formatter_Formatter_emit_all_unemitted_inline_comments_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line) {
+  for (u32 line = start_line; line <= end_line; line++) {
+    std_vector_Vector__31 *indices = compiler_formatter_CommentIndex_comments_on_line(&this->comment_line_index, line);
+    for (u32 i = 0; i < indices->size; i++) {
+      u32 ci = std_vector_Vector__31_at(indices, i);
+      compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, ci);
+      if (comment.is_inline && !(std_vector_Vector__36_at(this->comment_emitted, ci))) {
+        compiler_formatter_Formatter_write(this, " ");
+        compiler_formatter_Formatter_write(this, comment.text);
+        this->comment_emitted->data[ci]=true;
+      }
+    }
+  }
+}
+
+bool compiler_formatter_Formatter_has_blank_source_line_between(compiler_formatter_Formatter *this, u32 after_line, u32 before_line) {
+  if (before_line <= (after_line + 1)) {
+    return false;
+  }
+  if (this->line_offsets->size==0) {
+    return false;
+  }
+  u32 total_lines = this->line_offsets->size;
+  u32 start_line = (after_line + 1);
+  if (start_line > total_lines) {
+    return false;
+  }
+  u32 end_line = (before_line - 1);
+  if (end_line > total_lines) {
+    end_line=total_lines;
+  }
+  if (start_line > end_line) {
+    return false;
+  }
+  for (u32 line = start_line; line <= end_line; line++) {
+    u32 start_idx = std_vector_Vector__31_at(this->line_offsets, (line - 1));
+    u32 end_idx = strlen(this->source);
+    if (line < this->line_offsets->size) {
+      end_idx=(std_vector_Vector__31_at(this->line_offsets, line) - 1);
+    }
+    bool is_blank = true;
+    for (u32 i = start_idx; i < end_idx; i++) {
+      if (!(char_is_space(this->source[i]))) {
+        is_blank=false;
+        break;
+      }
+    }
+    if (is_blank) {
+      return true;
+    }
+  }
+  return false;
+}
+
+void compiler_formatter_Formatter_format_extern_attr(compiler_formatter_Formatter *this, compiler_ast_scopes_Symbol *sym) {
+  if (!(sym->is_extern)) {
+    return;
+  }
+  compiler_formatter_Formatter_write_indent(this);
+  compiler_formatter_Formatter_write(this, "[extern");
+  if (((bool)sym->extern_name) && !(str_eq(sym->extern_name, sym->name))) {
+    compiler_formatter_Formatter_write(this, " \"");
+    compiler_formatter_Formatter_write(this, sym->extern_name);
+    compiler_formatter_Formatter_write(this, "\"");
+  }
+  compiler_formatter_Formatter_write(this, "]");
+  compiler_formatter_Formatter_newline(this);
+}
+
+void compiler_formatter_Formatter_format_template_params(compiler_formatter_Formatter *this, compiler_ast_scopes_Symbol *sym) {
+  if (!(((bool)sym->template))) {
+    return;
+  }
+  compiler_formatter_Formatter_write(this, "<");
+  compiler_ast_scopes_Template *tmpl = sym->template;
+  for (u32 i = 0; i < tmpl->params->size; i++) {
+    if (i > 0) {
+      compiler_formatter_Formatter_write(this, ", ");
+    }
+    compiler_formatter_Formatter_write(this, std_vector_Vector__12_at(tmpl->params, i)->name);
+  }
+  compiler_formatter_Formatter_write(this, ">");
+}
+
+void compiler_formatter_Formatter_write_attr_line(compiler_formatter_Formatter *this, char *attr) {
+  compiler_formatter_Formatter_write_indent(this);
+  compiler_formatter_Formatter_write(this, "[");
+  compiler_formatter_Formatter_write(this, attr);
+  compiler_formatter_Formatter_write(this, "]");
+  compiler_formatter_Formatter_newline(this);
+}
+
+u32 compiler_formatter_Formatter_first_item_or_comment_line(compiler_formatter_Formatter *this, u32 prev_end_line, u32 item_start_line) {
+  u32 next_line = item_start_line;
+  if (this->comment_index < this->comments->size) {
+    compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, this->comment_index);
+    if ((comment.span.start.line < next_line) && (comment.span.start.line > prev_end_line)) {
+      next_line=comment.span.start.line;
+    }
+  }
+  return next_line;
+}
+
+u32 compiler_formatter_Formatter_emit_item_preamble(compiler_formatter_Formatter *this, u32 item_start_line, u32 item_index, u32 prev_end_line) {
+  u32 next_line = compiler_formatter_Formatter_first_item_or_comment_line(this, prev_end_line, item_start_line);
+  if ((item_index > 0) && (next_line > (prev_end_line + 1))) {
+    compiler_formatter_Formatter_newline(this);
+  }
+  u32 comment_end = compiler_formatter_Formatter_emit_comments_before(this, item_start_line, true, prev_end_line);
+  if ((comment_end > prev_end_line) && (item_start_line > (comment_end + 1))) {
+    compiler_formatter_Formatter_newline(this);
+  }
+  return comment_end;
+}
+
+void compiler_formatter_Formatter_format_top_level_var_decl(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, char *keyword) {
+  compiler_ast_nodes_Variable *var = node->u.var_decl;
+  compiler_formatter_Formatter_write_indent(this);
+  compiler_formatter_Formatter_write_var_decl(this, var, keyword);
+  compiler_formatter_Formatter_emit_inline_comment(this, node->span.start.line);
+  compiler_formatter_Formatter_newline(this);
+}
+
+void compiler_formatter_Formatter_write_var_decl(compiler_formatter_Formatter *this, compiler_ast_nodes_Variable *var, char *keyword) {
+  compiler_formatter_Formatter_write(this, keyword);
+  compiler_formatter_Formatter_write(this, " ");
+  compiler_formatter_Formatter_write(this, var->sym->name);
+  if (((bool)var->parsed_type)) {
+    compiler_formatter_Formatter_write(this, ": ");
+    compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, var->parsed_type));
+  }
+  if (((bool)var->default_value)) {
+    compiler_formatter_Formatter_write(this, " = ");
+    compiler_formatter_Formatter_format_expr(this, var->default_value);
+  }
+}
+
+void compiler_formatter_Formatter_format_inline_if_body(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *body) {
+  compiler_formatter_Formatter_write(this, " {");
+  compiler_formatter_Formatter_newline(this);
+  compiler_formatter_Formatter_push_indent(this);
+  compiler_formatter_Formatter_write_indent(this);
+  compiler_formatter_Formatter_format_statement(this, body);
+  compiler_formatter_Formatter_emit_inline_comment(this, body->span.start.line);
+  compiler_formatter_Formatter_newline(this);
+  compiler_formatter_Formatter_pop_indent(this);
+  compiler_formatter_Formatter_write_indent(this);
+  compiler_formatter_Formatter_write(this, "}");
+}
+
+void compiler_formatter_Formatter_format_arrow_body(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *body, bool add_match_trailing_comma) {
+  if (body->type==compiler_ast_nodes_ASTType_Block) {
+    compiler_formatter_Formatter_format_block(this, body);
+    return;
+  }
+  compiler_formatter_Formatter_format_statement(this, body);
+  if (add_match_trailing_comma && compiler_formatter_Formatter_match_body_needs_trailing_comma(this, body)) {
+    compiler_formatter_Formatter_write(this, ",");
+  }
+}
+
+char *compiler_formatter_Formatter_format_function_type(compiler_formatter_Formatter *this, compiler_types_Type *type) {
+  std_buffer_Buffer out = std_buffer_Buffer_make(16);
+  if (type->base==compiler_types_BaseType_Closure) {
+    std_buffer_Buffer_write_str(&out, "@");
+  }
+  std_buffer_Buffer_write_str(&out, "fn(");
+  compiler_types_FunctionType func_type = type->u.func;
+  for (u32 i = 0; i < func_type.params->size; i++) {
+    if (i > 0) {
+      std_buffer_Buffer_write_str(&out, ", ");
+    }
+    std_buffer_Buffer_write_str(&out, compiler_formatter_Formatter_format_type(this, std_vector_Vector__3_at(func_type.params, i)->parsed_type));
+  }
+  if (func_type.is_variadic) {
+    if (func_type.params->size > 0) {
+      std_buffer_Buffer_write_str(&out, ", ");
+    }
+    std_buffer_Buffer_write_str(&out, "...");
+  }
+  std_buffer_Buffer_write_str(&out, ")");
+  if (((bool)func_type.return_type) && !(compiler_formatter_Formatter_is_implicit_void_function_type(this, type))) {
+    std_buffer_Buffer_write_str(&out, ": ");
+    std_buffer_Buffer_write_str(&out, compiler_formatter_Formatter_format_type(this, func_type.return_type));
+  }
+  return std_buffer_Buffer_str(out);
+}
+
 char *compiler_formatter_Formatter_format_type(compiler_formatter_Formatter *this, compiler_types_Type *type) {
   if (!(((bool)type))) {
     return "";
   }
-  return compiler_formatter_Formatter_source_text(this, type->span);
+switch ((type->base)) {
+    case compiler_types_BaseType_Pointer:
+    m_577_0:
+      {
+        std_buffer_Buffer out = std_buffer_Buffer_make(16);
+        std_buffer_Buffer_write_str(&out, "&");
+        std_buffer_Buffer_write_str(&out, compiler_formatter_Formatter_format_type(this, type->u.ptr));
+        return std_buffer_Buffer_str(out);
+      } break;
+    case compiler_types_BaseType_FunctionPtr:
+    case compiler_types_BaseType_Closure:
+    m_577_1:
+      {
+        return compiler_formatter_Formatter_format_function_type(this, type);
+      } break;
+    case compiler_types_BaseType_Array:
+    m_577_2:
+      {
+        std_buffer_Buffer out = std_buffer_Buffer_make(16);
+        std_buffer_Buffer_write_str(&out, "[");
+        std_buffer_Buffer_write_str(&out, compiler_formatter_Formatter_format_type(this, type->u.arr.elem_type));
+        std_buffer_Buffer_write_str(&out, "; ");
+        std_buffer_Buffer_write_str(&out, compiler_formatter_Formatter_source_text(this, type->u.arr.size_expr->span));
+        std_buffer_Buffer_write_str(&out, "]");
+        return std_buffer_Buffer_str(out);
+      } break;
+    case compiler_types_BaseType_VectorShorthand:
+    m_577_3:
+      {
+        std_buffer_Buffer out = std_buffer_Buffer_make(16);
+        std_buffer_Buffer_write_str(&out, "$[");
+        std_buffer_Buffer_write_str(&out, compiler_formatter_Formatter_format_type(this, type->u.ptr));
+        std_buffer_Buffer_write_str(&out, "]");
+        return std_buffer_Buffer_str(out);
+      } break;
+    case compiler_types_BaseType_MapShorthand:
+    m_577_4:
+      {
+        std_buffer_Buffer out = std_buffer_Buffer_make(16);
+        std_buffer_Buffer_write_str(&out, "${");
+        std_buffer_Buffer_write_str(&out, compiler_formatter_Formatter_format_type(this, type->u.map_types.key));
+        std_buffer_Buffer_write_str(&out, ": ");
+        std_buffer_Buffer_write_str(&out, compiler_formatter_Formatter_format_type(this, type->u.map_types.value));
+        std_buffer_Buffer_write_str(&out, "}");
+        return std_buffer_Buffer_str(out);
+      } break;
+    default:
+      {
+        return compiler_formatter_Formatter_source_text(this, type->span);
+      } break;
+  }}
+
+u32 compiler_formatter_Formatter_collection_size(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
+  return ({u32 __yv_578;
+switch ((node->type)) {
+      case compiler_ast_nodes_ASTType_Call:
+      m_579_0:
+        {
+          __yv_578 = node->u.call.args->size;
+          goto _l___yv_578;
+        } break;
+      case compiler_ast_nodes_ASTType_ArrayLiteral:
+      m_579_1:
+        {
+          __yv_578 = node->u.array_literal.elements->size;
+          goto _l___yv_578;
+        } break;
+      case compiler_ast_nodes_ASTType_VectorLiteral:
+      m_579_2:
+        {
+          __yv_578 = node->u.vec_literal.elements->size;
+          goto _l___yv_578;
+        } break;
+      case compiler_ast_nodes_ASTType_MapLiteral:
+      m_579_3:
+        {
+          __yv_578 = node->u.map_literal.elements->size;
+          goto _l___yv_578;
+        } break;
+      default:
+        {
+          __yv_578 = 0;
+          goto _l___yv_578;
+        } break;
+    }
+_l___yv_578:
+  __yv_578;});}
+
+u32 compiler_formatter_Formatter_collection_item_start_line(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, u32 i) {
+  return ({u32 __yv_580;
+switch ((node->type)) {
+      case compiler_ast_nodes_ASTType_Call:
+      m_581_0:
+        {
+          __yv_580 = std_vector_Vector__10_at(node->u.call.args, i)->expr->span.start.line;
+          goto _l___yv_580;
+        } break;
+      case compiler_ast_nodes_ASTType_ArrayLiteral:
+      m_581_1:
+        {
+          __yv_580 = std_vector_Vector__19_at(node->u.array_literal.elements, i)->span.start.line;
+          goto _l___yv_580;
+        } break;
+      case compiler_ast_nodes_ASTType_VectorLiteral:
+      m_581_2:
+        {
+          __yv_580 = std_vector_Vector__19_at(node->u.vec_literal.elements, i)->span.start.line;
+          goto _l___yv_580;
+        } break;
+      case compiler_ast_nodes_ASTType_MapLiteral:
+      m_581_3:
+        {
+          __yv_580 = std_vector_Vector__29_at(node->u.map_literal.elements, i).key->span.start.line;
+          goto _l___yv_580;
+        } break;
+      default:
+        {
+          __yv_580 = node->span.start.line;
+          goto _l___yv_580;
+        } break;
+    }
+_l___yv_580:
+  __yv_580;});}
+
+u32 compiler_formatter_Formatter_collection_item_end_line(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, u32 i) {
+  return ({u32 __yv_582;
+switch ((node->type)) {
+      case compiler_ast_nodes_ASTType_Call:
+      m_583_0:
+        {
+          __yv_582 = std_vector_Vector__10_at(node->u.call.args, i)->expr->span.end.line;
+          goto _l___yv_582;
+        } break;
+      case compiler_ast_nodes_ASTType_ArrayLiteral:
+      m_583_1:
+        {
+          __yv_582 = std_vector_Vector__19_at(node->u.array_literal.elements, i)->span.end.line;
+          goto _l___yv_582;
+        } break;
+      case compiler_ast_nodes_ASTType_VectorLiteral:
+      m_583_2:
+        {
+          __yv_582 = std_vector_Vector__19_at(node->u.vec_literal.elements, i)->span.end.line;
+          goto _l___yv_582;
+        } break;
+      case compiler_ast_nodes_ASTType_MapLiteral:
+      m_583_3:
+        {
+          __yv_582 = std_vector_Vector__29_at(node->u.map_literal.elements, i).value->span.end.line;
+          goto _l___yv_582;
+        } break;
+      default:
+        {
+          __yv_582 = node->span.end.line;
+          goto _l___yv_582;
+        } break;
+    }
+_l___yv_582:
+  __yv_582;});}
+
+void compiler_formatter_Formatter_format_collection_item(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, u32 i) {
+switch ((node->type)) {
+    case compiler_ast_nodes_ASTType_Call:
+    m_584_0:
+      {
+        compiler_ast_nodes_Argument *arg = std_vector_Vector__10_at(node->u.call.args, i);
+        if (((bool)arg->label)) {
+          compiler_formatter_Formatter_write(this, arg->label);
+          compiler_formatter_Formatter_write(this, ": ");
+        }
+        compiler_formatter_Formatter_format_expr(this, arg->expr);
+      } break;
+    case compiler_ast_nodes_ASTType_ArrayLiteral:
+    m_584_1:
+      {
+        compiler_formatter_Formatter_format_expr(this, std_vector_Vector__19_at(node->u.array_literal.elements, i));
+      } break;
+    case compiler_ast_nodes_ASTType_VectorLiteral:
+    m_584_2:
+      {
+        compiler_formatter_Formatter_format_expr(this, std_vector_Vector__19_at(node->u.vec_literal.elements, i));
+      } break;
+    case compiler_ast_nodes_ASTType_MapLiteral:
+    m_584_3:
+      {
+        compiler_ast_nodes_MapLiteralPair pair = std_vector_Vector__29_at(node->u.map_literal.elements, i);
+        compiler_formatter_Formatter_format_expr(this, pair.key);
+        compiler_formatter_Formatter_write(this, ": ");
+        compiler_formatter_Formatter_format_expr(this, pair.value);
+      } break;
+    default:
+      {
+      } break;
+  }}
+
+compiler_formatter_CollectionPlan compiler_formatter_Formatter_plan_collection(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, char *open, char *close) {
+  u32 size = compiler_formatter_Formatter_collection_size(this, node);
+  bool has_comments = compiler_formatter_Formatter_has_inline_comments_in_range(this, node->span.start.line, node->span.end.line);
+  bool multiline = ({bool __yv_585;
+switch ((node->type)) {
+      case compiler_ast_nodes_ASTType_VectorLiteral:
+      case compiler_ast_nodes_ASTType_MapLiteral:
+      m_586_0:
+        {
+          __yv_585 = compiler_formatter_should_break_list_literal(node->span.start.line, node->span.end.line, &this->options);
+          goto _l___yv_585;
+        } break;
+      default:
+        {
+          __yv_585 = compiler_formatter_should_break_collection(node->span.start.line, node->span.end.line, has_comments, &this->options);
+          goto _l___yv_585;
+        } break;
+    }
+_l___yv_585:
+  __yv_585;});
+  return (compiler_formatter_CollectionPlan){.multiline=multiline, .size=size, .open=open, .close=close};
+}
+
+void compiler_formatter_Formatter_emit_collection(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, compiler_formatter_CollectionPlan *plan) {
+  if (plan->multiline && (plan->size > 0)) {
+    compiler_formatter_Formatter_write(this, plan->open);
+    compiler_formatter_Formatter_newline(this);
+    compiler_formatter_Formatter_push_indent(this);
+    for (u32 i = 0; i < plan->size; i++) {
+      compiler_formatter_Formatter_emit_comments_before(this, compiler_formatter_Formatter_collection_item_start_line(this, node, i), false, 0);
+      compiler_formatter_Formatter_write_indent(this);
+      compiler_formatter_Formatter_format_collection_item(this, node, i);
+      if ((i + 1) < plan->size) {
+        compiler_formatter_Formatter_write(this, ",");
+      }
+      compiler_formatter_Formatter_emit_inline_comment(this, compiler_formatter_Formatter_collection_item_end_line(this, node, i));
+      compiler_formatter_Formatter_newline(this);
+    }
+    compiler_formatter_Formatter_pop_indent(this);
+    compiler_formatter_Formatter_write_indent(this);
+    compiler_formatter_Formatter_write(this, plan->close);
+    return;
+  }
+  compiler_formatter_Formatter_write(this, plan->open);
+  for (u32 i = 0; i < plan->size; i++) {
+    if (i > 0) {
+      compiler_formatter_Formatter_write(this, ", ");
+    }
+    compiler_formatter_Formatter_format_collection_item(this, node, i);
+  }
+  compiler_formatter_Formatter_write(this, plan->close);
+}
+
+compiler_formatter_ParamPlan compiler_formatter_Formatter_plan_params(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func) {
+  bool multiline = false;
+  if (func->params->size > 0) {
+    u32 first_line = std_vector_Vector__3_at(func->params, 0)->sym->span.start.line;
+    compiler_ast_nodes_Variable *last_param = std_vector_Vector__3_at(func->params, (func->params->size - 1));
+    u32 last_line = last_param->sym->span.start.line;
+    if (func->is_variadic && (func->variadic_span.start.line > last_line)) {
+      last_line=func->variadic_span.start.line;
+    }
+    bool has_comments = compiler_formatter_Formatter_has_inline_comments_in_range(this, first_line, last_line);
+    multiline=compiler_formatter_should_break_params(first_line, last_line, has_comments, &this->options);
+  }
+  return (compiler_formatter_ParamPlan){.multiline=multiline, .param_count=func->params->size, .is_variadic=func->is_variadic};
+}
+
+void compiler_formatter_Formatter_emit_params(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func, compiler_formatter_ParamPlan *plan) {
+  compiler_formatter_Formatter_write(this, "(");
+  if (plan->multiline) {
+    compiler_formatter_Formatter_newline(this);
+    compiler_formatter_Formatter_push_indent(this);
+    for (u32 i = 0; i < plan->param_count; i++) {
+      compiler_formatter_Formatter_write_indent(this);
+      compiler_formatter_Formatter_format_param(this, std_vector_Vector__3_at(func->params, i), i==0);
+      compiler_formatter_Formatter_write(this, ",");
+      compiler_formatter_Formatter_emit_inline_comment(this, std_vector_Vector__3_at(func->params, i)->sym->span.start.line);
+      compiler_formatter_Formatter_newline(this);
+    }
+    if (plan->is_variadic) {
+      compiler_formatter_Formatter_write_indent(this);
+      compiler_formatter_Formatter_write(this, "...");
+      compiler_formatter_Formatter_emit_inline_comment(this, func->variadic_span.start.line);
+      compiler_formatter_Formatter_newline(this);
+    }
+    compiler_formatter_Formatter_pop_indent(this);
+    compiler_formatter_Formatter_write_indent(this);
+  } else {
+    for (u32 i = 0; i < plan->param_count; i++) {
+      if (i > 0) {
+        compiler_formatter_Formatter_write(this, ", ");
+      }
+      compiler_formatter_Formatter_format_param(this, std_vector_Vector__3_at(func->params, i), i==0);
+    }
+    if (plan->is_variadic) {
+      if (plan->param_count > 0) {
+        compiler_formatter_Formatter_write(this, ", ");
+      }
+      compiler_formatter_Formatter_write(this, "...");
+    }
+  }
+  compiler_formatter_Formatter_write(this, ")");
 }
 
 void compiler_formatter_Formatter_format_expr(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
@@ -17764,14 +18536,23 @@ void compiler_formatter_Formatter_format_expr(compiler_formatter_Formatter *this
   if (node->paren) {
     compiler_formatter_Formatter_write(this, "(");
     node->paren=false;
+    std_span_Span old_span = node->span;
+    std_span_Location inner_start = old_span.start;
+    std_span_Location inner_end = old_span.end;
+    inner_start.index+=1;
+    inner_start.col+=1;
+    inner_end.index-=1;
+    inner_end.col-=1;
+    node->span=(std_span_Span){.start=inner_start, .end=inner_end};
     compiler_formatter_Formatter_format_expr(this, node);
+    node->span=old_span;
     node->paren=true;
     compiler_formatter_Formatter_write(this, ")");
     return;
   }
 switch ((node->type)) {
     case compiler_ast_nodes_ASTType_BoolLiteral:
-    m_573_0:
+    m_587_0:
       {
         if (node->u.bool_literal) {
           compiler_formatter_Formatter_write(this, "true");
@@ -17781,7 +18562,7 @@ switch ((node->type)) {
       } break;
     case compiler_ast_nodes_ASTType_IntLiteral:
     case compiler_ast_nodes_ASTType_FloatLiteral:
-    m_573_1:
+    m_587_1:
       {
         std_span_Span span = node->span;
         if (((bool)node->u.num_literal.suffix)) {
@@ -17790,39 +18571,67 @@ switch ((node->type)) {
         compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_source_text(this, span));
       } break;
     case compiler_ast_nodes_ASTType_StringLiteral:
-    m_573_2:
+    m_587_2:
       {
         compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_source_text(this, node->span));
       } break;
     case compiler_ast_nodes_ASTType_CharLiteral:
-    m_573_3:
+    m_587_3:
       {
         compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_source_text(this, node->span));
       } break;
     case compiler_ast_nodes_ASTType_FormatStringLiteral:
-    m_573_4:
+    m_587_4:
       {
-        compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_source_text(this, node->span));
+        compiler_ast_nodes_FormatString fmt = node->u.fmt_str;
+        char *src = compiler_formatter_Formatter_source_text(this, node->span);
+        bool is_backtick = src[0]=='`';
+        if (is_backtick) {
+          compiler_formatter_Formatter_write(this, "`");
+        } else {
+          compiler_formatter_Formatter_write(this, "f\"");
+        }
+        bool saved_in_fmt = this->in_format_str;
+        this->in_format_str=true;
+        for (u32 i = 0; i < fmt.parts->size; i++) {
+          compiler_formatter_Formatter_write(this, std_vector_Vector__11_at(fmt.parts, i));
+          if (i < fmt.exprs->size) {
+            compiler_formatter_Formatter_write(this, "{");
+            compiler_formatter_Formatter_format_expr(this, std_vector_Vector__19_at(fmt.exprs, i));
+            char *spec = std_vector_Vector__11_at(fmt.specs, i);
+            if (((bool)spec)) {
+              compiler_formatter_Formatter_write(this, ":");
+              compiler_formatter_Formatter_write(this, spec);
+            }
+            compiler_formatter_Formatter_write(this, "}");
+          }
+        }
+        this->in_format_str=saved_in_fmt;
+        if (is_backtick) {
+          compiler_formatter_Formatter_write(this, "`");
+        } else {
+          compiler_formatter_Formatter_write(this, "\"");
+        }
       } break;
     case compiler_ast_nodes_ASTType_Null:
-    m_573_5:
+    m_587_5:
       {
         compiler_formatter_Formatter_write(this, "null");
       } break;
     case compiler_ast_nodes_ASTType_Identifier:
-    m_573_6:
+    m_587_6:
       {
         compiler_formatter_Formatter_write(this, node->u.ident.name);
       } break;
     case compiler_ast_nodes_ASTType_NSLookup:
-    m_573_7:
+    m_587_7:
       {
         compiler_formatter_Formatter_format_expr(this, node->u.lookup.lhs);
         compiler_formatter_Formatter_write(this, "::");
         compiler_formatter_Formatter_write(this, node->u.lookup.rhs_name);
       } break;
     case compiler_ast_nodes_ASTType_Member:
-    m_573_8:
+    m_587_8:
       {
         if (node->u.member.dot_shorthand) {
           compiler_formatter_Formatter_write(this, ".");
@@ -17834,19 +18643,19 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_TryMember:
-    m_573_9:
+    m_587_9:
       {
         compiler_formatter_Formatter_format_expr(this, node->u.member.lhs);
         compiler_formatter_Formatter_write(this, "?.");
         compiler_formatter_Formatter_write(this, node->u.member.rhs_name);
       } break;
     case compiler_ast_nodes_ASTType_BinaryOp:
-    m_573_10:
+    m_587_10:
       {
         compiler_ast_operators_Operator op = node->u.binary.op;
 switch ((op)) {
           case compiler_ast_operators_Operator_Index:
-          m_574_0:
+          m_588_0:
             {
               compiler_formatter_Formatter_format_expr(this, node->u.binary.lhs);
               compiler_formatter_Formatter_write(this, "[");
@@ -17855,7 +18664,7 @@ switch ((op)) {
               return;
             } break;
           case compiler_ast_operators_Operator_IndexAssign:
-          m_574_1:
+          m_588_1:
             {
               compiler_formatter_Formatter_format_expr(this, node->u.binary.lhs);
               compiler_formatter_Formatter_write(this, " = ");
@@ -17866,134 +18675,137 @@ switch ((op)) {
             {
             } break;
         }        compiler_formatter_Formatter_format_expr(this, node->u.binary.lhs);
+        u32 op_line = node->u.binary.op_span.start.line;
+        u32 rhs_start_line = node->u.binary.rhs->span.start.line;
+        bool is_multiline = compiler_formatter_should_break_binary_rhs(op_line, rhs_start_line, this->in_format_str, &this->options);
 switch ((op)) {
           case compiler_ast_operators_Operator_Assignment:
-          m_575_0:
+          m_589_0:
             {
               compiler_formatter_Formatter_write(this, " = ");
             } break;
           case compiler_ast_operators_Operator_PlusEquals:
-          m_575_1:
+          m_589_1:
             {
               compiler_formatter_Formatter_write(this, " += ");
             } break;
           case compiler_ast_operators_Operator_MinusEquals:
-          m_575_2:
+          m_589_2:
             {
               compiler_formatter_Formatter_write(this, " -= ");
             } break;
           case compiler_ast_operators_Operator_MultiplyEquals:
-          m_575_3:
+          m_589_3:
             {
               compiler_formatter_Formatter_write(this, " *= ");
             } break;
           case compiler_ast_operators_Operator_DivideEquals:
-          m_575_4:
+          m_589_4:
             {
               compiler_formatter_Formatter_write(this, " /= ");
             } break;
           case compiler_ast_operators_Operator_LeftShiftEquals:
-          m_575_5:
+          m_589_5:
             {
               compiler_formatter_Formatter_write(this, " <<= ");
             } break;
           case compiler_ast_operators_Operator_RightShiftEquals:
-          m_575_6:
+          m_589_6:
             {
               compiler_formatter_Formatter_write(this, " >>= ");
             } break;
           case compiler_ast_operators_Operator_Equals:
-          m_575_7:
+          m_589_7:
             {
               compiler_formatter_Formatter_write(this, " == ");
             } break;
           case compiler_ast_operators_Operator_NotEquals:
-          m_575_8:
+          m_589_8:
             {
               compiler_formatter_Formatter_write(this, " != ");
             } break;
           case compiler_ast_operators_Operator_LessThan:
-          m_575_9:
+          m_589_9:
             {
               compiler_formatter_Formatter_write(this, " < ");
             } break;
           case compiler_ast_operators_Operator_LessThanEquals:
-          m_575_10:
+          m_589_10:
             {
               compiler_formatter_Formatter_write(this, " <= ");
             } break;
           case compiler_ast_operators_Operator_GreaterThan:
-          m_575_11:
+          m_589_11:
             {
               compiler_formatter_Formatter_write(this, " > ");
             } break;
           case compiler_ast_operators_Operator_GreaterThanEquals:
-          m_575_12:
+          m_589_12:
             {
               compiler_formatter_Formatter_write(this, " >= ");
             } break;
           case compiler_ast_operators_Operator_Plus:
-          m_575_13:
+          m_589_13:
             {
               compiler_formatter_Formatter_write(this, " + ");
             } break;
           case compiler_ast_operators_Operator_Minus:
-          m_575_14:
+          m_589_14:
             {
               compiler_formatter_Formatter_write(this, " - ");
             } break;
           case compiler_ast_operators_Operator_Multiply:
-          m_575_15:
+          m_589_15:
             {
               compiler_formatter_Formatter_write(this, " * ");
             } break;
           case compiler_ast_operators_Operator_Divide:
-          m_575_16:
+          m_589_16:
             {
               compiler_formatter_Formatter_write(this, " / ");
             } break;
           case compiler_ast_operators_Operator_Modulus:
-          m_575_17:
+          m_589_17:
             {
               compiler_formatter_Formatter_write(this, " % ");
             } break;
           case compiler_ast_operators_Operator_And:
-          m_575_18:
+          m_589_18:
             {
               compiler_formatter_Formatter_write(this, " and ");
             } break;
           case compiler_ast_operators_Operator_Or:
-          m_575_19:
+          m_589_19:
             {
               compiler_formatter_Formatter_write(this, " or ");
             } break;
           case compiler_ast_operators_Operator_In:
-          m_575_20:
+          m_589_20:
             {
               compiler_formatter_Formatter_write(this, " in ");
             } break;
           case compiler_ast_operators_Operator_BitwiseAnd:
-          m_575_21:
+          m_589_21:
             {
               compiler_formatter_Formatter_write(this, " & ");
             } break;
           case compiler_ast_operators_Operator_BitwiseOr:
-          m_575_22:
+          m_589_22:
             {
               compiler_formatter_Formatter_write(this, " | ");
             } break;
           case compiler_ast_operators_Operator_BitwiseXor:
-          m_575_23:
+          m_589_23:
             {
               compiler_formatter_Formatter_write(this, " ^ ");
             } break;
           case compiler_ast_operators_Operator_LeftShift:
-          m_575_24:
+          m_589_24:
             {
               compiler_formatter_Formatter_write(this, " << ");
             } break;
           case compiler_ast_operators_Operator_RightShift:
-          m_575_25:
+          m_589_25:
             {
               compiler_formatter_Formatter_write(this, " >> ");
             } break;
@@ -18003,81 +18815,86 @@ switch ((op)) {
               compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_source_text(this, node->u.binary.op_span));
               compiler_formatter_Formatter_write(this, " ");
             } break;
-        }        compiler_formatter_Formatter_format_expr(this, node->u.binary.rhs);
+        }        if (is_multiline) {
+          compiler_formatter_Formatter_emit_inline_comment(this, op_line);
+          compiler_formatter_Formatter_newline(this);
+          compiler_formatter_Formatter_write_indent(this);
+        }
+        compiler_formatter_Formatter_format_expr(this, node->u.binary.rhs);
       } break;
     case compiler_ast_nodes_ASTType_UnaryOp:
-    m_573_11:
+    m_587_11:
       {
         compiler_ast_operators_Operator op = node->u.unary.op;
 switch ((op)) {
           case compiler_ast_operators_Operator_Negate:
-          m_576_0:
+          m_590_0:
             {
               compiler_formatter_Formatter_write(this, "-");
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
             } break;
           case compiler_ast_operators_Operator_Address:
-          m_576_1:
+          m_590_1:
             {
               compiler_formatter_Formatter_write(this, "&");
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
             } break;
           case compiler_ast_operators_Operator_Dereference:
-          m_576_2:
+          m_590_2:
             {
               compiler_formatter_Formatter_write(this, "*");
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
             } break;
           case compiler_ast_operators_Operator_Not:
-          m_576_3:
+          m_590_3:
             {
               compiler_formatter_Formatter_write(this, "not ");
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
             } break;
           case compiler_ast_operators_Operator_BitwiseNot:
-          m_576_4:
+          m_590_4:
             {
               compiler_formatter_Formatter_write(this, "~");
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
             } break;
           case compiler_ast_operators_Operator_IsNotNull:
-          m_576_5:
+          m_590_5:
             {
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
               compiler_formatter_Formatter_write(this, "?");
             } break;
           case compiler_ast_operators_Operator_PreIncrement:
-          m_576_6:
+          m_590_6:
             {
               compiler_formatter_Formatter_write(this, "++");
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
             } break;
           case compiler_ast_operators_Operator_PreDecrement:
-          m_576_7:
+          m_590_7:
             {
               compiler_formatter_Formatter_write(this, "--");
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
             } break;
           case compiler_ast_operators_Operator_PostIncrement:
-          m_576_8:
+          m_590_8:
             {
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
               compiler_formatter_Formatter_write(this, "++");
             } break;
           case compiler_ast_operators_Operator_PostDecrement:
-          m_576_9:
+          m_590_9:
             {
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
               compiler_formatter_Formatter_write(this, "--");
             } break;
           case compiler_ast_operators_Operator_ErrorProp:
-          m_576_10:
+          m_590_10:
             {
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
               compiler_formatter_Formatter_write(this, "!");
             } break;
           case compiler_ast_operators_Operator_ErrorUnwrap:
-          m_576_11:
+          m_590_11:
             {
               compiler_formatter_Formatter_format_expr(this, node->u.unary.expr);
               compiler_formatter_Formatter_write(this, "!!");
@@ -18089,64 +18906,28 @@ switch ((op)) {
             } break;
         }      } break;
     case compiler_ast_nodes_ASTType_Call:
-    m_573_12:
+    m_587_12:
       {
         compiler_formatter_Formatter_format_expr(this, node->u.call.callee);
-        bool multi = compiler_formatter_Formatter_has_inline_comments_in_range(this, node->span.start.line, node->span.end.line);
-        if (multi && (node->u.call.args->size > 0)) {
-          compiler_formatter_Formatter_write(this, "(");
-          compiler_formatter_Formatter_newline(this);
-          this->indent++;
-          for (u32 i = 0; i < node->u.call.args->size; i++) {
-            compiler_ast_nodes_Argument *arg = std_vector_Vector__10_at(node->u.call.args, i);
-            compiler_formatter_Formatter_emit_comments_before(this, arg->expr->span.start.line);
-            compiler_formatter_Formatter_write_indent(this);
-            if (((bool)arg->label)) {
-              compiler_formatter_Formatter_write(this, arg->label);
-              compiler_formatter_Formatter_write(this, ": ");
-            }
-            compiler_formatter_Formatter_format_expr(this, arg->expr);
-            if ((i + 1) < node->u.call.args->size) {
-              compiler_formatter_Formatter_write(this, ",");
-            }
-            compiler_formatter_Formatter_emit_inline_comment(this, arg->expr->span.end.line);
-            compiler_formatter_Formatter_newline(this);
-          }
-          this->indent--;
-          compiler_formatter_Formatter_write_indent(this);
-          compiler_formatter_Formatter_write(this, ")");
-        } else {
-          compiler_formatter_Formatter_write(this, "(");
-          for (u32 i = 0; i < node->u.call.args->size; i++) {
-            if (i > 0) {
-              compiler_formatter_Formatter_write(this, ", ");
-            }
-            compiler_ast_nodes_Argument *arg = std_vector_Vector__10_at(node->u.call.args, i);
-            if (((bool)arg->label)) {
-              compiler_formatter_Formatter_write(this, arg->label);
-              compiler_formatter_Formatter_write(this, ": ");
-            }
-            compiler_formatter_Formatter_format_expr(this, arg->expr);
-          }
-          compiler_formatter_Formatter_write(this, ")");
-        }
+        compiler_formatter_CollectionPlan plan = compiler_formatter_Formatter_plan_collection(this, node, "(", ")");
+        compiler_formatter_Formatter_emit_collection(this, node, &plan);
       } break;
     case compiler_ast_nodes_ASTType_Cast:
-    m_573_13:
+    m_587_13:
       {
         compiler_formatter_Formatter_format_expr(this, node->u.cast.lhs);
         compiler_formatter_Formatter_write(this, " as ");
         compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, node->u.cast.parsed_to));
       } break;
     case compiler_ast_nodes_ASTType_SizeOf:
-    m_573_14:
+    m_587_14:
       {
         compiler_formatter_Formatter_write(this, "sizeof(");
         compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, node->u.size_of_type));
         compiler_formatter_Formatter_write(this, ")");
       } break;
     case compiler_ast_nodes_ASTType_Specialization:
-    m_573_15:
+    m_587_15:
       {
         compiler_formatter_Formatter_format_expr(this, node->u.spec.base);
         compiler_formatter_Formatter_write(this, "<");
@@ -18159,93 +18940,51 @@ switch ((op)) {
         compiler_formatter_Formatter_write(this, ">");
       } break;
     case compiler_ast_nodes_ASTType_ArrayLiteral:
-    m_573_16:
+    m_587_16:
       {
-        bool multi = compiler_formatter_Formatter_has_inline_comments_in_range(this, node->span.start.line, node->span.end.line);
-        if (multi && (node->u.array_literal.elements->size > 0)) {
-          compiler_formatter_Formatter_write(this, "[");
-          compiler_formatter_Formatter_newline(this);
-          this->indent++;
-          for (u32 i = 0; i < node->u.array_literal.elements->size; i++) {
-            compiler_ast_nodes_AST *elem = std_vector_Vector__19_at(node->u.array_literal.elements, i);
-            compiler_formatter_Formatter_emit_comments_before(this, elem->span.start.line);
-            compiler_formatter_Formatter_write_indent(this);
-            compiler_formatter_Formatter_format_expr(this, elem);
-            if ((i + 1) < node->u.array_literal.elements->size) {
-              compiler_formatter_Formatter_write(this, ",");
-            }
-            compiler_formatter_Formatter_emit_inline_comment(this, elem->span.end.line);
-            compiler_formatter_Formatter_newline(this);
-          }
-          this->indent--;
-          compiler_formatter_Formatter_write_indent(this);
-          compiler_formatter_Formatter_write(this, "]");
-        } else {
-          compiler_formatter_Formatter_write(this, "[");
-          for (u32 i = 0; i < node->u.array_literal.elements->size; i++) {
-            if (i > 0) {
-              compiler_formatter_Formatter_write(this, ", ");
-            }
-            compiler_formatter_Formatter_format_expr(this, std_vector_Vector__19_at(node->u.array_literal.elements, i));
-          }
-          compiler_formatter_Formatter_write(this, "]");
-        }
+        compiler_formatter_CollectionPlan plan = compiler_formatter_Formatter_plan_collection(this, node, "[", "]");
+        compiler_formatter_Formatter_emit_collection(this, node, &plan);
       } break;
     case compiler_ast_nodes_ASTType_VectorLiteral:
-    m_573_17:
+    m_587_17:
       {
-        compiler_formatter_Formatter_write(this, "$[");
-        for (u32 i = 0; i < node->u.vec_literal.elements->size; i++) {
-          if (i > 0) {
-            compiler_formatter_Formatter_write(this, ", ");
-          }
-          compiler_formatter_Formatter_format_expr(this, std_vector_Vector__19_at(node->u.vec_literal.elements, i));
-        }
-        compiler_formatter_Formatter_write(this, "]");
+        compiler_formatter_CollectionPlan plan = compiler_formatter_Formatter_plan_collection(this, node, "$[", "]");
+        compiler_formatter_Formatter_emit_collection(this, node, &plan);
       } break;
     case compiler_ast_nodes_ASTType_MapLiteral:
-    m_573_18:
+    m_587_18:
       {
-        compiler_formatter_Formatter_write(this, "${");
-        for (u32 i = 0; i < node->u.map_literal.elements->size; i++) {
-          if (i > 0) {
-            compiler_formatter_Formatter_write(this, ", ");
-          }
-          compiler_ast_nodes_MapLiteralPair pair = std_vector_Vector__29_at(node->u.map_literal.elements, i);
-          compiler_formatter_Formatter_format_expr(this, pair.key);
-          compiler_formatter_Formatter_write(this, ": ");
-          compiler_formatter_Formatter_format_expr(this, pair.value);
-        }
-        compiler_formatter_Formatter_write(this, "}");
+        compiler_formatter_CollectionPlan plan = compiler_formatter_Formatter_plan_collection(this, node, "${", "}");
+        compiler_formatter_Formatter_emit_collection(this, node, &plan);
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_573_19:
+    m_587_19:
       {
         compiler_formatter_Formatter_format_if(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_573_20:
+    m_587_20:
       {
         compiler_formatter_Formatter_format_match(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_573_21:
+    m_587_21:
       {
         compiler_formatter_Formatter_format_block(this, node);
       } break;
     case compiler_ast_nodes_ASTType_CreateNew:
-    m_573_22:
+    m_587_22:
       {
         compiler_formatter_Formatter_write(this, "@new ");
         compiler_formatter_Formatter_format_expr(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_CreateClosure:
-    m_573_23:
+    m_587_23:
       {
         compiler_formatter_Formatter_format_closure(this, node->u.closure);
       } break;
     case compiler_ast_nodes_ASTType_Is:
-    m_573_24:
+    m_587_24:
       {
         compiler_formatter_Formatter_format_expr(this, node->u.is_expr.lhs);
         compiler_formatter_Formatter_write(this, " is ");
@@ -18255,6 +18994,16 @@ switch ((op)) {
           }
           compiler_formatter_Formatter_format_match_cond(this, std_vector_Vector__5_at(node->u.is_expr.conds, i));
         }
+      } break;
+    case compiler_ast_nodes_ASTType_OverloadedOperator:
+    m_587_25:
+      {
+        compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_source_text(this, node->span));
+      } break;
+    case compiler_ast_nodes_ASTType_Error:
+    m_587_26:
+      {
+        compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_source_text(this, node->span));
       } break;
     default:
       {
@@ -18295,16 +19044,7 @@ void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, 
       compiler_formatter_Formatter_write(this, " ");
       compiler_formatter_Formatter_format_block(this, branch.body);
     } else if (compiler_formatter_Formatter_has_inline_comments_in_range(this, branch.body->span.start.line, branch.body->span.start.line)) {
-      compiler_formatter_Formatter_write(this, " {");
-      compiler_formatter_Formatter_newline(this);
-      this->indent++;
-      compiler_formatter_Formatter_write_indent(this);
-      compiler_formatter_Formatter_format_statement(this, branch.body);
-      compiler_formatter_Formatter_emit_inline_comment(this, branch.body->span.start.line);
-      compiler_formatter_Formatter_newline(this);
-      this->indent--;
-      compiler_formatter_Formatter_write_indent(this);
-      compiler_formatter_Formatter_write(this, "}");
+      compiler_formatter_Formatter_format_inline_if_body(this, branch.body);
     } else {
       compiler_formatter_Formatter_write(this, " then ");
       compiler_formatter_Formatter_format_statement(this, branch.body);
@@ -18318,16 +19058,8 @@ void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, 
       compiler_formatter_Formatter_write(this, " else ");
       compiler_formatter_Formatter_format_block(this, if_stmt.els);
     } else if (compiler_formatter_Formatter_has_inline_comments_in_range(this, if_stmt.els->span.start.line, if_stmt.els->span.start.line)) {
-      compiler_formatter_Formatter_write(this, " else {");
-      compiler_formatter_Formatter_newline(this);
-      this->indent++;
-      compiler_formatter_Formatter_write_indent(this);
-      compiler_formatter_Formatter_format_statement(this, if_stmt.els);
-      compiler_formatter_Formatter_emit_inline_comment(this, if_stmt.els->span.start.line);
-      compiler_formatter_Formatter_newline(this);
-      this->indent--;
-      compiler_formatter_Formatter_write_indent(this);
-      compiler_formatter_Formatter_write(this, "}");
+      compiler_formatter_Formatter_write(this, " else");
+      compiler_formatter_Formatter_format_inline_if_body(this, if_stmt.els);
     } else {
       compiler_formatter_Formatter_write(this, " else ");
       compiler_formatter_Formatter_format_statement(this, if_stmt.els);
@@ -18339,34 +19071,26 @@ void compiler_formatter_Formatter_format_multi_if(compiler_formatter_Formatter *
   compiler_ast_nodes_IfStatement if_stmt = node->u.if_stmt;
   compiler_formatter_Formatter_write(this, "if {");
   compiler_formatter_Formatter_newline(this);
-  this->indent++;
+  compiler_formatter_Formatter_push_indent(this);
   for (u32 i = 0; i < if_stmt.branches->size; i++) {
     compiler_ast_nodes_IfBranch branch = std_vector_Vector__27_at(if_stmt.branches, i);
-    compiler_formatter_Formatter_emit_comments_before(this, branch.cond->span.start.line);
+    compiler_formatter_Formatter_emit_comments_before(this, branch.cond->span.start.line, true, 0);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_format_expr(this, branch.cond);
     compiler_formatter_Formatter_write(this, " => ");
-    if (branch.body->type==compiler_ast_nodes_ASTType_Block) {
-      compiler_formatter_Formatter_format_block(this, branch.body);
-    } else {
-      compiler_formatter_Formatter_format_statement(this, branch.body);
-    }
+    compiler_formatter_Formatter_format_arrow_body(this, branch.body, false);
     compiler_formatter_Formatter_emit_inline_comment(this, branch.body->span.start.line);
     compiler_formatter_Formatter_newline(this);
   }
   if (((bool)if_stmt.els)) {
-    compiler_formatter_Formatter_emit_comments_before(this, if_stmt.els_span.start.line);
+    compiler_formatter_Formatter_emit_comments_before(this, if_stmt.els_span.start.line, true, 0);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, "else => ");
-    if (if_stmt.els->type==compiler_ast_nodes_ASTType_Block) {
-      compiler_formatter_Formatter_format_block(this, if_stmt.els);
-    } else {
-      compiler_formatter_Formatter_format_statement(this, if_stmt.els);
-    }
+    compiler_formatter_Formatter_format_arrow_body(this, if_stmt.els, false);
     compiler_formatter_Formatter_emit_inline_comment(this, if_stmt.els->span.start.line);
     compiler_formatter_Formatter_newline(this);
   }
-  this->indent--;
+  compiler_formatter_Formatter_pop_indent(this);
   compiler_formatter_Formatter_write_indent(this);
   compiler_formatter_Formatter_write(this, "}");
 }
@@ -18385,30 +19109,56 @@ void compiler_formatter_Formatter_format_block(compiler_formatter_Formatter *thi
   }
   compiler_formatter_Formatter_emit_inline_comment(this, node->span.start.line);
   compiler_formatter_Formatter_newline(this);
-  this->indent++;
+  compiler_formatter_Formatter_push_indent(this);
   u32 prev_end_line = node->span.start.line;
   for (u32 i = 0; i < stmts->size; i++) {
     compiler_ast_nodes_AST *stmt = std_vector_Vector__19_at(stmts, i);
-    u32 next_line = stmt->span.start.line;
-    if (this->comment_index < this->comments->size) {
-      compiler_tokens_Comment c = std_vector_Vector__16_at(this->comments, this->comment_index);
-      if ((c.span.start.line < next_line) && (c.span.start.line > prev_end_line)) {
-        next_line=c.span.start.line;
-      }
-    }
-    if ((i > 0) && (next_line > (prev_end_line + 1))) {
-      compiler_formatter_Formatter_newline(this);
-    }
-    compiler_formatter_Formatter_emit_comments_before(this, stmt->span.start.line);
+    compiler_formatter_Formatter_emit_item_preamble(this, stmt->span.start.line, i, prev_end_line);
+    u32 stmt_output_start = this->output_line;
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_format_statement(this, stmt);
     compiler_formatter_Formatter_emit_inline_comment(this, stmt->span.start.line);
     compiler_formatter_Formatter_newline(this);
+    if (this->track_stmts) {
+      u32 source_end = stmt->span.end.line;
+      u32 output_lines = (((this->output_line - 1) - stmt_output_start) + 1);
+      u32 output_cap = ((stmt->span.start.line + output_lines) - 1);
+      if (source_end > output_cap) {
+        source_end=output_cap;
+      }
+      if ((i + 1) < stmts->size) {
+        u32 next_start = std_vector_Vector__19_at(stmts, (i + 1))->span.start.line;
+        if (source_end >= next_start) {
+          source_end=(next_start - 1);
+        }
+      }
+      if (i==(stmts->size - 1) && (source_end >= node->span.end.line)) {
+        source_end=(node->span.end.line - 1);
+      }
+      std_vector_Vector__34_push(this->stmt_mappings, (compiler_formatter_DeclMapping){.source_start=stmt->span.start.line, .source_end=source_end, .output_start=stmt_output_start, .output_end=(this->output_line - 1)});
+    }
     prev_end_line=stmt->span.end.line;
   }
   u32 close_line = node->span.end.line;
-  compiler_formatter_Formatter_emit_comments_before(this, close_line);
-  this->indent--;
+  while (this->comment_index < this->comments->size) {
+    compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, this->comment_index);
+    if (comment.span.start.line >= close_line) {
+      break;
+    }
+    if (comment.is_inline) {
+      this->comment_index++;
+      continue;
+    }
+    if (comment.span.start.line > (prev_end_line + 1)) {
+      compiler_formatter_Formatter_newline(this);
+    }
+    compiler_formatter_Formatter_write_indent(this);
+    compiler_formatter_Formatter_write(this, comment.text);
+    compiler_formatter_Formatter_newline(this);
+    prev_end_line=comment.span.end.line;
+    this->comment_index++;
+  }
+  compiler_formatter_Formatter_pop_indent(this);
   compiler_formatter_Formatter_write_indent(this);
   compiler_formatter_Formatter_write(this, "}");
 }
@@ -18416,12 +19166,12 @@ void compiler_formatter_Formatter_format_block(compiler_formatter_Formatter *thi
 void compiler_formatter_Formatter_format_statement(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
 switch ((node->type)) {
     case compiler_ast_nodes_ASTType_VarDeclaration:
-    m_577_0:
+    m_591_0:
       {
         compiler_formatter_Formatter_format_var_decl(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Return:
-    m_577_1:
+    m_591_1:
       {
         compiler_formatter_Formatter_write(this, "return");
         if (((bool)node->u.ret.expr)) {
@@ -18430,7 +19180,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Yield:
-    m_577_2:
+    m_591_2:
       {
         compiler_formatter_Formatter_write(this, "yield");
         if (((bool)node->u.ret.expr)) {
@@ -18439,51 +19189,59 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_577_3:
+    m_591_3:
       {
         compiler_formatter_Formatter_format_if(this, node);
       } break;
     case compiler_ast_nodes_ASTType_While:
-    m_577_4:
+    m_591_4:
       {
         compiler_formatter_Formatter_write(this, "while ");
         compiler_formatter_Formatter_format_expr(this, node->u.loop.cond);
-        compiler_formatter_Formatter_write(this, " ");
+        u32 cond_start = node->u.loop.cond->span.start.line;
+        u32 cond_end = node->u.loop.cond->span.end.line;
+        if (compiler_formatter_Formatter_has_unemitted_inline_comment_in_range(this, cond_start, cond_end)) {
+          compiler_formatter_Formatter_emit_all_unemitted_inline_comments_in_range(this, cond_start, cond_end);
+          compiler_formatter_Formatter_newline(this);
+          compiler_formatter_Formatter_write_indent(this);
+        } else {
+          compiler_formatter_Formatter_write(this, " ");
+        }
         compiler_formatter_Formatter_format_block(this, node->u.loop.body);
       } break;
     case compiler_ast_nodes_ASTType_For:
-    m_577_5:
+    m_591_5:
       {
         compiler_formatter_Formatter_format_for(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_577_6:
+    m_591_6:
       {
         compiler_formatter_Formatter_format_match(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_577_7:
+    m_591_7:
       {
         compiler_formatter_Formatter_format_block(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Break:
-    m_577_8:
+    m_591_8:
       {
         compiler_formatter_Formatter_write(this, "break");
       } break;
     case compiler_ast_nodes_ASTType_Continue:
-    m_577_9:
+    m_591_9:
       {
         compiler_formatter_Formatter_write(this, "continue");
       } break;
     case compiler_ast_nodes_ASTType_Defer:
-    m_577_10:
+    m_591_10:
       {
         compiler_formatter_Formatter_write(this, "defer ");
         compiler_formatter_Formatter_format_statement(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_Assert:
-    m_577_11:
+    m_591_11:
       {
         compiler_formatter_Formatter_write(this, "assert ");
         compiler_formatter_Formatter_format_expr(this, node->u.assertion.expr);
@@ -18493,7 +19251,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Import:
-    m_577_12:
+    m_591_12:
       {
         compiler_formatter_Formatter_format_import(this, node);
       } break;
@@ -18503,13 +19261,17 @@ switch ((node->type)) {
       } break;
   }}
 
+bool compiler_formatter_Formatter_match_body_needs_trailing_comma(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *body) {
+  return body->type==compiler_ast_nodes_ASTType_If || body->type==compiler_ast_nodes_ASTType_Match;
+}
+
 void compiler_formatter_Formatter_format_for(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
-  compiler_ast_nodes_Loop lp = node->u.loop;
-  if (((bool)lp.init) && lp.init->type==compiler_ast_nodes_ASTType_VarDeclaration) {
-    compiler_ast_nodes_Variable *init_var = lp.init->u.var_decl;
+  compiler_ast_nodes_Loop loop_node = node->u.loop;
+  if (((bool)loop_node.init) && loop_node.init->type==compiler_ast_nodes_ASTType_VarDeclaration) {
+    compiler_ast_nodes_Variable *init_var = loop_node.init->u.var_decl;
     char *var_name = init_var->sym->name;
     if (str_starts_with(var_name, "_i")) {
-      compiler_ast_nodes_AST *body = lp.body;
+      compiler_ast_nodes_AST *body = loop_node.body;
       if (body->type==compiler_ast_nodes_ASTType_Block && (body->u.block.statements->size >= 2)) {
         compiler_ast_nodes_AST *inner_var = std_vector_Vector__19_at(body->u.block.statements, 0);
         if (inner_var->type==compiler_ast_nodes_ASTType_VarDeclaration) {
@@ -18527,79 +19289,59 @@ void compiler_formatter_Formatter_format_for(compiler_formatter_Formatter *this,
     }
   }
   compiler_formatter_Formatter_write(this, "for ");
-  if (((bool)lp.init)) {
-    compiler_formatter_Formatter_format_statement(this, lp.init);
+  if (((bool)loop_node.init)) {
+    compiler_formatter_Formatter_format_statement(this, loop_node.init);
   }
   compiler_formatter_Formatter_write(this, "; ");
-  if (((bool)lp.cond)) {
-    compiler_formatter_Formatter_format_expr(this, lp.cond);
+  if (((bool)loop_node.cond)) {
+    compiler_formatter_Formatter_format_expr(this, loop_node.cond);
   }
   compiler_formatter_Formatter_write(this, "; ");
-  if (((bool)lp.step)) {
-    compiler_formatter_Formatter_format_expr(this, lp.step);
+  if (((bool)loop_node.step)) {
+    compiler_formatter_Formatter_format_expr(this, loop_node.step);
   }
   compiler_formatter_Formatter_write(this, " ");
-  compiler_formatter_Formatter_format_block(this, lp.body);
+  compiler_formatter_Formatter_format_block(this, loop_node.body);
 }
 
 void compiler_formatter_Formatter_format_match(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
-  compiler_ast_nodes_Match m = node->u.match_stmt;
+  compiler_ast_nodes_Match match_node = node->u.match_stmt;
   compiler_formatter_Formatter_write(this, "match ");
-  compiler_formatter_Formatter_format_expr(this, m.expr);
+  compiler_formatter_Formatter_format_expr(this, match_node.expr);
   compiler_formatter_Formatter_write(this, " {");
   compiler_formatter_Formatter_newline(this);
-  this->indent++;
-  for (u32 i = 0; i < m.cases->size; i++) {
-    compiler_ast_nodes_MatchCase cas = std_vector_Vector__28_at(m.cases, i);
-    compiler_formatter_Formatter_emit_comments_before(this, std_vector_Vector__5_at(cas.conds, 0)->expr->span.start.line);
+  compiler_formatter_Formatter_push_indent(this);
+  for (u32 i = 0; i < match_node.cases->size; i++) {
+    compiler_ast_nodes_MatchCase case_node = std_vector_Vector__28_at(match_node.cases, i);
+    compiler_formatter_Formatter_emit_comments_before(this, std_vector_Vector__5_at(case_node.conds, 0)->expr->span.start.line, true, 0);
     compiler_formatter_Formatter_write_indent(this);
-    for (u32 j = 0; j < cas.conds->size; j++) {
+    for (u32 j = 0; j < case_node.conds->size; j++) {
       if (j > 0) {
         compiler_formatter_Formatter_write(this, " | ");
       }
-      compiler_formatter_Formatter_format_match_cond(this, std_vector_Vector__5_at(cas.conds, j));
+      compiler_formatter_Formatter_format_match_cond(this, std_vector_Vector__5_at(case_node.conds, j));
     }
     compiler_formatter_Formatter_write(this, " => ");
-    if (cas.body->type==compiler_ast_nodes_ASTType_Block) {
-      compiler_formatter_Formatter_format_block(this, cas.body);
-    } else {
-      compiler_formatter_Formatter_format_statement(this, cas.body);
-      if (cas.body->type==compiler_ast_nodes_ASTType_If || cas.body->type==compiler_ast_nodes_ASTType_Match) {
-        compiler_formatter_Formatter_write(this, ",");
-      }
-    }
-    compiler_formatter_Formatter_emit_inline_comment(this, cas.body->span.start.line);
+    compiler_formatter_Formatter_format_arrow_body(this, case_node.body, true);
+    compiler_formatter_Formatter_emit_inline_comment(this, case_node.body->span.start.line);
     compiler_formatter_Formatter_newline(this);
   }
-  if (((bool)m.defolt)) {
-    compiler_formatter_Formatter_emit_comments_before(this, m.defolt_span.start.line);
+  if (((bool)match_node.defolt)) {
+    compiler_formatter_Formatter_emit_comments_before(this, match_node.defolt_span.start.line, true, 0);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, "else => ");
-    if (m.defolt->type==compiler_ast_nodes_ASTType_Block) {
-      compiler_formatter_Formatter_format_block(this, m.defolt);
-    } else {
-      compiler_formatter_Formatter_format_statement(this, m.defolt);
-    }
-    compiler_formatter_Formatter_emit_inline_comment(this, m.defolt->span.start.line);
+    compiler_formatter_Formatter_format_arrow_body(this, match_node.defolt, false);
+    compiler_formatter_Formatter_emit_inline_comment(this, match_node.defolt->span.start.line);
     compiler_formatter_Formatter_newline(this);
   }
-  this->indent--;
+  compiler_formatter_Formatter_pop_indent(this);
   compiler_formatter_Formatter_write_indent(this);
   compiler_formatter_Formatter_write(this, "}");
 }
 
 void compiler_formatter_Formatter_format_var_decl(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
   compiler_ast_nodes_Variable *var = node->u.var_decl;
-  compiler_formatter_Formatter_write(this, "let ");
-  compiler_formatter_Formatter_write(this, var->sym->name);
-  if (((bool)var->parsed_type)) {
-    compiler_formatter_Formatter_write(this, ": ");
-    compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, var->parsed_type));
-  }
-  if (((bool)var->default_value)) {
-    compiler_formatter_Formatter_write(this, " = ");
-    compiler_formatter_Formatter_format_expr(this, var->default_value);
-  }
+  compiler_formatter_Formatter_write_var_decl(this, var, "let");
 }
 
 void compiler_formatter_Formatter_format_import(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
@@ -18607,19 +19349,19 @@ void compiler_formatter_Formatter_format_import(compiler_formatter_Formatter *th
   compiler_formatter_Formatter_write(this, "import ");
 switch ((imp.type)) {
     case compiler_ast_nodes_ImportType_ProjectNamespace:
-    m_578_0:
+    m_592_0:
       {
         compiler_formatter_Formatter_write(this, "@");
       } break;
     case compiler_ast_nodes_ImportType_ParentNamespace:
-    m_578_1:
+    m_592_1:
       {
         for (u32 i = 0; i < imp.parent_count; i++) {
           compiler_formatter_Formatter_write(this, ".");
         }
       } break;
     case compiler_ast_nodes_ImportType_CurrentScope:
-    m_578_2:
+    m_592_2:
       {
         compiler_formatter_Formatter_write(this, "::");
       } break;
@@ -18637,7 +19379,7 @@ void compiler_formatter_Formatter_format_import_parts(compiler_formatter_Formatt
     compiler_ast_nodes_ImportPart *part = std_vector_Vector__8_at(parts, i);
 switch ((part->type)) {
       case compiler_ast_nodes_ImportPartType_Single:
-      m_579_0:
+      m_593_0:
         {
           compiler_formatter_Formatter_write(this, part->u.single.name);
           if (((bool)part->u.single.alias)) {
@@ -18646,7 +19388,7 @@ switch ((part->type)) {
           }
         } break;
       case compiler_ast_nodes_ImportPartType_Multiple:
-      m_579_1:
+      m_593_1:
         {
           compiler_formatter_Formatter_write(this, "{ ");
           for (u32 j = 0; j < part->u.multiple.paths->size; j++) {
@@ -18658,7 +19400,7 @@ switch ((part->type)) {
           compiler_formatter_Formatter_write(this, " }");
         } break;
       case compiler_ast_nodes_ImportPartType_Wildcard:
-      m_579_2:
+      m_593_2:
         {
           compiler_formatter_Formatter_write(this, "*");
         } break;
@@ -18713,26 +19455,12 @@ void compiler_formatter_Formatter_format_param(compiler_formatter_Formatter *thi
 }
 
 void compiler_formatter_Formatter_format_function_attrs(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func) {
-  if (func->sym->is_extern) {
-    compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, "[extern");
-    if (((bool)func->sym->extern_name) && !(str_eq(func->sym->extern_name, func->sym->name))) {
-      compiler_formatter_Formatter_write(this, " \"");
-      compiler_formatter_Formatter_write(this, func->sym->extern_name);
-      compiler_formatter_Formatter_write(this, "\"");
-    }
-    compiler_formatter_Formatter_write(this, "]");
-    compiler_formatter_Formatter_newline(this);
-  }
+  compiler_formatter_Formatter_format_extern_attr(this, func->sym);
   if (func->exits) {
-    compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, "[exits]");
-    compiler_formatter_Formatter_newline(this);
+    compiler_formatter_Formatter_write_attr_line(this, "exits");
   }
   if (func->is_variadic_format) {
-    compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, "[variadic_format]");
-    compiler_formatter_Formatter_newline(this);
+    compiler_formatter_Formatter_write_attr_line(this, "variadic_format");
   }
   if (((bool)func->operator_overloads)) {
     for (std_vector_Iterator__25 _i5 = std_vector_Vector__25_iter(func->operator_overloads); std_vector_Iterator__25_has_value(&_i5); std_vector_Iterator__25_next(&_i5)) {
@@ -18740,26 +19468,23 @@ void compiler_formatter_Formatter_format_function_attrs(compiler_formatter_Forma
       {
         compiler_formatter_Formatter_write_indent(this);
         compiler_formatter_Formatter_write(this, "[operator \"");
-        compiler_formatter_Formatter_write(this, compiler_formatter_operator_str(op));
+        compiler_formatter_Formatter_write(this, compiler_ast_operators_Operator_str(op));
         compiler_formatter_Formatter_write(this, "\"]");
         compiler_formatter_Formatter_newline(this);
       }
     }
   }
   if (func->is_test_function) {
-    compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, "[test]");
-    compiler_formatter_Formatter_newline(this);
+    compiler_formatter_Formatter_write_attr_line(this, "test");
   }
   if (func->flatten_attr) {
-    compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, "[flatten]");
-    compiler_formatter_Formatter_newline(this);
+    compiler_formatter_Formatter_write_attr_line(this, "flatten");
   }
 }
 
 void compiler_formatter_Formatter_format_function(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func) {
   compiler_formatter_Formatter_format_function_attrs(this, func);
+  u32 header_output_start = this->output_line;
   compiler_formatter_Formatter_write_indent(this);
   compiler_formatter_Formatter_write(this, "def ");
   if (((bool)func->parent_type)) {
@@ -18767,63 +19492,9 @@ void compiler_formatter_Formatter_format_function(compiler_formatter_Formatter *
     compiler_formatter_Formatter_write(this, "::");
   }
   compiler_formatter_Formatter_write(this, func->sym->name);
-  if (((bool)func->sym->template)) {
-    compiler_formatter_Formatter_write(this, "<");
-    compiler_ast_scopes_Template *tmpl = func->sym->template;
-    for (u32 i = 0; i < tmpl->params->size; i++) {
-      if (i > 0) {
-        compiler_formatter_Formatter_write(this, ", ");
-      }
-      compiler_formatter_Formatter_write(this, std_vector_Vector__12_at(tmpl->params, i)->name);
-    }
-    compiler_formatter_Formatter_write(this, ">");
-  }
-  compiler_formatter_Formatter_write(this, "(");
-  bool params_multiline = false;
-  if (func->params->size > 0) {
-    u32 first_line = std_vector_Vector__3_at(func->params, 0)->sym->span.start.line;
-    compiler_ast_nodes_Variable *last_param = std_vector_Vector__3_at(func->params, (func->params->size - 1));
-    u32 last_line = last_param->sym->span.start.line;
-    if (func->is_variadic && (func->variadic_span.start.line > last_line)) {
-      last_line=func->variadic_span.start.line;
-    }
-    if ((last_line > first_line) && compiler_formatter_Formatter_has_inline_comments_in_range(this, first_line, last_line)) {
-      params_multiline=true;
-    }
-  }
-  if (params_multiline) {
-    compiler_formatter_Formatter_newline(this);
-    this->indent++;
-    for (u32 i = 0; i < func->params->size; i++) {
-      compiler_formatter_Formatter_write_indent(this);
-      compiler_formatter_Formatter_format_param(this, std_vector_Vector__3_at(func->params, i), i==0);
-      compiler_formatter_Formatter_write(this, ",");
-      compiler_formatter_Formatter_emit_inline_comment(this, std_vector_Vector__3_at(func->params, i)->sym->span.start.line);
-      compiler_formatter_Formatter_newline(this);
-    }
-    if (func->is_variadic) {
-      compiler_formatter_Formatter_write_indent(this);
-      compiler_formatter_Formatter_write(this, "...");
-      compiler_formatter_Formatter_emit_inline_comment(this, func->variadic_span.start.line);
-      compiler_formatter_Formatter_newline(this);
-    }
-    this->indent--;
-    compiler_formatter_Formatter_write_indent(this);
-  } else {
-    for (u32 i = 0; i < func->params->size; i++) {
-      if (i > 0) {
-        compiler_formatter_Formatter_write(this, ", ");
-      }
-      compiler_formatter_Formatter_format_param(this, std_vector_Vector__3_at(func->params, i), i==0);
-    }
-    if (func->is_variadic) {
-      if (func->params->size > 0) {
-        compiler_formatter_Formatter_write(this, ", ");
-      }
-      compiler_formatter_Formatter_write(this, "...");
-    }
-  }
-  compiler_formatter_Formatter_write(this, ")");
+  compiler_formatter_Formatter_format_template_params(this, func->sym);
+  compiler_formatter_ParamPlan param_plan = compiler_formatter_Formatter_plan_params(this, func);
+  compiler_formatter_Formatter_emit_params(this, func, &param_plan);
   if (compiler_formatter_Formatter_has_explicit_return_type(this, func)) {
     compiler_formatter_Formatter_write(this, ": ");
     compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, func->parsed_return_type));
@@ -18839,23 +19510,21 @@ void compiler_formatter_Formatter_format_function(compiler_formatter_Formatter *
     compiler_formatter_Formatter_newline(this);
   } else {
     compiler_formatter_Formatter_write(this, " ");
+    if (this->range_start > 0) {
+      std_vector_Vector__34_push(this->stmt_mappings, (compiler_formatter_DeclMapping){.source_start=func->span.start.line, .source_end=func->body->span.start.line, .output_start=header_output_start, .output_end=this->output_line});
+    }
+    bool was_tracking = this->track_stmts;
+    if (this->range_start > 0) {
+      this->track_stmts=true;
+    }
     compiler_formatter_Formatter_format_block(this, func->body);
+    this->track_stmts=was_tracking;
     compiler_formatter_Formatter_newline(this);
   }
 }
 
 void compiler_formatter_Formatter_format_struct(compiler_formatter_Formatter *this, compiler_ast_nodes_Structure *struc) {
-  if (struc->sym->is_extern) {
-    compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, "[extern");
-    if (((bool)struc->sym->extern_name) && !(str_eq(struc->sym->extern_name, struc->sym->name))) {
-      compiler_formatter_Formatter_write(this, " \"");
-      compiler_formatter_Formatter_write(this, struc->sym->extern_name);
-      compiler_formatter_Formatter_write(this, "\"");
-    }
-    compiler_formatter_Formatter_write(this, "]");
-    compiler_formatter_Formatter_newline(this);
-  }
+  compiler_formatter_Formatter_format_extern_attr(this, struc->sym);
   compiler_formatter_Formatter_write_indent(this);
   if (struc->is_union) {
     compiler_formatter_Formatter_write(this, "union ");
@@ -18863,17 +19532,7 @@ void compiler_formatter_Formatter_format_struct(compiler_formatter_Formatter *th
     compiler_formatter_Formatter_write(this, "struct ");
   }
   compiler_formatter_Formatter_write(this, struc->sym->name);
-  if (((bool)struc->sym->template)) {
-    compiler_formatter_Formatter_write(this, "<");
-    compiler_ast_scopes_Template *tmpl = struc->sym->template;
-    for (u32 i = 0; i < tmpl->params->size; i++) {
-      if (i > 0) {
-        compiler_formatter_Formatter_write(this, ", ");
-      }
-      compiler_formatter_Formatter_write(this, std_vector_Vector__12_at(tmpl->params, i)->name);
-    }
-    compiler_formatter_Formatter_write(this, ">");
-  }
+  compiler_formatter_Formatter_format_template_params(this, struc->sym);
   if (((bool)struc->parsed_parent)) {
     compiler_formatter_Formatter_write(this, " : ");
     compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, struc->parsed_parent));
@@ -18883,13 +19542,19 @@ void compiler_formatter_Formatter_format_struct(compiler_formatter_Formatter *th
     compiler_formatter_Formatter_newline(this);
     return;
   }
+  if (struc->fields->size==0) {
+    compiler_formatter_Formatter_write(this, " {}");
+    compiler_formatter_Formatter_newline(this);
+    return;
+  }
   compiler_formatter_Formatter_write(this, " {");
   compiler_formatter_Formatter_newline(this);
-  this->indent++;
+  compiler_formatter_Formatter_push_indent(this);
   u32 i = 0;
+  u32 prev_field_end = struc->span.start.line;
   while (i < struc->fields->size) {
     compiler_ast_nodes_Variable *field = std_vector_Vector__3_at(struc->fields, i);
-    compiler_formatter_Formatter_emit_comments_before(this, field->sym->span.start.line);
+    compiler_formatter_Formatter_emit_item_preamble(this, field->sym->span.start.line, i, prev_field_end);
     compiler_formatter_Formatter_write_indent(this);
     u32 multi_end = (i + 1);
     while (multi_end < struc->fields->size) {
@@ -18917,6 +19582,7 @@ void compiler_formatter_Formatter_format_struct(compiler_formatter_Formatter *th
       compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, field->parsed_type));
       compiler_formatter_Formatter_emit_inline_comment(this, field->sym->span.start.line);
       compiler_formatter_Formatter_newline(this);
+      prev_field_end=std_vector_Vector__3_at(struc->fields, (multi_end - 1))->sym->span.end.line;
       i=multi_end;
     } else {
       compiler_formatter_Formatter_write(this, field->sym->name);
@@ -18930,52 +19596,31 @@ void compiler_formatter_Formatter_format_struct(compiler_formatter_Formatter *th
       }
       compiler_formatter_Formatter_emit_inline_comment(this, field->sym->span.start.line);
       compiler_formatter_Formatter_newline(this);
+      prev_field_end=field->sym->span.end.line;
       i++;
     }
   }
-  this->indent--;
+  compiler_formatter_Formatter_pop_indent(this);
   compiler_formatter_Formatter_write_indent(this);
   compiler_formatter_Formatter_write(this, "}");
   compiler_formatter_Formatter_newline(this);
 }
 
 void compiler_formatter_Formatter_format_enum(compiler_formatter_Formatter *this, compiler_ast_nodes_Enum *enom) {
-  if (enom->sym->is_extern) {
-    compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, "[extern");
-    if (((bool)enom->sym->extern_name) && !(str_eq(enom->sym->extern_name, enom->sym->name))) {
-      compiler_formatter_Formatter_write(this, " \"");
-      compiler_formatter_Formatter_write(this, enom->sym->extern_name);
-      compiler_formatter_Formatter_write(this, "\"");
-    }
-    compiler_formatter_Formatter_write(this, "]");
-    compiler_formatter_Formatter_newline(this);
-  }
+  compiler_formatter_Formatter_format_extern_attr(this, enom->sym);
   if (enom->is_flag_enum) {
-    compiler_formatter_Formatter_write_indent(this);
-    compiler_formatter_Formatter_write(this, "[flags]");
-    compiler_formatter_Formatter_newline(this);
+    compiler_formatter_Formatter_write_attr_line(this, "flags");
   }
   compiler_formatter_Formatter_write_indent(this);
   compiler_formatter_Formatter_write(this, "enum ");
   compiler_formatter_Formatter_write(this, enom->sym->name);
-  if (((bool)enom->sym->template)) {
-    compiler_formatter_Formatter_write(this, "<");
-    compiler_ast_scopes_Template *tmpl = enom->sym->template;
-    for (u32 i = 0; i < tmpl->params->size; i++) {
-      if (i > 0) {
-        compiler_formatter_Formatter_write(this, ", ");
-      }
-      compiler_formatter_Formatter_write(this, std_vector_Vector__12_at(tmpl->params, i)->name);
-    }
-    compiler_formatter_Formatter_write(this, ">");
-  }
+  compiler_formatter_Formatter_format_template_params(this, enom->sym);
   compiler_formatter_Formatter_write(this, " {");
   compiler_formatter_Formatter_newline(this);
-  this->indent++;
+  compiler_formatter_Formatter_push_indent(this);
   for (u32 i = 0; i < enom->shared_fields->size; i++) {
     compiler_ast_nodes_Variable *field = std_vector_Vector__3_at(enom->shared_fields, i);
-    compiler_formatter_Formatter_emit_comments_before(this, field->sym->span.start.line);
+    compiler_formatter_Formatter_emit_comments_before(this, field->sym->span.start.line, true, 0);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, field->sym->name);
     compiler_formatter_Formatter_write(this, ": ");
@@ -18989,7 +19634,7 @@ void compiler_formatter_Formatter_format_enum(compiler_formatter_Formatter *this
   }
   for (u32 i = 0; i < enom->variants->size; i++) {
     compiler_ast_nodes_EnumVariant *variant = std_vector_Vector__23_at(enom->variants, i);
-    compiler_formatter_Formatter_emit_comments_before(this, variant->span.start.line);
+    compiler_formatter_Formatter_emit_comments_before(this, variant->span.start.line, true, 0);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, variant->sym->name);
     if (variant->specific_fields->size > 0) {
@@ -19011,47 +19656,26 @@ void compiler_formatter_Formatter_format_enum(compiler_formatter_Formatter *this
       }
       compiler_formatter_Formatter_write(this, ")");
     }
+    if ((variant->sym->is_extern && ((bool)variant->sym->extern_name)) && !(str_eq(variant->sym->extern_name, variant->sym->name))) {
+      compiler_formatter_Formatter_write(this, std_format(" = extern(\""));
+      compiler_formatter_Formatter_write(this, variant->sym->extern_name);
+      compiler_formatter_Formatter_write(this, std_format("\")"));
+    }
     compiler_formatter_Formatter_emit_inline_comment(this, variant->span.start.line);
     compiler_formatter_Formatter_newline(this);
   }
-  this->indent--;
+  compiler_formatter_Formatter_pop_indent(this);
   compiler_formatter_Formatter_write_indent(this);
   compiler_formatter_Formatter_write(this, "}");
   compiler_formatter_Formatter_newline(this);
 }
 
 void compiler_formatter_Formatter_format_const_decl(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
-  compiler_ast_nodes_Variable *var = node->u.var_decl;
-  compiler_formatter_Formatter_write_indent(this);
-  compiler_formatter_Formatter_write(this, "const ");
-  compiler_formatter_Formatter_write(this, var->sym->name);
-  if (((bool)var->parsed_type)) {
-    compiler_formatter_Formatter_write(this, ": ");
-    compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, var->parsed_type));
-  }
-  if (((bool)var->default_value)) {
-    compiler_formatter_Formatter_write(this, " = ");
-    compiler_formatter_Formatter_format_expr(this, var->default_value);
-  }
-  compiler_formatter_Formatter_emit_inline_comment(this, node->span.start.line);
-  compiler_formatter_Formatter_newline(this);
+  compiler_formatter_Formatter_format_top_level_var_decl(this, node, "const");
 }
 
 void compiler_formatter_Formatter_format_global_var(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
-  compiler_ast_nodes_Variable *var = node->u.var_decl;
-  compiler_formatter_Formatter_write_indent(this);
-  compiler_formatter_Formatter_write(this, "let ");
-  compiler_formatter_Formatter_write(this, var->sym->name);
-  if (((bool)var->parsed_type)) {
-    compiler_formatter_Formatter_write(this, ": ");
-    compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, var->parsed_type));
-  }
-  if (((bool)var->default_value)) {
-    compiler_formatter_Formatter_write(this, " = ");
-    compiler_formatter_Formatter_format_expr(this, var->default_value);
-  }
-  compiler_formatter_Formatter_emit_inline_comment(this, node->span.start.line);
-  compiler_formatter_Formatter_newline(this);
+  compiler_formatter_Formatter_format_top_level_var_decl(this, node, "let");
 }
 
 void compiler_formatter_Formatter_format_typedef(compiler_formatter_Formatter *this, char *name, compiler_types_Type *type) {
@@ -19064,16 +19688,17 @@ void compiler_formatter_Formatter_format_typedef(compiler_formatter_Formatter *t
   compiler_formatter_Formatter_newline(this);
 }
 
-std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_formatter_Formatter *this, compiler_ast_program_Namespace *ns) {
-  std_vector_Vector__30 *decls = std_vector_Vector__30_new(16);
+std_vector_Vector__32 *compiler_formatter_Formatter_collect_decls(compiler_formatter_Formatter *this, compiler_ast_program_Namespace *ns) {
+  std_vector_Vector__32 *decls = std_vector_Vector__32_new(16);
   for (std_vector_Iterator__9 _i6 = std_vector_Vector__9_iter(ns->functions); std_vector_Iterator__9_has_value(&_i6); std_vector_Iterator__9_next(&_i6)) {
     compiler_ast_nodes_Function *func = std_vector_Iterator__9_cur(&_i6);
     {
       compiler_formatter_Decl d = {0};
       d.type=compiler_formatter_DeclType_Function;
       d.line=func->span.start.line;
+      d.col=func->span.start.col;
       d.u.func=func;
-      std_vector_Vector__30_push(decls, d);
+      std_vector_Vector__32_push(decls, d);
     }
   }
   for (std_vector_Iterator__17 _i7 = std_vector_Vector__17_iter(ns->structs); std_vector_Iterator__17_has_value(&_i7); std_vector_Iterator__17_next(&_i7)) {
@@ -19082,8 +19707,9 @@ std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_forma
       compiler_formatter_Decl d = {0};
       d.type=compiler_formatter_DeclType_Structure;
       d.line=struc->span.start.line;
+      d.col=struc->span.start.col;
       d.u.struc=struc;
-      std_vector_Vector__30_push(decls, d);
+      std_vector_Vector__32_push(decls, d);
     }
   }
   for (std_vector_Iterator__18 _i8 = std_vector_Vector__18_iter(ns->enums); std_vector_Iterator__18_has_value(&_i8); std_vector_Iterator__18_next(&_i8)) {
@@ -19092,8 +19718,9 @@ std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_forma
       compiler_formatter_Decl d = {0};
       d.type=compiler_formatter_DeclType_Enum;
       d.line=enom->span.start.line;
+      d.col=enom->span.start.col;
       d.u.enom=enom;
-      std_vector_Vector__30_push(decls, d);
+      std_vector_Vector__32_push(decls, d);
     }
   }
   for (std_vector_Iterator__19 _i9 = std_vector_Vector__19_iter(ns->constants); std_vector_Iterator__19_has_value(&_i9); std_vector_Iterator__19_next(&_i9)) {
@@ -19102,8 +19729,9 @@ std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_forma
       compiler_formatter_Decl d = {0};
       d.type=compiler_formatter_DeclType_Constant;
       d.line=node->span.start.line;
+      d.col=node->span.start.col;
       d.u.var_node=node;
-      std_vector_Vector__30_push(decls, d);
+      std_vector_Vector__32_push(decls, d);
     }
   }
   for (std_vector_Iterator__19 _i10 = std_vector_Vector__19_iter(ns->variables); std_vector_Iterator__19_has_value(&_i10); std_vector_Iterator__19_next(&_i10)) {
@@ -19112,8 +19740,9 @@ std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_forma
       compiler_formatter_Decl d = {0};
       d.type=compiler_formatter_DeclType_Variable;
       d.line=node->span.start.line;
+      d.col=node->span.start.col;
       d.u.var_node=node;
-      std_vector_Vector__30_push(decls, d);
+      std_vector_Vector__32_push(decls, d);
     }
   }
   for (std_vector_Iterator__19 _i11 = std_vector_Vector__19_iter(ns->imports); std_vector_Iterator__19_has_value(&_i11); std_vector_Iterator__19_next(&_i11)) {
@@ -19122,8 +19751,9 @@ std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_forma
       compiler_formatter_Decl d = {0};
       d.type=compiler_formatter_DeclType_Import;
       d.line=node->span.start.line;
+      d.col=node->span.start.col;
       d.u.import_node=node;
-      std_vector_Vector__30_push(decls, d);
+      std_vector_Vector__32_push(decls, d);
     }
   }
   for (std_map_Iterator__3 _i12 = std_map_Map__3_iter(ns->namespaces); std_map_Iterator__3_has_value(&_i12); std_map_Iterator__3_next(&_i12)) {
@@ -19136,8 +19766,9 @@ std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_forma
       compiler_formatter_Decl d = {0};
       d.type=compiler_formatter_DeclType_Namespace;
       d.line=child_ns->span.start.line;
+      d.col=child_ns->span.start.col;
       d.u.ns=child_ns;
-      std_vector_Vector__30_push(decls, d);
+      std_vector_Vector__32_push(decls, d);
     }
   }
   for (std_map_Iterator__2 _i13 = std_map_Map__2_iter(ns->typedefs); std_map_Iterator__2_has_value(&_i13); std_map_Iterator__2_next(&_i13)) {
@@ -19148,69 +19779,74 @@ std_vector_Vector__30 *compiler_formatter_Formatter_collect_decls(compiler_forma
       compiler_formatter_Decl d = {0};
       d.type=compiler_formatter_DeclType_TypeDef;
       d.line=type->span.start.line;
+      d.col=type->span.start.col;
       d.u.type_def=(compiler_formatter_TypeDefInfo){.name=name, .type=type, .span=type->span};
-      std_vector_Vector__30_push(decls, d);
+      std_vector_Vector__32_push(decls, d);
     }
   }
-  std_sort_sort_by__0(decls->data, decls->size, ({compiler_formatter_collect_decls__Closure_0Ctx *_C580 = alloca(sizeof(compiler_formatter_collect_decls__Closure_0Ctx));_ClosureTy_48 _ci581 = {._C=_C580, .fn=&compiler_formatter_collect_decls__Closure_0};_ci581;}));
+  std_sort_sort_by__0(decls->data, decls->size, ({compiler_formatter_collect_decls__Closure_0Ctx *_C594 = alloca(sizeof(compiler_formatter_collect_decls__Closure_0Ctx));_ClosureTy_52 _ci595 = {._C=_C594, .fn=&compiler_formatter_collect_decls__Closure_0};_ci595;}));
   return decls;
 }
 
 void compiler_formatter_Formatter_format_ns(compiler_formatter_Formatter *this, compiler_ast_program_Namespace *ns, bool track_mappings) {
-  std_vector_Vector__30 *decls = compiler_formatter_Formatter_collect_decls(this, ns);
+  std_vector_Vector__32 *decls = compiler_formatter_Formatter_collect_decls(this, ns);
   bool first = true;
   compiler_formatter_DeclType prev_type = compiler_formatter_DeclType_Import;
+  bool prev_is_arrow = false;
   u32 prev_source_end = 0;
   for (u32 i = 0; i < decls->size; i++) {
-    compiler_formatter_Decl d = std_vector_Vector__30_at(decls, i);
+    compiler_formatter_Decl d = std_vector_Vector__32_at(decls, i);
     u32 map_output_start = this->output_line;
     if (!(first)) {
       bool need_blank = true;
       bool is_var_or_const = (d.type==compiler_formatter_DeclType_Variable || d.type==compiler_formatter_DeclType_Constant);
       bool prev_var_or_const = (prev_type==compiler_formatter_DeclType_Variable || prev_type==compiler_formatter_DeclType_Constant);
+      bool cur_is_arrow = (d.type==compiler_formatter_DeclType_Function && d.u.func->is_arrow);
       if (d.type==compiler_formatter_DeclType_Import && prev_type==compiler_formatter_DeclType_Import) {
         need_blank=false;
       } else if (is_var_or_const && prev_var_or_const) {
         need_blank=false;
+      } else if (cur_is_arrow && prev_is_arrow) {
+        need_blank=compiler_formatter_Formatter_has_blank_source_line_between(this, prev_source_end, d.line);
       }
       if (need_blank) {
         compiler_formatter_Formatter_newline(this);
       }
     }
     u32 old_ci = this->comment_index;
-    compiler_formatter_Formatter_emit_comments_before(this, d.line);
+    compiler_formatter_Formatter_emit_comments_before(this, d.line, false, 0);
     bool emitted_comments = (this->comment_index > old_ci);
     if (first && emitted_comments) {
       compiler_formatter_Formatter_newline(this);
     }
 switch ((d.type)) {
       case compiler_formatter_DeclType_Function:
-      m_582_0:
+      m_596_0:
         {
           compiler_formatter_Formatter_format_function(this, d.u.func);
         } break;
       case compiler_formatter_DeclType_Structure:
-      m_582_1:
+      m_596_1:
         {
           compiler_formatter_Formatter_format_struct(this, d.u.struc);
         } break;
       case compiler_formatter_DeclType_Enum:
-      m_582_2:
+      m_596_2:
         {
           compiler_formatter_Formatter_format_enum(this, d.u.enom);
         } break;
       case compiler_formatter_DeclType_Constant:
-      m_582_3:
+      m_596_3:
         {
           compiler_formatter_Formatter_format_const_decl(this, d.u.var_node);
         } break;
       case compiler_formatter_DeclType_Variable:
-      m_582_4:
+      m_596_4:
         {
           compiler_formatter_Formatter_format_global_var(this, d.u.var_node);
         } break;
       case compiler_formatter_DeclType_Import:
-      m_582_5:
+      m_596_5:
         {
           compiler_formatter_Formatter_write_indent(this);
           compiler_formatter_Formatter_format_import(this, d.u.import_node);
@@ -19218,34 +19854,32 @@ switch ((d.type)) {
           compiler_formatter_Formatter_newline(this);
         } break;
       case compiler_formatter_DeclType_Namespace:
-      m_582_6:
+      m_596_6:
         {
           compiler_formatter_Formatter_format_ns_block(this, d.u.ns);
         } break;
       case compiler_formatter_DeclType_TypeDef:
-      m_582_7:
+      m_596_7:
         {
           compiler_formatter_Formatter_format_typedef(this, d.u.type_def.name, d.u.type_def.type);
         } break;
     }    if (track_mappings) {
       u32 source_end = compiler_formatter_decl_end_line(&d);
-      std_vector_Vector__32_push(this->decl_mappings, (compiler_formatter_DeclMapping){.source_start=(prev_source_end + 1), .source_end=source_end, .output_start=map_output_start, .output_end=(this->output_line - 1)});
+      std_vector_Vector__34_push(this->decl_mappings, (compiler_formatter_DeclMapping){.source_start=(prev_source_end + 1), .source_end=source_end, .output_start=map_output_start, .output_end=(this->output_line - 1)});
       prev_source_end=source_end;
+    } else {
+      prev_source_end=compiler_formatter_decl_end_line(&d);
     }
     prev_type=d.type;
+    prev_is_arrow=(d.type==compiler_formatter_DeclType_Function && d.u.func->is_arrow);
     first=false;
   }
   u32 map_output_start = this->output_line;
   compiler_formatter_Formatter_emit_remaining_comments(this, ns->span.end.line);
   if (track_mappings && (this->output_line > map_output_start)) {
-    u32 total_lines = 0;
-    for (u32 i = 0; this->source[i] != '\0'; i++) {
-      if (this->source[i]=='\n') {
-        total_lines++;
-      }
-    }
+    u32 total_lines = this->line_offsets->size;
     if (total_lines > prev_source_end) {
-      std_vector_Vector__32_push(this->decl_mappings, (compiler_formatter_DeclMapping){.source_start=(prev_source_end + 1), .source_end=total_lines, .output_start=map_output_start, .output_end=(this->output_line - 1)});
+      std_vector_Vector__34_push(this->decl_mappings, (compiler_formatter_DeclMapping){.source_start=(prev_source_end + 1), .source_end=total_lines, .output_start=map_output_start, .output_end=(this->output_line - 1)});
     }
   }
 }
@@ -19256,48 +19890,268 @@ void compiler_formatter_Formatter_format_ns_block(compiler_formatter_Formatter *
   compiler_formatter_Formatter_write(this, ns->sym->name);
   compiler_formatter_Formatter_write(this, " {");
   compiler_formatter_Formatter_newline(this);
-  this->indent++;
+  compiler_formatter_Formatter_push_indent(this);
   compiler_formatter_Formatter_format_ns(this, ns, false);
-  this->indent--;
+  compiler_formatter_Formatter_pop_indent(this);
   compiler_formatter_Formatter_write_indent(this);
   compiler_formatter_Formatter_write(this, "}");
   compiler_formatter_Formatter_newline(this);
 }
 
-std_vector_Vector__31 *compiler_formatter_split_lines(char *text) {
-  std_vector_Vector__31 *lines = std_vector_Vector__31_new(16);
+std_vector_Vector__33 *compiler_formatter_split_lines(char *text) {
+  std_vector_Vector__33 *lines = std_vector_Vector__33_new(16);
   std_sv_SV sv = std_sv_SV_from_str(text);
   while (!(std_sv_SV_is_empty(&sv))) {
-    std_vector_Vector__31_push(lines, std_sv_SV_chop_line(&sv));
+    std_vector_Vector__33_push(lines, std_sv_SV_chop_line(&sv));
   }
   return lines;
+}
+
+u32 compiler_formatter_find_inline_comment_col(std_sv_SV line) {
+  if (line.len < 3) {
+    return 0;
+  }
+  for (i32 i = (((i32)line.len) - 2); i >= 1; i--) {
+    if ((line.data[i]=='/' && line.data[(i + 1)]=='/') && line.data[(i - 1)]==' ') {
+      return ((u32)i);
+    }
+  }
+  return 0;
+}
+
+void compiler_formatter_Formatter_align_inline_comments(compiler_formatter_Formatter *this) {
+  if (this->ic_lines->size < 2) {
+    return;
+  }
+  char *text = std_buffer_Buffer_str(this->output);
+  std_vector_Vector__33 *lines = compiler_formatter_split_lines(text);
+  u32 i = 0;
+  bool any_changes = false;
+  std_vector_Vector__31 *pad_lines = std_vector_Vector__31_new(16);
+  std_vector_Vector__31 *pad_amounts = std_vector_Vector__31_new(16);
+  while (i < this->ic_lines->size) {
+    u32 group_start = i;
+    i++;
+    while ((i < this->ic_lines->size) && std_vector_Vector__31_at(this->ic_lines, i)==(std_vector_Vector__31_at(this->ic_lines, (i - 1)) + 1)) {
+      i++;
+    }
+    if ((i - group_start) < 2) {
+      continue;
+    }
+    u32 max_col = 0;
+    for (u32 j = group_start; j < i; j++) {
+      u32 line_idx = (std_vector_Vector__31_at(this->ic_lines, j) - 1);
+      if (line_idx < ((u32)lines->size)) {
+        u32 col = compiler_formatter_find_inline_comment_col(std_vector_Vector__33_at(lines, line_idx));
+        if (col > max_col) {
+          max_col=col;
+        }
+      }
+    }
+    for (u32 j = group_start; j < i; j++) {
+      u32 line_idx = (std_vector_Vector__31_at(this->ic_lines, j) - 1);
+      if (line_idx < ((u32)lines->size)) {
+        u32 col = compiler_formatter_find_inline_comment_col(std_vector_Vector__33_at(lines, line_idx));
+        if (col < max_col) {
+          std_vector_Vector__31_push(pad_lines, line_idx);
+          std_vector_Vector__31_push(pad_amounts, (max_col - col));
+          any_changes=true;
+        }
+      }
+    }
+  }
+  if (!(any_changes)) {
+    return;
+  }
+  std_buffer_Buffer new_output = std_buffer_Buffer_make(16);
+  u32 pad_idx = 0;
+  for (u32 k = 0; k < ((u32)lines->size); k++) {
+    std_sv_SV line = std_vector_Vector__33_at(lines, k);
+    if ((pad_idx < pad_lines->size) && std_vector_Vector__31_at(pad_lines, pad_idx)==k) {
+      u32 col = compiler_formatter_find_inline_comment_col(line);
+      u32 pad = std_vector_Vector__31_at(pad_amounts, pad_idx);
+      for (u32 c = 0; c < col; c++) {
+        std_buffer_Buffer_write_char(&new_output, line.data[c]);
+      }
+      for (u32 p = 0; p < pad; p++) {
+        std_buffer_Buffer_write_char(&new_output, ' ');
+      }
+      for (u32 c = col; c < line.len; c++) {
+        std_buffer_Buffer_write_char(&new_output, line.data[c]);
+      }
+      pad_idx++;
+    } else {
+      std_buffer_Buffer_write_sv(&new_output, line);
+    }
+    std_buffer_Buffer_write_char(&new_output, '\n');
+  }
+  this->output=new_output;
+}
+
+void compiler_formatter_emit_source_lines(std_buffer_Buffer *result, std_vector_Vector__33 *source_lines, u32 start, u32 end) {
+  for (u32 j = start; (j <= end) && (j <= ((u32)source_lines->size)); j++) {
+    std_buffer_Buffer_write_sv(result, std_vector_Vector__33_at(source_lines, (j - 1)));
+    std_buffer_Buffer_write_char(&(*result), '\n');
+  }
+}
+
+void compiler_formatter_emit_formatted_lines(std_buffer_Buffer *result, std_vector_Vector__33 *formatted_lines, u32 start, u32 end) {
+  for (u32 j = start; (j <= end) && (j <= ((u32)formatted_lines->size)); j++) {
+    std_buffer_Buffer_write_sv(result, std_vector_Vector__33_at(formatted_lines, (j - 1)));
+    std_buffer_Buffer_write_char(&(*result), '\n');
+  }
+}
+
+bool compiler_formatter_mapping_overlaps_range(u32 source_start, u32 source_end, u32 range_start, u32 range_end) {
+  return (source_start <= range_end) && (source_end >= range_start);
+}
+
+void compiler_formatter_emit_mapping_substitution(std_buffer_Buffer *result, compiler_formatter_DeclMapping *mapping, std_vector_Vector__33 *source_lines, std_vector_Vector__33 *formatted_lines, u32 range_start, u32 range_end) {
+  bool overlaps = compiler_formatter_mapping_overlaps_range(mapping->source_start, mapping->source_end, range_start, range_end);
+  u32 src_count = ((mapping->source_end - mapping->source_start) + 1);
+  u32 fmt_count = ((mapping->output_end - mapping->output_start) + 1);
+  if (!(overlaps)) {
+    compiler_formatter_emit_source_lines(result, source_lines, mapping->source_start, mapping->source_end);
+  } else if ((mapping->source_start >= range_start) && (mapping->source_end <= range_end)) {
+    compiler_formatter_emit_formatted_lines(result, formatted_lines, mapping->output_start, mapping->output_end);
+  } else if (src_count==fmt_count) {
+    for (u32 li = 0; li < src_count; li++) {
+      u32 abs_line = (mapping->source_start + li);
+      if ((abs_line >= range_start) && (abs_line <= range_end)) {
+        std_buffer_Buffer_write_sv(result, std_vector_Vector__33_at(formatted_lines, ((mapping->output_start - 1) + li)));
+      } else {
+        std_buffer_Buffer_write_sv(result, std_vector_Vector__33_at(source_lines, ((mapping->source_start - 1) + li)));
+      }
+      std_buffer_Buffer_write_char(&(*result), '\n');
+    }
+  } else {
+    bool all_in = true;
+    for (u32 j = mapping->source_start; j <= mapping->source_end; j++) {
+      if ((j < range_start) || (j > range_end)) {
+        all_in=false;
+        break;
+      }
+    }
+    if (all_in) {
+      compiler_formatter_emit_formatted_lines(result, formatted_lines, mapping->output_start, mapping->output_end);
+    } else {
+      compiler_formatter_emit_source_lines(result, source_lines, mapping->source_start, mapping->source_end);
+    }
+  }
+}
+
+std_vector_Vector__31 *compiler_formatter_filter_leaf_mappings(std_vector_Vector__31 *all_stmts, std_vector_Vector__34 *stmt_mappings) {
+  std_vector_Vector__31 *leaves = std_vector_Vector__31_new(16);
+  for (u32 a = 0; a < all_stmts->size; a++) {
+    compiler_formatter_DeclMapping sa = std_vector_Vector__34_at(stmt_mappings, std_vector_Vector__31_at(all_stmts, a));
+    bool is_leaf = true;
+    for (u32 b = 0; b < all_stmts->size; b++) {
+      if (a==b) {
+        continue;
+      }
+      compiler_formatter_DeclMapping sb = std_vector_Vector__34_at(stmt_mappings, std_vector_Vector__31_at(all_stmts, b));
+      if (((sb.source_start >= sa.source_start) && (sb.source_end <= sa.source_end)) && ((sb.source_start > sa.source_start) || (sb.source_end < sa.source_end))) {
+        is_leaf=false;
+        break;
+      }
+    }
+    if (is_leaf) {
+      std_vector_Vector__31_push(leaves, std_vector_Vector__31_at(all_stmts, a));
+    }
+  }
+  return leaves;
+}
+
+void compiler_formatter_Formatter_validate_mappings(compiler_formatter_Formatter *this) {
+  if (!(this->debug_cursor)) {
+    return;
+  }
+  for (u32 i = 0; i < this->decl_mappings->size; i++) {
+    compiler_formatter_DeclMapping m = std_vector_Vector__34_at(this->decl_mappings, i);
+    if (m.source_start > m.source_end) {
+      fprintf(stderr, "[formatter] INVARIANT: decl_mapping[%u] has source_start=%u > source_end=%u in %s""\n", i, m.source_start, m.source_end, this->filename);
+    }
+    if (m.output_start > m.output_end) {
+      fprintf(stderr, "[formatter] INVARIANT: decl_mapping[%u] has output_start=%u > output_end=%u in %s""\n", i, m.output_start, m.output_end, this->filename);
+    }
+    if (i > 0) {
+      compiler_formatter_DeclMapping prev = std_vector_Vector__34_at(this->decl_mappings, (i - 1));
+      if (m.source_start < prev.source_start) {
+        fprintf(stderr, "[formatter] INVARIANT: decl_mappings not monotonic: [%u].source_start=%u < [%u].source_start=%u in %s""\n", i, m.source_start, (i - 1), prev.source_start, this->filename);
+      }
+      if (m.source_start <= prev.source_end) {
+        fprintf(stderr, "[formatter] INVARIANT: decl_mappings overlap: [%u].source_start=%u <= [%u].source_end=%u in %s""\n", i, m.source_start, (i - 1), prev.source_end, this->filename);
+      }
+    }
+  }
+  for (u32 i = 0; i < this->stmt_mappings->size; i++) {
+    compiler_formatter_DeclMapping m = std_vector_Vector__34_at(this->stmt_mappings, i);
+    if (m.source_start > m.source_end) {
+      fprintf(stderr, "[formatter] INVARIANT: stmt_mapping[%u] has source_start=%u > source_end=%u in %s""\n", i, m.source_start, m.source_end, this->filename);
+    }
+    if (m.output_start > m.output_end) {
+      fprintf(stderr, "[formatter] INVARIANT: stmt_mapping[%u] has output_start=%u > output_end=%u in %s""\n", i, m.output_start, m.output_end, this->filename);
+    }
+  }
+}
+
+char *compiler_formatter_Formatter_reconstruct_range(compiler_formatter_Formatter *this, std_vector_Vector__33 *source_lines, std_vector_Vector__33 *formatted_lines) {
+  std_buffer_Buffer result = std_buffer_Buffer_make(16);
+  for (u32 i = 0; i < this->decl_mappings->size; i++) {
+    compiler_formatter_DeclMapping *decl_map = std_vector_Vector__34_at_ptr(this->decl_mappings, i);
+    if (!(compiler_formatter_mapping_overlaps_range(decl_map->source_start, decl_map->source_end, this->range_start, this->range_end))) {
+      compiler_formatter_emit_source_lines(&result, source_lines, decl_map->source_start, decl_map->source_end);
+      continue;
+    }
+    std_vector_Vector__31 *all_stmts = std_vector_Vector__31_new(16);
+    for (u32 k = 0; k < this->stmt_mappings->size; k++) {
+      compiler_formatter_DeclMapping stmt_map = std_vector_Vector__34_at(this->stmt_mappings, k);
+      if ((stmt_map.source_start >= decl_map->source_start) && (stmt_map.source_end <= decl_map->source_end)) {
+        std_vector_Vector__31_push(all_stmts, k);
+      }
+    }
+    if (all_stmts->size==0) {
+      compiler_formatter_emit_mapping_substitution(&result, decl_map, source_lines, formatted_lines, this->range_start, this->range_end);
+      continue;
+    }
+    std_vector_Vector__31 *leaves = compiler_formatter_filter_leaf_mappings(all_stmts, this->stmt_mappings);
+    u32 prev_source = decl_map->source_start;
+    for (u32 a = 0; a < leaves->size; a++) {
+      compiler_formatter_DeclMapping *stmt_map = std_vector_Vector__34_at_ptr(this->stmt_mappings, std_vector_Vector__31_at(leaves, a));
+      if (stmt_map->source_start < prev_source) {
+        if (compiler_formatter_mapping_overlaps_range(stmt_map->source_start, stmt_map->source_end, this->range_start, this->range_end)) {
+          compiler_formatter_emit_formatted_lines(&result, formatted_lines, stmt_map->output_start, stmt_map->output_end);
+        }
+        if (stmt_map->source_end >= prev_source) {
+          prev_source=(stmt_map->source_end + 1);
+        }
+        continue;
+      }
+      compiler_formatter_emit_source_lines(&result, source_lines, prev_source, (stmt_map->source_start - 1));
+      compiler_formatter_emit_mapping_substitution(&result, stmt_map, source_lines, formatted_lines, this->range_start, this->range_end);
+      prev_source=(stmt_map->source_end + 1);
+    }
+    compiler_formatter_emit_source_lines(&result, source_lines, prev_source, decl_map->source_end);
+  }
+  return std_buffer_Buffer_str(result);
 }
 
 char *compiler_formatter_Formatter_run(compiler_formatter_Formatter *this) {
   bool track = (this->range_start > 0);
   compiler_formatter_Formatter_format_ns(this, this->ns, track);
+  compiler_formatter_Formatter_emit_remaining_comments(this, 0);
+  if (this->debug_cursor && (this->cursor_regressions > 0)) {
+    fprintf(stderr, "[formatter] detected %u comment cursor regressions while formatting %s""\n", this->cursor_regressions, this->filename);
+  }
+  if(!(this->comment_index==this->comments->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:2642:12: Assertion failed: `.comment_index == .comments.size`", "Formatter ended with un-emitted comments"); }
+  compiler_formatter_Formatter_align_inline_comments(this);
   if (!(track)) {
     return std_buffer_Buffer_str(this->output);
   }
-  std_vector_Vector__31 *source_lines = compiler_formatter_split_lines(this->source);
-  std_vector_Vector__31 *formatted_lines = compiler_formatter_split_lines(std_buffer_Buffer_str(this->output));
-  std_buffer_Buffer result = std_buffer_Buffer_make(16);
-  for (u32 i = 0; i < this->decl_mappings->size; i++) {
-    compiler_formatter_DeclMapping m = std_vector_Vector__32_at(this->decl_mappings, i);
-    bool overlaps = ((m.source_start <= this->range_end) && (m.source_end >= this->range_start));
-    if (overlaps) {
-      for (u32 j = m.output_start; (j <= m.output_end) && (j <= ((u32)formatted_lines->size)); j++) {
-        std_buffer_Buffer_write_sv(&result, std_vector_Vector__31_at(formatted_lines, (j - 1)));
-        std_buffer_Buffer_write_char(&result, '\n');
-      }
-    } else {
-      for (u32 j = m.source_start; (j <= m.source_end) && (j <= ((u32)source_lines->size)); j++) {
-        std_buffer_Buffer_write_sv(&result, std_vector_Vector__31_at(source_lines, (j - 1)));
-        std_buffer_Buffer_write_char(&result, '\n');
-      }
-    }
-  }
-  return std_buffer_Buffer_str(result);
+  compiler_formatter_Formatter_validate_mappings(this);
+  std_vector_Vector__33 *source_lines = compiler_formatter_split_lines(this->source);
+  std_vector_Vector__33 *formatted_lines = compiler_formatter_split_lines(std_buffer_Buffer_str(this->output));
+  return compiler_formatter_Formatter_reconstruct_range(this, source_lines, formatted_lines);
 }
 
 void compiler_formatter_format_usage(i32 code) {
@@ -19320,17 +20174,21 @@ i32 compiler_formatter_format_main(i32 argc, char **argv) {
   while (argc > 0) {
     char *arg = std_shift_args(&argc, &argv, "here");
     {
-      char *__match_var_583 = arg;
-      if (str_eq(__match_var_583, "--help") || str_eq(__match_var_583, "-h")) {
+      char *__match_var_597 = arg;
+      if (str_eq(__match_var_597, "--help") || str_eq(__match_var_597, "-h")) {
         compiler_formatter_format_usage(0);
-      } else if (str_eq(__match_var_583, "--indent")) {
+      } else if (str_eq(__match_var_597, "--indent")) {
         if (argc==0) {
           printf("--indent requires a value""\n");
           compiler_formatter_format_usage(1);
         }
         char *val = std_shift_args(&argc, &argv, "here");
         indent_size=str_to_u32(val);
-      } else if (str_eq(__match_var_583, "--range")) {
+        if (indent_size==0 || (indent_size > 16)) {
+          printf("Invalid indent size: %s (expected 1..16)""\n", val);
+          compiler_formatter_format_usage(1);
+        }
+      } else if (str_eq(__match_var_597, "--range")) {
         if (argc==0) {
           printf("--range requires a value (start:end)""\n");
           compiler_formatter_format_usage(1);
@@ -19372,18 +20230,21 @@ i32 compiler_formatter_format_main(i32 argc, char **argv) {
   program->error_level=2;
   jmp_buf *err_ctx = compiler_ast_program_Program_add_error_context(program);
   if (setjmp((*err_ctx)) > 0) {
-    compiler_ast_program_Program_exit_with_errors_if_any(program);
-    return 1;
+    printf("%s", contents);
+    return 0;
   }
   compiler_ast_program_Program_setup_library_paths(program);
   compiler_parser_Parser_parse_toplevel(program, filename, contents, false);
-  compiler_ast_program_Program_exit_with_errors_if_any(program);
+  if (!(std_vector_Vector__15_is_empty(program->errors))) {
+    printf("%s", contents);
+    return 0;
+  }
   compiler_ast_program_Namespace *ns = program->global;
-  compiler_formatter_Formatter formatter = compiler_formatter_Formatter_make(program, ns, contents, filename);
-  formatter.indent_size=indent_size;
-  formatter.range_start=range_start;
-  formatter.range_end=range_end;
-  char *result = compiler_formatter_Formatter_run(&formatter);
+  compiler_formatter_Formatter fmt = compiler_formatter_Formatter_make(program, ns, contents, filename);
+  fmt.options.indent_size=indent_size;
+  fmt.range_start=range_start;
+  fmt.range_end=range_end;
+  char *result = compiler_formatter_Formatter_run(&fmt);
   printf("%s", result);
   return 0;
 }
@@ -19404,7 +20265,7 @@ char *compiler_lsp_server_read_message(void) {
   if (content_length==0) {
     return NULL;
   }
-  char *msg = std_mem_alloc__18((content_length + 1));
+  char *msg = std_mem_alloc__19((content_length + 1));
   std_fs_File_read(stdin, msg, content_length);
   msg[content_length]='\0';
   return msg;
@@ -19419,10 +20280,10 @@ void compiler_lsp_server_send_message(std_value_Value *content) {
 
 void compiler_lsp_server_send_response(std_value_Value *req, std_value_Value *result) {
   std_value_Value *response = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc584 = std_compact_map_Map__4_new(2);
-    std_compact_map_Map__4_insert(_mc584, "jsonrpc", std_value_Value_new_str("2.0"));
-    std_compact_map_Map__4_insert(_mc584, "id", std_value_Value_at_key(req, "id"));
-    _mc584;}));
+    std_compact_map_Map__4 *_mc598 = std_compact_map_Map__4_new(2);
+    std_compact_map_Map__4_insert(_mc598, "jsonrpc", std_value_Value_new_str("2.0"));
+    std_compact_map_Map__4_insert(_mc598, "id", std_value_Value_at_key(req, "id"));
+    _mc598;}));
   if (((bool)result)) {
     std_value_Value_insert(response, "result", result);
   } else {
@@ -19433,15 +20294,15 @@ void compiler_lsp_server_send_response(std_value_Value *req, std_value_Value *re
 
 void compiler_lsp_server_lsp_log(char *msg) {
   compiler_lsp_server_send_message(std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc585 = std_compact_map_Map__4_new(3);
-    std_compact_map_Map__4_insert(_mc585, "jsonrpc", std_value_Value_new_str("2.0"));
-    std_compact_map_Map__4_insert(_mc585, "method", std_value_Value_new_str("window/logMessage"));
-    std_compact_map_Map__4_insert(_mc585, "params", std_value_Value_new_dict(({
-      std_compact_map_Map__4 *_mc586 = std_compact_map_Map__4_new(2);
-      std_compact_map_Map__4_insert(_mc586, "type", std_value_Value_new_int(((i64)4)));
-      std_compact_map_Map__4_insert(_mc586, "message", std_value_Value_new_str(msg));
-      _mc586;})));
-    _mc585;})));
+    std_compact_map_Map__4 *_mc599 = std_compact_map_Map__4_new(3);
+    std_compact_map_Map__4_insert(_mc599, "jsonrpc", std_value_Value_new_str("2.0"));
+    std_compact_map_Map__4_insert(_mc599, "method", std_value_Value_new_str("window/logMessage"));
+    std_compact_map_Map__4_insert(_mc599, "params", std_value_Value_new_dict(({
+      std_compact_map_Map__4 *_mc600 = std_compact_map_Map__4_new(2);
+      std_compact_map_Map__4_insert(_mc600, "type", std_value_Value_new_int(((i64)4)));
+      std_compact_map_Map__4_insert(_mc600, "message", std_value_Value_new_str(msg));
+      _mc600;})));
+    _mc599;})));
 }
 
 compiler_lsp_server_Loc compiler_lsp_server_get_location(std_value_Value *req) {
@@ -19465,7 +20326,7 @@ std_process_Output compiler_lsp_server_LSPServer_run_lsp_backend_raw(compiler_ls
   std_sv_SV uri = loc.uri;
   std_sv_SV path = loc.path;
   char *cmd = NULL;
-  std_process_Output proc_out = ({std_process_Output __yv_587;
+  std_process_Output proc_out = ({std_process_Output __yv_601;
     if (compiler_lsp_server_USE_CMD_MODE) {
       std_buffer_Buffer cmd_buf = std_buffer_Buffer_make(16);
       std_buffer_Buffer_write_str(&cmd_buf, std_format("%s lsp %s ", compiler_utils_current_executable_path, lsp_cmd));
@@ -19482,15 +20343,15 @@ std_process_Output compiler_lsp_server_LSPServer_run_lsp_backend_raw(compiler_ls
         std_buffer_Buffer_write_sv(&cmd_buf, path);
       }
       compiler_lsp_server_lsp_log(std_format("Running command: %s", std_buffer_Buffer_str(cmd_buf)));
-      __yv_587 = std_process_get_output(std_buffer_Buffer_str(cmd_buf), ((_ClosureTy_37){0}), true, "/bin/bash");
-      goto _l___yv_587;
+      __yv_601 = std_process_get_output(std_buffer_Buffer_str(cmd_buf), ((_ClosureTy_41){0}), true, "/bin/bash");
+      goto _l___yv_601;
     } else {
-      _ClosureTy_37 callback = ((_ClosureTy_37){0});
+      _ClosureTy_41 callback = ((_ClosureTy_41){0});
       std_vector_Vector__11 *args = ({
-        std_vector_Vector__11 *_vc588 = std_vector_Vector__11_new(2);
-        std_vector_Vector__11_push(_vc588, "lsp");
-        std_vector_Vector__11_push(_vc588, lsp_cmd);
-        _vc588;});
+        std_vector_Vector__11 *_vc602 = std_vector_Vector__11_new(2);
+        std_vector_Vector__11_push(_vc602, "lsp");
+        std_vector_Vector__11_push(_vc602, lsp_cmd);
+        _vc602;});
       if (include_pos) {
         std_vector_Vector__11_push(args, std_format("%d", (loc.row + 1)));
         std_vector_Vector__11_push(args, std_format("%d", (loc.col + 1)));
@@ -19499,17 +20360,17 @@ std_process_Output compiler_lsp_server_LSPServer_run_lsp_backend_raw(compiler_ls
         char *contents = std_buffer_Buffer_str(std_compact_map_Map__3_at(this->documents, uri).text);
         std_vector_Vector__11_push(args, "--show-path");
         std_vector_Vector__11_push(args, std_format("%.*s", (path).len, (path).data));
-        callback=({compiler_lsp_server_run_lsp_backend_raw__Closure_8Ctx *_C589 = alloca(sizeof(compiler_lsp_server_run_lsp_backend_raw__Closure_8Ctx));_C589->args = &args;_C589->contents = &contents;_ClosureTy_37 _ci590 = {._C=_C589, .fn=&compiler_lsp_server_run_lsp_backend_raw__Closure_8};_ci590;});
+        callback=({compiler_lsp_server_run_lsp_backend_raw__Closure_8Ctx *_C603 = alloca(sizeof(compiler_lsp_server_run_lsp_backend_raw__Closure_8Ctx));_C603->args = &args;_C603->contents = &contents;_ClosureTy_41 _ci604 = {._C=_C603, .fn=&compiler_lsp_server_run_lsp_backend_raw__Closure_8};_ci604;});
       } else {
         std_vector_Vector__11_push(args, std_format("%.*s", (path).len, (path).data));
-        callback=({compiler_lsp_server_run_lsp_backend_raw__Closure_9Ctx *_C591 = alloca(sizeof(compiler_lsp_server_run_lsp_backend_raw__Closure_9Ctx));_C591->args = &args;_ClosureTy_37 _ci592 = {._C=_C591, .fn=&compiler_lsp_server_run_lsp_backend_raw__Closure_9};_ci592;});
+        callback=({compiler_lsp_server_run_lsp_backend_raw__Closure_9Ctx *_C605 = alloca(sizeof(compiler_lsp_server_run_lsp_backend_raw__Closure_9Ctx));_C605->args = &args;_ClosureTy_41 _ci606 = {._C=_C605, .fn=&compiler_lsp_server_run_lsp_backend_raw__Closure_9};_ci606;});
       }
-      __yv_587 = std_process_get_output(NULL, callback, true, "/bin/bash");
-      goto _l___yv_587;
+      __yv_601 = std_process_get_output(NULL, callback, true, "/bin/bash");
+      goto _l___yv_601;
     }
 
-_l___yv_587:
-  __yv_587;});
+_l___yv_601:
+  __yv_601;});
   if (proc_out.error) {
     compiler_lsp_server_lsp_log(std_format("Failed to run LSP CLI: %d", proc_out.error_code));
     if (proc_out.output.size > 0) {
@@ -19532,19 +20393,25 @@ std_value_Value *compiler_lsp_server_get_range(std_value_Value *val) {
   i64 start_col = (std_value_Value_as_int(std_value_Value_at_key(val, "start_col")) - ((i64)1));
   i64 end_line = (std_value_Value_as_int(std_value_Value_at_key(val, "end_line")) - ((i64)1));
   i64 end_col = (std_value_Value_as_int(std_value_Value_at_key(val, "end_col")) - ((i64)1));
+  if ((start_line < ((i64)0)) || (start_col < ((i64)0))) {
+    start_line=((i64)0);
+    start_col=((i64)0);
+    end_line=((i64)0);
+    end_col=((i64)0);
+  }
   std_value_Value *range = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc593 = std_compact_map_Map__4_new(2);
-    std_compact_map_Map__4_insert(_mc593, "start", std_value_Value_new_dict(({
-      std_compact_map_Map__4 *_mc594 = std_compact_map_Map__4_new(2);
-      std_compact_map_Map__4_insert(_mc594, "line", std_value_Value_new_int(start_line));
-      std_compact_map_Map__4_insert(_mc594, "character", std_value_Value_new_int(start_col));
-      _mc594;})));
-    std_compact_map_Map__4_insert(_mc593, "end", std_value_Value_new_dict(({
-      std_compact_map_Map__4 *_mc595 = std_compact_map_Map__4_new(2);
-      std_compact_map_Map__4_insert(_mc595, "line", std_value_Value_new_int(end_line));
-      std_compact_map_Map__4_insert(_mc595, "character", std_value_Value_new_int(end_col));
-      _mc595;})));
-    _mc593;}));
+    std_compact_map_Map__4 *_mc607 = std_compact_map_Map__4_new(2);
+    std_compact_map_Map__4_insert(_mc607, "start", std_value_Value_new_dict(({
+      std_compact_map_Map__4 *_mc608 = std_compact_map_Map__4_new(2);
+      std_compact_map_Map__4_insert(_mc608, "line", std_value_Value_new_int(start_line));
+      std_compact_map_Map__4_insert(_mc608, "character", std_value_Value_new_int(start_col));
+      _mc608;})));
+    std_compact_map_Map__4_insert(_mc607, "end", std_value_Value_new_dict(({
+      std_compact_map_Map__4 *_mc609 = std_compact_map_Map__4_new(2);
+      std_compact_map_Map__4_insert(_mc609, "line", std_value_Value_new_int(end_line));
+      std_compact_map_Map__4_insert(_mc609, "character", std_value_Value_new_int(end_col));
+      _mc609;})));
+    _mc607;}));
   return range;
 }
 
@@ -19600,41 +20467,41 @@ void compiler_lsp_server_unescape_buf(std_buffer_Buffer *buf) {
 
 void compiler_lsp_server_LSPServer_handle_initialize(compiler_lsp_server_LSPServer *this, std_value_Value *req) {
   std_value_Value *params = std_value_Value_at_key(req, "params");
-  if(!(std_value_Value_is((*params), std_value_ValueType_Dictionary))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/lsp/server/mod.oc:258:12: Assertion failed: `params.is(Dictionary)`", NULL); }
+  if(!(std_value_Value_is((*params), std_value_ValueType_Dictionary))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/lsp/server/mod.oc:268:12: Assertion failed: `params.is(Dictionary)`", NULL); }
   std_value_Value *result = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc596 = std_compact_map_Map__4_new(1);
-    std_compact_map_Map__4_insert(_mc596, "capabilities", std_value_Value_new_dict(({
-      std_compact_map_Map__4 *_mc597 = std_compact_map_Map__4_new(11);
-      std_compact_map_Map__4_insert(_mc597, "textDocumentSync", std_value_Value_new_int(((i64)2)));
-      std_compact_map_Map__4_insert(_mc597, "completionProvider", std_value_Value_new_dict(({
-        std_compact_map_Map__4 *_mc598 = std_compact_map_Map__4_new(2);
-        std_compact_map_Map__4_insert(_mc598, "resolveProvider", std_value_Value_new_bool(false));
-        std_compact_map_Map__4_insert(_mc598, "triggerCharacters", std_value_Value_new_list(({
-          std_vector_Vector__35 *_vc599 = std_vector_Vector__35_new(4);
-          std_vector_Vector__35_push(_vc599, std_value_Value_new_str("."));
-          std_vector_Vector__35_push(_vc599, std_value_Value_new_str(":"));
-          std_vector_Vector__35_push(_vc599, std_value_Value_new_str("@"));
-          std_vector_Vector__35_push(_vc599, std_value_Value_new_str(" "));
-          _vc599;})));
-        _mc598;})));
-      std_compact_map_Map__4_insert(_mc597, "referencesProvider", std_value_Value_new_bool(true));
-      std_compact_map_Map__4_insert(_mc597, "definitionProvider", std_value_Value_new_bool(true));
-      std_compact_map_Map__4_insert(_mc597, "typeDefinitionProvider", std_value_Value_new_bool(true));
-      std_compact_map_Map__4_insert(_mc597, "documentSymbolProvider", std_value_Value_new_bool(true));
-      std_compact_map_Map__4_insert(_mc597, "hoverProvider", std_value_Value_new_bool(true));
-      std_compact_map_Map__4_insert(_mc597, "renameProvider", std_value_Value_new_bool(true));
-      std_compact_map_Map__4_insert(_mc597, "signatureHelpProvider", std_value_Value_new_dict(({
-        std_compact_map_Map__4 *_mc600 = std_compact_map_Map__4_new(1);
-        std_compact_map_Map__4_insert(_mc600, "triggerCharacters", std_value_Value_new_list(({
-          std_vector_Vector__35 *_vc601 = std_vector_Vector__35_new(2);
-          std_vector_Vector__35_push(_vc601, std_value_Value_new_str("("));
-          std_vector_Vector__35_push(_vc601, std_value_Value_new_str(","));
-          _vc601;})));
-        _mc600;})));
-      std_compact_map_Map__4_insert(_mc597, "documentFormattingProvider", std_value_Value_new_bool(true));
-      std_compact_map_Map__4_insert(_mc597, "documentRangeFormattingProvider", std_value_Value_new_bool(true));
-      _mc597;})));
-    _mc596;}));
+    std_compact_map_Map__4 *_mc610 = std_compact_map_Map__4_new(1);
+    std_compact_map_Map__4_insert(_mc610, "capabilities", std_value_Value_new_dict(({
+      std_compact_map_Map__4 *_mc611 = std_compact_map_Map__4_new(11);
+      std_compact_map_Map__4_insert(_mc611, "textDocumentSync", std_value_Value_new_int(((i64)2)));
+      std_compact_map_Map__4_insert(_mc611, "completionProvider", std_value_Value_new_dict(({
+        std_compact_map_Map__4 *_mc612 = std_compact_map_Map__4_new(2);
+        std_compact_map_Map__4_insert(_mc612, "resolveProvider", std_value_Value_new_bool(false));
+        std_compact_map_Map__4_insert(_mc612, "triggerCharacters", std_value_Value_new_list(({
+          std_vector_Vector__39 *_vc613 = std_vector_Vector__39_new(4);
+          std_vector_Vector__39_push(_vc613, std_value_Value_new_str("."));
+          std_vector_Vector__39_push(_vc613, std_value_Value_new_str(":"));
+          std_vector_Vector__39_push(_vc613, std_value_Value_new_str("@"));
+          std_vector_Vector__39_push(_vc613, std_value_Value_new_str(" "));
+          _vc613;})));
+        _mc612;})));
+      std_compact_map_Map__4_insert(_mc611, "referencesProvider", std_value_Value_new_bool(true));
+      std_compact_map_Map__4_insert(_mc611, "definitionProvider", std_value_Value_new_bool(true));
+      std_compact_map_Map__4_insert(_mc611, "typeDefinitionProvider", std_value_Value_new_bool(true));
+      std_compact_map_Map__4_insert(_mc611, "documentSymbolProvider", std_value_Value_new_bool(true));
+      std_compact_map_Map__4_insert(_mc611, "hoverProvider", std_value_Value_new_bool(true));
+      std_compact_map_Map__4_insert(_mc611, "renameProvider", std_value_Value_new_bool(true));
+      std_compact_map_Map__4_insert(_mc611, "signatureHelpProvider", std_value_Value_new_dict(({
+        std_compact_map_Map__4 *_mc614 = std_compact_map_Map__4_new(1);
+        std_compact_map_Map__4_insert(_mc614, "triggerCharacters", std_value_Value_new_list(({
+          std_vector_Vector__39 *_vc615 = std_vector_Vector__39_new(2);
+          std_vector_Vector__39_push(_vc615, std_value_Value_new_str("("));
+          std_vector_Vector__39_push(_vc615, std_value_Value_new_str(","));
+          _vc615;})));
+        _mc614;})));
+      std_compact_map_Map__4_insert(_mc611, "documentFormattingProvider", std_value_Value_new_bool(true));
+      std_compact_map_Map__4_insert(_mc611, "documentRangeFormattingProvider", std_value_Value_new_bool(true));
+      _mc611;})));
+    _mc610;}));
   compiler_lsp_server_send_response(req, result);
 }
 
@@ -19655,40 +20522,40 @@ void compiler_lsp_server_LSPServer_handle_validate_document(compiler_lsp_server_
       std_value_Value *out = std_json_parse_sv(line, "<anonymous>");
       i64 severity = 1;
       std_value_Value *res = std_value_Value_new_dict(({
-        std_compact_map_Map__4 *_mc602 = std_compact_map_Map__4_new(3);
-        std_compact_map_Map__4_insert(_mc602, "message", std_value_Value_at_key(out, "message"));
-        std_compact_map_Map__4_insert(_mc602, "range", compiler_lsp_server_get_range(std_value_Value_at_key(out, "span")));
-        std_compact_map_Map__4_insert(_mc602, "severity", std_value_Value_new_int(((i64)severity)));
-        _mc602;}));
+        std_compact_map_Map__4 *_mc616 = std_compact_map_Map__4_new(3);
+        std_compact_map_Map__4_insert(_mc616, "message", std_value_Value_at_key(out, "message"));
+        std_compact_map_Map__4_insert(_mc616, "range", compiler_lsp_server_get_range(std_value_Value_at_key(out, "span")));
+        std_compact_map_Map__4_insert(_mc616, "severity", std_value_Value_new_int(((i64)severity)));
+        _mc616;}));
       if (std_value_Value_contains(out, "extra_info")) {
         std_value_Value *extra_info = std_value_Value_at_key(out, "extra_info");
         std_value_Value *orig_uri = std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri");
         std_value_Value_insert(res, "relatedInformation", std_value_Value_new_list(({
-          std_vector_Vector__35 *_vc603 = std_vector_Vector__35_new(1);
-          std_vector_Vector__35_push(_vc603, std_value_Value_new_dict(({
-            std_compact_map_Map__4 *_mc604 = std_compact_map_Map__4_new(2);
-            std_compact_map_Map__4_insert(_mc604, "location", std_value_Value_new_dict(({
-              std_compact_map_Map__4 *_mc605 = std_compact_map_Map__4_new(2);
-              std_compact_map_Map__4_insert(_mc605, "uri", compiler_lsp_server_get_uri(orig_uri, extra_info));
-              std_compact_map_Map__4_insert(_mc605, "range", compiler_lsp_server_get_range(std_value_Value_at_key(extra_info, "span")));
-              _mc605;})));
-            std_compact_map_Map__4_insert(_mc604, "message", std_value_Value_at_key(std_value_Value_at_key(out, "extra_info"), "message"));
-            _mc604;})));
-          _vc603;})));
+          std_vector_Vector__39 *_vc617 = std_vector_Vector__39_new(1);
+          std_vector_Vector__39_push(_vc617, std_value_Value_new_dict(({
+            std_compact_map_Map__4 *_mc618 = std_compact_map_Map__4_new(2);
+            std_compact_map_Map__4_insert(_mc618, "location", std_value_Value_new_dict(({
+              std_compact_map_Map__4 *_mc619 = std_compact_map_Map__4_new(2);
+              std_compact_map_Map__4_insert(_mc619, "uri", compiler_lsp_server_get_uri(orig_uri, extra_info));
+              std_compact_map_Map__4_insert(_mc619, "range", compiler_lsp_server_get_range(std_value_Value_at_key(extra_info, "span")));
+              _mc619;})));
+            std_compact_map_Map__4_insert(_mc618, "message", std_value_Value_at_key(std_value_Value_at_key(out, "extra_info"), "message"));
+            _mc618;})));
+          _vc617;})));
       }
       std_value_Value_push(diagnostics, res);
     }
   }
   std_value_Value *message = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc606 = std_compact_map_Map__4_new(3);
-    std_compact_map_Map__4_insert(_mc606, "jsonrpc", std_value_Value_new_str("2.0"));
-    std_compact_map_Map__4_insert(_mc606, "method", std_value_Value_new_str("textDocument/publishDiagnostics"));
-    std_compact_map_Map__4_insert(_mc606, "params", std_value_Value_new_dict(({
-      std_compact_map_Map__4 *_mc607 = std_compact_map_Map__4_new(2);
-      std_compact_map_Map__4_insert(_mc607, "uri", std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"));
-      std_compact_map_Map__4_insert(_mc607, "diagnostics", diagnostics);
-      _mc607;})));
-    _mc606;}));
+    std_compact_map_Map__4 *_mc620 = std_compact_map_Map__4_new(3);
+    std_compact_map_Map__4_insert(_mc620, "jsonrpc", std_value_Value_new_str("2.0"));
+    std_compact_map_Map__4_insert(_mc620, "method", std_value_Value_new_str("textDocument/publishDiagnostics"));
+    std_compact_map_Map__4_insert(_mc620, "params", std_value_Value_new_dict(({
+      std_compact_map_Map__4 *_mc621 = std_compact_map_Map__4_new(2);
+      std_compact_map_Map__4_insert(_mc621, "uri", std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"));
+      std_compact_map_Map__4_insert(_mc621, "diagnostics", diagnostics);
+      _mc621;})));
+    _mc620;}));
   compiler_lsp_server_send_message(message);
   this->to_validate_req=NULL;
   this->last_validated=std_time_get_time_monotonic_ms();
@@ -19703,16 +20570,16 @@ void compiler_lsp_server_LSPServer_handle_hover(compiler_lsp_server_LSPServer *t
     return;
   }
   std_value_Value *result = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc608 = std_compact_map_Map__4_new(1);
-    std_compact_map_Map__4_insert(_mc608, "contents", std_value_Value_new_list(({
-      std_vector_Vector__35 *_vc609 = std_vector_Vector__35_new(1);
-      std_vector_Vector__35_push(_vc609, std_value_Value_new_dict(({
-        std_compact_map_Map__4 *_mc610 = std_compact_map_Map__4_new(2);
-        std_compact_map_Map__4_insert(_mc610, "language", std_value_Value_new_str("ocen"));
-        std_compact_map_Map__4_insert(_mc610, "value", std_value_Value_at_key(cli_out, "hover"));
-        _mc610;})));
-      _vc609;})));
-    _mc608;}));
+    std_compact_map_Map__4 *_mc622 = std_compact_map_Map__4_new(1);
+    std_compact_map_Map__4_insert(_mc622, "contents", std_value_Value_new_list(({
+      std_vector_Vector__39 *_vc623 = std_vector_Vector__39_new(1);
+      std_vector_Vector__39_push(_vc623, std_value_Value_new_dict(({
+        std_compact_map_Map__4 *_mc624 = std_compact_map_Map__4_new(2);
+        std_compact_map_Map__4_insert(_mc624, "language", std_value_Value_new_str("ocen"));
+        std_compact_map_Map__4_insert(_mc624, "value", std_value_Value_at_key(cli_out, "hover"));
+        _mc624;})));
+      _vc623;})));
+    _mc622;}));
   compiler_lsp_server_send_response(req, result);
 }
 
@@ -19725,10 +20592,10 @@ void compiler_lsp_server_LSPServer_handle_definition(compiler_lsp_server_LSPServ
     return;
   }
   std_value_Value *result = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc611 = std_compact_map_Map__4_new(2);
-    std_compact_map_Map__4_insert(_mc611, "uri", compiler_lsp_server_get_uri(std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"), cli_out));
-    std_compact_map_Map__4_insert(_mc611, "range", compiler_lsp_server_get_range(cli_out));
-    _mc611;}));
+    std_compact_map_Map__4 *_mc625 = std_compact_map_Map__4_new(2);
+    std_compact_map_Map__4_insert(_mc625, "uri", compiler_lsp_server_get_uri(std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"), cli_out));
+    std_compact_map_Map__4_insert(_mc625, "range", compiler_lsp_server_get_range(cli_out));
+    _mc625;}));
   compiler_lsp_server_send_response(req, result);
 }
 
@@ -19741,10 +20608,10 @@ void compiler_lsp_server_LSPServer_handle_type_definition(compiler_lsp_server_LS
     return;
   }
   std_value_Value *result = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc612 = std_compact_map_Map__4_new(2);
-    std_compact_map_Map__4_insert(_mc612, "uri", compiler_lsp_server_get_uri(std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"), cli_out));
-    std_compact_map_Map__4_insert(_mc612, "range", compiler_lsp_server_get_range(cli_out));
-    _mc612;}));
+    std_compact_map_Map__4 *_mc626 = std_compact_map_Map__4_new(2);
+    std_compact_map_Map__4_insert(_mc626, "uri", compiler_lsp_server_get_uri(std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"), cli_out));
+    std_compact_map_Map__4_insert(_mc626, "range", compiler_lsp_server_get_range(cli_out));
+    _mc626;}));
   compiler_lsp_server_send_response(req, result);
 }
 
@@ -19754,14 +20621,14 @@ void compiler_lsp_server_LSPServer_handle_references(compiler_lsp_server_LSPServ
   std_value_Value *cli_out = compiler_lsp_server_LSPServer_run_lsp_backend(this, loc, "-r", true);
   std_value_Value *result = std_value_Value_new(std_value_ValueType_List);
   if (((bool)cli_out)) {
-    for (std_vector_Iterator__35 _i279 = std_vector_Vector__35_iter(std_value_Value_as_list(cli_out)); std_vector_Iterator__35_has_value(&_i279); std_vector_Iterator__35_next(&_i279)) {
-      std_value_Value *ref = std_vector_Iterator__35_cur(&_i279);
+    for (std_vector_Iterator__39 _i279 = std_vector_Vector__39_iter(std_value_Value_as_list(cli_out)); std_vector_Iterator__39_has_value(&_i279); std_vector_Iterator__39_next(&_i279)) {
+      std_value_Value *ref = std_vector_Iterator__39_cur(&_i279);
       {
         std_value_Value_push(result, std_value_Value_new_dict(({
-          std_compact_map_Map__4 *_mc613 = std_compact_map_Map__4_new(2);
-          std_compact_map_Map__4_insert(_mc613, "uri", compiler_lsp_server_get_uri(std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"), ref));
-          std_compact_map_Map__4_insert(_mc613, "range", compiler_lsp_server_get_range(ref));
-          _mc613;})));
+          std_compact_map_Map__4 *_mc627 = std_compact_map_Map__4_new(2);
+          std_compact_map_Map__4_insert(_mc627, "uri", compiler_lsp_server_get_uri(std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"), ref));
+          std_compact_map_Map__4_insert(_mc627, "range", compiler_lsp_server_get_range(ref));
+          _mc627;})));
       }
     }
   }
@@ -19778,8 +20645,8 @@ void compiler_lsp_server_LSPServer_handle_rename(compiler_lsp_server_LSPServer *
   }
   std_value_Value *changes = std_value_Value_new(std_value_ValueType_Dictionary);
   std_value_Value *newText = std_value_Value_at_key(std_value_Value_at_key(req, "params"), "newName");
-  for (std_vector_Iterator__35 _i280 = std_vector_Vector__35_iter(std_value_Value_as_list(cli_out)); std_vector_Iterator__35_has_value(&_i280); std_vector_Iterator__35_next(&_i280)) {
-    std_value_Value *obj = std_vector_Iterator__35_cur(&_i280);
+  for (std_vector_Iterator__39 _i280 = std_vector_Vector__39_iter(std_value_Value_as_list(cli_out)); std_vector_Iterator__39_has_value(&_i280); std_vector_Iterator__39_next(&_i280)) {
+    std_value_Value *obj = std_vector_Iterator__39_cur(&_i280);
     {
       std_value_Value *uri = compiler_lsp_server_get_uri(std_value_Value_at_key(std_value_Value_at_key(std_value_Value_at_key(req, "params"), "textDocument"), "uri"), obj);
       char *uri_str = std_buffer_Buffer_str(std_value_Value_as_str(uri));
@@ -19787,16 +20654,16 @@ void compiler_lsp_server_LSPServer_handle_rename(compiler_lsp_server_LSPServer *
         std_value_Value_insert(changes, uri_str, std_value_Value_new(std_value_ValueType_List));
       }
       std_value_Value_push(std_value_Value_at_key(changes, uri_str), std_value_Value_new_dict(({
-        std_compact_map_Map__4 *_mc614 = std_compact_map_Map__4_new(2);
-        std_compact_map_Map__4_insert(_mc614, "range", compiler_lsp_server_get_range(obj));
-        std_compact_map_Map__4_insert(_mc614, "newText", newText);
-        _mc614;})));
+        std_compact_map_Map__4 *_mc628 = std_compact_map_Map__4_new(2);
+        std_compact_map_Map__4_insert(_mc628, "range", compiler_lsp_server_get_range(obj));
+        std_compact_map_Map__4_insert(_mc628, "newText", newText);
+        _mc628;})));
     }
   }
   std_value_Value *result = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc615 = std_compact_map_Map__4_new(1);
-    std_compact_map_Map__4_insert(_mc615, "changes", changes);
-    _mc615;}));
+    std_compact_map_Map__4 *_mc629 = std_compact_map_Map__4_new(1);
+    std_compact_map_Map__4_insert(_mc629, "changes", changes);
+    _mc629;}));
   compiler_lsp_server_send_response(req, result);
 }
 
@@ -19812,59 +20679,60 @@ void compiler_lsp_server_LSPServer_handle_signature_help(compiler_lsp_server_LSP
 }
 
 std_value_Value *compiler_lsp_server_LSPServer_symbol_def_obj(compiler_lsp_server_LSPServer *this, std_value_Value *obj) {
-  i32 kind = ({i32 __yv_616;
+  i32 kind = ({i32 __yv_630;
     {
-      std_value_Value *__match_var_617 = std_value_Value_at_key(obj, "kind");
-      if (std_value_Value_eq_str(__match_var_617, "namespace")) {
-        __yv_616 = 3;
-        goto _l___yv_616;
-      } else if (std_value_Value_eq_str(__match_var_617, "function")) {
-        __yv_616 = 12;
-        goto _l___yv_616;
-      } else if (std_value_Value_eq_str(__match_var_617, "method")) {
-        __yv_616 = 6;
-        goto _l___yv_616;
-      } else if (std_value_Value_eq_str(__match_var_617, "struct")) {
-        __yv_616 = 23;
-        goto _l___yv_616;
-      } else if (std_value_Value_eq_str(__match_var_617, "class")) {
-        __yv_616 = 5;
-        goto _l___yv_616;
-      } else if (std_value_Value_eq_str(__match_var_617, "enum")) {
-        __yv_616 = 10;
-        goto _l___yv_616;
-      } else if (std_value_Value_eq_str(__match_var_617, "variable")) {
-        __yv_616 = 13;
-        goto _l___yv_616;
-      } else if (std_value_Value_eq_str(__match_var_617, "enum-member")) {
-        __yv_616 = 22;
-        goto _l___yv_616;
+      std_value_Value *__match_var_631 = std_value_Value_at_key(obj, "kind");
+      if (std_value_Value_eq_str(__match_var_631, "namespace")) {
+        __yv_630 = 3;
+        goto _l___yv_630;
+      } else if (std_value_Value_eq_str(__match_var_631, "function")) {
+        __yv_630 = 12;
+        goto _l___yv_630;
+      } else if (std_value_Value_eq_str(__match_var_631, "method")) {
+        __yv_630 = 6;
+        goto _l___yv_630;
+      } else if (std_value_Value_eq_str(__match_var_631, "struct")) {
+        __yv_630 = 23;
+        goto _l___yv_630;
+      } else if (std_value_Value_eq_str(__match_var_631, "class")) {
+        __yv_630 = 5;
+        goto _l___yv_630;
+      } else if (std_value_Value_eq_str(__match_var_631, "enum")) {
+        __yv_630 = 10;
+        goto _l___yv_630;
+      } else if (std_value_Value_eq_str(__match_var_631, "variable")) {
+        __yv_630 = 13;
+        goto _l___yv_630;
+      } else if (std_value_Value_eq_str(__match_var_631, "enum-member")) {
+        __yv_630 = 22;
+        goto _l___yv_630;
       } else  {
-        __yv_616 = 13;
-        goto _l___yv_616;
+        __yv_630 = 13;
+        goto _l___yv_630;
       }
     }
 
-_l___yv_616:
-  __yv_616;});
+_l___yv_630:
+  __yv_630;});
   std_value_Value *children = std_value_Value_new(std_value_ValueType_List);
   if (std_value_Value_contains(obj, "children")) {
-    for (std_vector_Iterator__35 _i281 = std_vector_Vector__35_iter(std_value_Value_as_list(std_value_Value_at_key(obj, "children"))); std_vector_Iterator__35_has_value(&_i281); std_vector_Iterator__35_next(&_i281)) {
-      std_value_Value *child = std_vector_Iterator__35_cur(&_i281);
+    for (std_vector_Iterator__39 _i281 = std_vector_Vector__39_iter(std_value_Value_as_list(std_value_Value_at_key(obj, "children"))); std_vector_Iterator__39_has_value(&_i281); std_vector_Iterator__39_next(&_i281)) {
+      std_value_Value *child = std_vector_Iterator__39_cur(&_i281);
       {
         std_value_Value_push(children, compiler_lsp_server_LSPServer_symbol_def_obj(this, child));
       }
     }
   }
+  std_value_Value *detail = (std_value_Value_contains(obj, "detail") ? std_value_Value_at_key(obj, "detail") : std_value_Value_new_str(""));
   return std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc618 = std_compact_map_Map__4_new(6);
-    std_compact_map_Map__4_insert(_mc618, "name", std_value_Value_at_key(obj, "name"));
-    std_compact_map_Map__4_insert(_mc618, "detail", std_value_Value_at_key(obj, "detail"));
-    std_compact_map_Map__4_insert(_mc618, "kind", std_value_Value_new_int(((i64)kind)));
-    std_compact_map_Map__4_insert(_mc618, "range", compiler_lsp_server_get_range(std_value_Value_at_key(obj, "range")));
-    std_compact_map_Map__4_insert(_mc618, "selectionRange", compiler_lsp_server_get_range(std_value_Value_at_key(obj, "selection_range")));
-    std_compact_map_Map__4_insert(_mc618, "children", children);
-    _mc618;}));
+    std_compact_map_Map__4 *_mc632 = std_compact_map_Map__4_new(6);
+    std_compact_map_Map__4_insert(_mc632, "name", std_value_Value_at_key(obj, "name"));
+    std_compact_map_Map__4_insert(_mc632, "detail", detail);
+    std_compact_map_Map__4_insert(_mc632, "kind", std_value_Value_new_int(((i64)kind)));
+    std_compact_map_Map__4_insert(_mc632, "range", compiler_lsp_server_get_range(std_value_Value_at_key(obj, "range")));
+    std_compact_map_Map__4_insert(_mc632, "selectionRange", compiler_lsp_server_get_range(std_value_Value_at_key(obj, "selection_range")));
+    std_compact_map_Map__4_insert(_mc632, "children", children);
+    _mc632;}));
 }
 
 void compiler_lsp_server_LSPServer_handle_on_document_symbols(compiler_lsp_server_LSPServer *this, std_value_Value *req) {
@@ -19876,8 +20744,8 @@ void compiler_lsp_server_LSPServer_handle_on_document_symbols(compiler_lsp_serve
     return;
   }
   std_value_Value *results = std_value_Value_new(std_value_ValueType_List);
-  for (std_vector_Iterator__35 _i282 = std_vector_Vector__35_iter(std_value_Value_as_list(cli_out)); std_vector_Iterator__35_has_value(&_i282); std_vector_Iterator__35_next(&_i282)) {
-    std_value_Value *obj = std_vector_Iterator__35_cur(&_i282);
+  for (std_vector_Iterator__39 _i282 = std_vector_Vector__39_iter(std_value_Value_as_list(cli_out)); std_vector_Iterator__39_has_value(&_i282); std_vector_Iterator__39_next(&_i282)) {
+    std_value_Value *obj = std_vector_Iterator__39_cur(&_i282);
     {
       std_value_Value_push(results, compiler_lsp_server_LSPServer_symbol_def_obj(this, obj));
     }
@@ -19890,7 +20758,7 @@ void compiler_lsp_server_LSPServer_handle_did_open(compiler_lsp_server_LSPServer
   std_value_Value *params = std_value_Value_at_key(req, "params");
   std_buffer_Buffer uri = std_value_Value_as_str(std_value_Value_at_key(std_value_Value_at_key(params, "textDocument"), "uri"));
   compiler_lsp_server_lsp_log(std_format("[SERVER] Opening document: %.*s\n", (uri).size, (uri).data));
-  if(!(std_value_Value_is((*params), std_value_ValueType_Dictionary))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/lsp/server/mod.oc:568:12: Assertion failed: `params.is(Dictionary)`", NULL); }
+  if(!(std_value_Value_is((*params), std_value_ValueType_Dictionary))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/lsp/server/mod.oc:579:12: Assertion failed: `params.is(Dictionary)`", NULL); }
   std_buffer_Buffer text = std_value_Value_as_str(std_value_Value_at_key(std_value_Value_at_key(params, "textDocument"), "text"));
   compiler_lsp_server_TextDocument document = (compiler_lsp_server_TextDocument){.text=text};
   compiler_lsp_server_unescape_buf(&text);
@@ -19943,10 +20811,10 @@ void compiler_lsp_server_LSPServer_handle_did_change(compiler_lsp_server_LSPServ
   std_value_Value *params = std_value_Value_at_key(req, "params");
   std_buffer_Buffer uri = std_value_Value_as_str(std_value_Value_at_key(std_value_Value_at_key(params, "textDocument"), "uri"));
   compiler_lsp_server_lsp_log(std_format("[SERVER] Changing document: %.*s\n", (uri).size, (uri).data));
-  if(!(std_value_Value_is((*params), std_value_ValueType_Dictionary))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/lsp/server/mod.oc:634:12: Assertion failed: `params.is(Dictionary)`", NULL); }
-  std_vector_Vector__35 *changes = std_value_Value_as_list(std_value_Value_at_key(params, "contentChanges"));
-  for (std_vector_Iterator__35 _i283 = std_vector_Vector__35_iter(changes); std_vector_Iterator__35_has_value(&_i283); std_vector_Iterator__35_next(&_i283)) {
-    std_value_Value *change = std_vector_Iterator__35_cur(&_i283);
+  if(!(std_value_Value_is((*params), std_value_ValueType_Dictionary))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/lsp/server/mod.oc:645:12: Assertion failed: `params.is(Dictionary)`", NULL); }
+  std_vector_Vector__39 *changes = std_value_Value_as_list(std_value_Value_at_key(params, "contentChanges"));
+  for (std_vector_Iterator__39 _i283 = std_vector_Vector__39_iter(changes); std_vector_Iterator__39_has_value(&_i283); std_vector_Iterator__39_next(&_i283)) {
+    std_value_Value *change = std_vector_Iterator__39_cur(&_i283);
     {
       std_buffer_Buffer text = std_value_Value_as_str(std_value_Value_at_key(change, "text"));
       compiler_lsp_server_unescape_buf(&text);
@@ -19967,7 +20835,7 @@ void compiler_lsp_server_LSPServer_handle_did_close(compiler_lsp_server_LSPServe
   std_value_Value *params = std_value_Value_at_key(req, "params");
   std_buffer_Buffer uri = std_value_Value_as_str(std_value_Value_at_key(std_value_Value_at_key(params, "textDocument"), "uri"));
   compiler_lsp_server_lsp_log(std_format("[SERVER] Closing document: %.*s\n", (uri).size, (uri).data));
-  if(!(std_value_Value_is((*params), std_value_ValueType_Dictionary))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/lsp/server/mod.oc:657:12: Assertion failed: `params.is(Dictionary)`", NULL); }
+  if(!(std_value_Value_is((*params), std_value_ValueType_Dictionary))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/lsp/server/mod.oc:668:12: Assertion failed: `params.is(Dictionary)`", NULL); }
   std_compact_map_Map__3_remove(this->documents, std_buffer_Buffer_sv(uri));
 }
 
@@ -19978,36 +20846,36 @@ void compiler_lsp_server_LSPServer_handle_completion(compiler_lsp_server_LSPServ
   std_value_Value *completions = std_value_Value_new(std_value_ValueType_List);
   if (((bool)cli_out)) {
     i64 index = ((i64)1);
-    std_vector_Vector__35 *cli_list = std_value_Value_as_list(std_value_Value_at_key(cli_out, "completions"));
-    for (std_vector_Iterator__35 _i284 = std_vector_Vector__35_iter(cli_list); std_vector_Iterator__35_has_value(&_i284); std_vector_Iterator__35_next(&_i284)) {
-      std_value_Value *comp = std_vector_Iterator__35_cur(&_i284);
+    std_vector_Vector__39 *cli_list = std_value_Value_as_list(std_value_Value_at_key(cli_out, "completions"));
+    for (std_vector_Iterator__39 _i284 = std_vector_Vector__39_iter(cli_list); std_vector_Iterator__39_has_value(&_i284); std_vector_Iterator__39_next(&_i284)) {
+      std_value_Value *comp = std_vector_Iterator__39_cur(&_i284);
       {
         std_value_Value_push(completions, std_value_Value_new_dict(({
-          std_compact_map_Map__4 *_mc619 = std_compact_map_Map__4_new(7);
-          std_compact_map_Map__4_insert(_mc619, "label", std_value_Value_at_key(comp, "label"));
-          std_compact_map_Map__4_insert(_mc619, "insertText", std_value_Value_at_key(comp, "insertText"));
-          std_compact_map_Map__4_insert(_mc619, "detail", std_value_Value_at_key(comp, "detail"));
-          std_compact_map_Map__4_insert(_mc619, "insertTextFormat", std_value_Value_new_int(((i64)2)));
-          std_compact_map_Map__4_insert(_mc619, "kind", ({std_value_Value *__yv_620;
+          std_compact_map_Map__4 *_mc633 = std_compact_map_Map__4_new(7);
+          std_compact_map_Map__4_insert(_mc633, "label", std_value_Value_at_key(comp, "label"));
+          std_compact_map_Map__4_insert(_mc633, "insertText", std_value_Value_at_key(comp, "insertText"));
+          std_compact_map_Map__4_insert(_mc633, "detail", std_value_Value_at_key(comp, "detail"));
+          std_compact_map_Map__4_insert(_mc633, "insertTextFormat", std_value_Value_new_int(((i64)2)));
+          std_compact_map_Map__4_insert(_mc633, "kind", ({std_value_Value *__yv_634;
             {
-              std_value_Value *__match_var_621 = std_value_Value_at_key(comp, "kind");
-              if (std_value_Value_eq_str(__match_var_621, "function")) {
-                __yv_620 = std_value_Value_new_int(((i64)3));
-                goto _l___yv_620;
-              } else if (std_value_Value_eq_str(__match_var_621, "field")) {
-                __yv_620 = std_value_Value_new_int(((i64)5));
-                goto _l___yv_620;
+              std_value_Value *__match_var_635 = std_value_Value_at_key(comp, "kind");
+              if (std_value_Value_eq_str(__match_var_635, "function")) {
+                __yv_634 = std_value_Value_new_int(((i64)3));
+                goto _l___yv_634;
+              } else if (std_value_Value_eq_str(__match_var_635, "field")) {
+                __yv_634 = std_value_Value_new_int(((i64)5));
+                goto _l___yv_634;
               } else  {
-                __yv_620 = std_value_Value_new_int(((i64)1));
-                goto _l___yv_620;
+                __yv_634 = std_value_Value_new_int(((i64)1));
+                goto _l___yv_634;
               }
             }
 
-_l___yv_620:
-          __yv_620;}));
-          std_compact_map_Map__4_insert(_mc619, "data", std_value_Value_new_int(index++));
-          std_compact_map_Map__4_insert(_mc619, "documentation", (std_value_Value_contains(comp, "documentation") ? std_value_Value_at_key(comp, "documentation") : std_value_Value_new(std_value_ValueType_Null)));
-          _mc619;})));
+_l___yv_634:
+          __yv_634;}));
+          std_compact_map_Map__4_insert(_mc633, "data", std_value_Value_new_int(index++));
+          std_compact_map_Map__4_insert(_mc633, "documentation", (std_value_Value_contains(comp, "documentation") ? std_value_Value_at_key(comp, "documentation") : std_value_Value_new(std_value_ValueType_Null)));
+          _mc633;})));
       }
     }
   }
@@ -20027,9 +20895,9 @@ void compiler_lsp_server_LSPServer_handle_formatting(compiler_lsp_server_LSPServ
     contents=std_buffer_Buffer_str(std_compact_map_Map__3_at(this->documents, uri_sv).text);
   }
   std_vector_Vector__11 *args = ({
-    std_vector_Vector__11 *_vc622 = std_vector_Vector__11_new(1);
-    std_vector_Vector__11_push(_vc622, "format");
-    _vc622;});
+    std_vector_Vector__11 *_vc636 = std_vector_Vector__11_new(1);
+    std_vector_Vector__11_push(_vc636, "format");
+    _vc636;});
   if (is_range) {
     std_value_Value *range = std_value_Value_at_key(params, "range");
     i64 start_line = (std_value_Value_as_int(std_value_Value_at_key(std_value_Value_at_key(range, "start"), "line")) + ((i64)1));
@@ -20045,55 +20913,96 @@ void compiler_lsp_server_LSPServer_handle_formatting(compiler_lsp_server_LSPServ
   } else {
     std_vector_Vector__11_push(args, path);
   }
-  std_process_Output proc_out = std_process_get_output(NULL, ({compiler_lsp_server_handle_formatting__Closure_10Ctx *_C623 = alloca(sizeof(compiler_lsp_server_handle_formatting__Closure_10Ctx));_C623->args = &args;_ClosureTy_37 _ci624 = {._C=_C623, .fn=&compiler_lsp_server_handle_formatting__Closure_10};_ci624;}), true, "/bin/bash");
+  std_process_Output proc_out = std_process_get_output(NULL, ({compiler_lsp_server_handle_formatting__Closure_10Ctx *_C637 = alloca(sizeof(compiler_lsp_server_handle_formatting__Closure_10Ctx));_C637->args = &args;_ClosureTy_41 _ci638 = {._C=_C637, .fn=&compiler_lsp_server_handle_formatting__Closure_10};_ci638;}), true, "/bin/bash");
   if (proc_out.error || proc_out.output.size==0) {
     compiler_lsp_server_lsp_log("Formatting failed\n");
     compiler_lsp_server_send_response(req, std_value_Value_new(std_value_ValueType_List));
     return;
   }
-  char *original = NULL;
-  if (((bool)contents)) {
-    original=contents;
-  } else {
-    original=std_buffer_Buffer_str(std_fs_read_file(path));
+  char *original = (((bool)contents) ? contents : std_buffer_Buffer_str(std_fs_read_file(path)));
+  char *formatted = std_buffer_Buffer_str(proc_out.output);
+  u32 orig_len = 0;
+  while (original[orig_len] != '\0') {
+    orig_len++;
   }
-  u32 line_count = 0;
-  for (u32 i = 0; original[i] != '\0'; i++) {
+  u32 fmt_len = 0;
+  while (formatted[fmt_len] != '\0') {
+    fmt_len++;
+  }
+  u32 fd = 0;
+  while (((fd < orig_len) && (fd < fmt_len)) && original[fd]==formatted[fd]) {
+    fd++;
+  }
+  if (fd==orig_len && fd==fmt_len) {
+    compiler_lsp_server_send_response(req, std_value_Value_new(std_value_ValueType_List));
+    return;
+  }
+  u32 line_start = fd;
+  while ((line_start > 0) && (original[(line_start - 1)] != '\n')) {
+    line_start--;
+  }
+  u32 first_line = 0;
+  for (u32 i = 0; i < line_start; i++) {
     if (original[i]=='\n') {
-      line_count++;
+      first_line++;
     }
   }
+  u32 orig_end = orig_len;
+  u32 fmt_end = fmt_len;
+  while (((orig_end > fd) && (fmt_end > fd)) && original[(orig_end - 1)]==formatted[(fmt_end - 1)]) {
+    orig_end--;
+    fmt_end--;
+  }
+  while ((orig_end < orig_len) && (original[(orig_end - 1)] != '\n')) {
+    orig_end++;
+  }
+  while ((fmt_end < fmt_len) && (formatted[(fmt_end - 1)] != '\n')) {
+    fmt_end++;
+  }
+  u32 old_end_line = 0;
+  for (u32 i = 0; i < orig_end; i++) {
+    if (original[i]=='\n') {
+      old_end_line++;
+    }
+  }
+  u32 new_text_len = (fmt_end - line_start);
+  std_buffer_Buffer buf = std_buffer_Buffer_make(16);
+  std_buffer_Buffer_resize_if_necessary(&buf, (new_text_len + 1));
+  memcpy(buf.data, (formatted + line_start), new_text_len);
+  buf.size=new_text_len;
+  char *buf_str = std_buffer_Buffer_str(buf);
+  buf_str[new_text_len]='\0';
   std_value_Value *result = std_value_Value_new_list(({
-    std_vector_Vector__35 *_vc625 = std_vector_Vector__35_new(1);
-    std_vector_Vector__35_push(_vc625, std_value_Value_new_dict(({
-      std_compact_map_Map__4 *_mc626 = std_compact_map_Map__4_new(2);
-      std_compact_map_Map__4_insert(_mc626, "range", std_value_Value_new_dict(({
-        std_compact_map_Map__4 *_mc627 = std_compact_map_Map__4_new(2);
-        std_compact_map_Map__4_insert(_mc627, "start", std_value_Value_new_dict(({
-          std_compact_map_Map__4 *_mc628 = std_compact_map_Map__4_new(2);
-          std_compact_map_Map__4_insert(_mc628, "line", std_value_Value_new_int(((i64)0)));
-          std_compact_map_Map__4_insert(_mc628, "character", std_value_Value_new_int(((i64)0)));
-          _mc628;})));
-        std_compact_map_Map__4_insert(_mc627, "end", std_value_Value_new_dict(({
-          std_compact_map_Map__4 *_mc629 = std_compact_map_Map__4_new(2);
-          std_compact_map_Map__4_insert(_mc629, "line", std_value_Value_new_int((((i64)line_count) + ((i64)1))));
-          std_compact_map_Map__4_insert(_mc629, "character", std_value_Value_new_int(((i64)0)));
-          _mc629;})));
-        _mc627;})));
-      std_compact_map_Map__4_insert(_mc626, "newText", std_value_Value_new_str(std_buffer_Buffer_str(proc_out.output)));
-      _mc626;})));
-    _vc625;}));
+    std_vector_Vector__39 *_vc639 = std_vector_Vector__39_new(1);
+    std_vector_Vector__39_push(_vc639, std_value_Value_new_dict(({
+      std_compact_map_Map__4 *_mc640 = std_compact_map_Map__4_new(2);
+      std_compact_map_Map__4_insert(_mc640, "range", std_value_Value_new_dict(({
+        std_compact_map_Map__4 *_mc641 = std_compact_map_Map__4_new(2);
+        std_compact_map_Map__4_insert(_mc641, "start", std_value_Value_new_dict(({
+          std_compact_map_Map__4 *_mc642 = std_compact_map_Map__4_new(2);
+          std_compact_map_Map__4_insert(_mc642, "line", std_value_Value_new_int(((i64)first_line)));
+          std_compact_map_Map__4_insert(_mc642, "character", std_value_Value_new_int(((i64)0)));
+          _mc642;})));
+        std_compact_map_Map__4_insert(_mc641, "end", std_value_Value_new_dict(({
+          std_compact_map_Map__4 *_mc643 = std_compact_map_Map__4_new(2);
+          std_compact_map_Map__4_insert(_mc643, "line", std_value_Value_new_int(((i64)old_end_line)));
+          std_compact_map_Map__4_insert(_mc643, "character", std_value_Value_new_int(((i64)0)));
+          _mc643;})));
+        _mc641;})));
+      std_compact_map_Map__4_insert(_mc640, "newText", std_value_Value_new_str(std_buffer_Buffer_str(buf)));
+      _mc640;})));
+    _vc639;}));
   compiler_lsp_server_send_response(req, result);
 }
 
 void compiler_lsp_server_LSPServer_handle_shutdown(compiler_lsp_server_LSPServer *this, std_value_Value *req) {
   compiler_lsp_server_lsp_log("Handling shutdown request\n");
   std_value_Value *response = std_value_Value_new_dict(({
-    std_compact_map_Map__4 *_mc630 = std_compact_map_Map__4_new(3);
-    std_compact_map_Map__4_insert(_mc630, "jsonrpc", std_value_Value_new_str("2.0"));
-    std_compact_map_Map__4_insert(_mc630, "id", std_value_Value_at_key(req, "id"));
-    std_compact_map_Map__4_insert(_mc630, "result", std_value_Value_new(std_value_ValueType_Null));
-    _mc630;}));
+    std_compact_map_Map__4 *_mc644 = std_compact_map_Map__4_new(3);
+    std_compact_map_Map__4_insert(_mc644, "jsonrpc", std_value_Value_new_str("2.0"));
+    std_compact_map_Map__4_insert(_mc644, "id", std_value_Value_at_key(req, "id"));
+    std_compact_map_Map__4_insert(_mc644, "result", std_value_Value_new(std_value_ValueType_Null));
+    _mc644;}));
   compiler_lsp_server_send_message(response);
 }
 
@@ -20118,40 +21027,40 @@ bool compiler_lsp_server_LSPServer_handle_request(compiler_lsp_server_LSPServer 
   }
   std_sv_SV method = std_buffer_Buffer_sv(std_value_Value_as_str(std_value_Value_at_key(data, "method")));
   {
-    std_sv_SV __match_var_631 = method;
-    if (std_sv_SV_eq_str(__match_var_631, "initialize")) {
+    std_sv_SV __match_var_645 = method;
+    if (std_sv_SV_eq_str(__match_var_645, "initialize")) {
       compiler_lsp_server_LSPServer_handle_initialize(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "initialized")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "initialized")) {
       compiler_lsp_server_LSPServer_handle_initialized(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/hover")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/hover")) {
       compiler_lsp_server_LSPServer_handle_hover(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/didOpen")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/didOpen")) {
       compiler_lsp_server_LSPServer_handle_did_open(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/didChange")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/didChange")) {
       compiler_lsp_server_LSPServer_handle_did_change(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/didClose")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/didClose")) {
       compiler_lsp_server_LSPServer_handle_did_close(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/completion")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/completion")) {
       compiler_lsp_server_LSPServer_handle_completion(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/definition")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/definition")) {
       compiler_lsp_server_LSPServer_handle_definition(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/typeDefinition")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/typeDefinition")) {
       compiler_lsp_server_LSPServer_handle_type_definition(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/references")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/references")) {
       compiler_lsp_server_LSPServer_handle_references(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/signatureHelp")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/signatureHelp")) {
       compiler_lsp_server_LSPServer_handle_signature_help(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/documentSymbol")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/documentSymbol")) {
       compiler_lsp_server_LSPServer_handle_on_document_symbols(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/rename")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/rename")) {
       compiler_lsp_server_LSPServer_handle_rename(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/formatting")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/formatting")) {
       compiler_lsp_server_LSPServer_handle_formatting(this, data, false);
-    } else if (std_sv_SV_eq_str(__match_var_631, "textDocument/rangeFormatting")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "textDocument/rangeFormatting")) {
       compiler_lsp_server_LSPServer_handle_formatting(this, data, true);
-    } else if (std_sv_SV_eq_str(__match_var_631, "shutdown")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "shutdown")) {
       compiler_lsp_server_LSPServer_handle_shutdown(this, data);
-    } else if (std_sv_SV_eq_str(__match_var_631, "exit")) {
+    } else if (std_sv_SV_eq_str(__match_var_645, "exit")) {
       /* defers */
       std_mem_free(message);
       return false;
@@ -20159,6 +21068,19 @@ bool compiler_lsp_server_LSPServer_handle_request(compiler_lsp_server_LSPServer 
       compiler_lsp_server_lsp_log(std_format("-----------------------------------------"));
       compiler_lsp_server_lsp_log(std_format("[SERVER] Unknown method: %.*s", (method).len, (method).data));
       compiler_lsp_server_lsp_log(std_format("-----------------------------------------"));
+      if (std_compact_map_Map__4_contains(std_value_Value_as_dict(data), "id")) {
+        std_value_Value *error_response = std_value_Value_new_dict(({
+          std_compact_map_Map__4 *_mc646 = std_compact_map_Map__4_new(3);
+          std_compact_map_Map__4_insert(_mc646, "jsonrpc", std_value_Value_new_str("2.0"));
+          std_compact_map_Map__4_insert(_mc646, "id", std_value_Value_at_key(data, "id"));
+          std_compact_map_Map__4_insert(_mc646, "error", std_value_Value_new_dict(({
+            std_compact_map_Map__4 *_mc647 = std_compact_map_Map__4_new(2);
+            std_compact_map_Map__4_insert(_mc647, "code", std_value_Value_new_int(-((i64)32601)));
+            std_compact_map_Map__4_insert(_mc647, "message", std_value_Value_new_str(std_format("Method not found: %.*s", (method).len, (method).data)));
+            _mc647;})));
+          _mc646;}));
+        compiler_lsp_server_send_message(error_response);
+      }
     }
   }
   /* defers */
@@ -20167,9 +21089,9 @@ bool compiler_lsp_server_LSPServer_handle_request(compiler_lsp_server_LSPServer 
 }
 
 void compiler_lsp_server_main_loop(void) {
-  compiler_lsp_server_LSPServer *lsp = ({compiler_lsp_server_LSPServer *_new_632 = std_mem_state_alloc_fn(std_mem_state_allocator, sizeof(compiler_lsp_server_LSPServer)); *_new_632 = (compiler_lsp_server_LSPServer){.documents=({
-    std_compact_map_Map__3 *_mc633 = std_compact_map_Map__3_new(8);
-    _mc633;}), .validate_throttle_ms=500.000000, .last_validated=0.000000, .to_validate_req=NULL}; _new_632; });
+  compiler_lsp_server_LSPServer *lsp = ({compiler_lsp_server_LSPServer *_new_648 = std_mem_state_alloc_fn(std_mem_state_allocator, sizeof(compiler_lsp_server_LSPServer)); *_new_648 = (compiler_lsp_server_LSPServer){.documents=({
+    std_compact_map_Map__3 *_mc649 = std_compact_map_Map__3_new(8);
+    _mc649;}), .validate_throttle_ms=500.000000, .last_validated=0.000000, .to_validate_req=NULL}; _new_648; });
   while (true) {
     if (!(compiler_lsp_server_LSPServer_handle_request(lsp))) {
       /* defers */
@@ -20237,7 +21159,7 @@ void compiler_lsp_cli_handle_validate(compiler_ast_program_Program *program, cha
     }
   }
   return;
-  compiler_passes_visitor_Visitor visitor = (compiler_passes_visitor_Visitor){.node_fn=({compiler_lsp_cli_handle_validate__Closure_7Ctx *_C634 = alloca(sizeof(compiler_lsp_cli_handle_validate__Closure_7Ctx));_C634->path = &path;_ClosureTy_1 _ci635 = {._C=_C634, .fn=&compiler_lsp_cli_handle_validate__Closure_7};_ci635;}), .type_fn=({compiler_passes_visitor__Closure_4Ctx *_C636 = alloca(sizeof(compiler_passes_visitor__Closure_4Ctx));_ClosureTy_2 _ci637 = {._C=_C636, .fn=&compiler_passes_visitor__Closure_4};_ci637;})};
+  compiler_passes_visitor_Visitor visitor = (compiler_passes_visitor_Visitor){.node_fn=({compiler_lsp_cli_handle_validate__Closure_7Ctx *_C650 = alloca(sizeof(compiler_lsp_cli_handle_validate__Closure_7Ctx));_C650->path = &path;_ClosureTy_1 _ci651 = {._C=_C650, .fn=&compiler_lsp_cli_handle_validate__Closure_7};_ci651;}), .type_fn=({compiler_passes_visitor__Closure_4Ctx *_C652 = alloca(sizeof(compiler_passes_visitor__Closure_4Ctx));_ClosureTy_2 _ci653 = {._C=_C652, .fn=&compiler_passes_visitor__Closure_4};_ci653;})};
   for (compiler_ast_program_NSIterator _i218 = compiler_ast_program_Program_iter_namespaces(program); compiler_ast_program_NSIterator_has_value(&_i218); compiler_ast_program_NSIterator_next(&_i218)) {
     compiler_ast_program_Namespace *ns = compiler_ast_program_NSIterator_cur(&_i218);
     {
@@ -20267,39 +21189,39 @@ void compiler_lsp_cli_handle_location_command(compiler_ast_program_Program *prog
     }
     return;
   }
-  std_value_Value *resp = ({std_value_Value *__yv_638;
+  std_value_Value *resp = ({std_value_Value *__yv_654;
 switch ((type)) {
       case compiler_lsp_cli_CommandType_Hover:
-      m_639_0:
+      m_655_0:
         {
-          __yv_638 = compiler_lsp_cli_utils_gen_hover_string_with_docs(finder.found_sym);
-          goto _l___yv_638;
+          __yv_654 = compiler_lsp_cli_utils_gen_hover_string_with_docs(finder.found_sym);
+          goto _l___yv_654;
         } break;
       case compiler_lsp_cli_CommandType_GoToDefinition:
-      m_639_1:
+      m_655_1:
         {
           compiler_ast_scopes_Symbol *usage = finder.found_sym;
-          std_span_Span jump_span = ({std_span_Span __yv_640;
+          std_span_Span jump_span = ({std_span_Span __yv_656;
 switch ((usage->type)) {
               case compiler_ast_scopes_SymbolType_Namespace:
-              m_641_0:
+              m_657_0:
                 {
-                  __yv_640 = usage->u.ns->span;
-                  goto _l___yv_640;
+                  __yv_656 = usage->u.ns->span;
+                  goto _l___yv_656;
                 } break;
               default:
                 {
-                  __yv_640 = usage->span;
-                  goto _l___yv_640;
+                  __yv_656 = usage->span;
+                  goto _l___yv_656;
                 } break;
             }
-_l___yv_640:
-          __yv_640;});
-          __yv_638 = compiler_lsp_cli_utils_gen_span_json_with_filename(jump_span, loc);
-          goto _l___yv_638;
+_l___yv_656:
+          __yv_656;});
+          __yv_654 = compiler_lsp_cli_utils_gen_span_json_with_filename(jump_span, loc);
+          goto _l___yv_654;
         } break;
       case compiler_lsp_cli_CommandType_GoToType:
-      m_639_2:
+      m_655_2:
         {
           compiler_types_Type *typ = compiler_lsp_cli_utils_get_symbol_typedef(finder.found_sym);
           if ((((bool)typ) && !(compiler_types_Type_can_have_methods(typ))) && typ->base==compiler_types_BaseType_Pointer) {
@@ -20308,41 +21230,41 @@ _l___yv_640:
           if (!(((bool)typ))) {
             return;
           }
-          __yv_638 = compiler_lsp_cli_utils_gen_span_json_with_filename(typ->span, loc);
-          goto _l___yv_638;
+          __yv_654 = compiler_lsp_cli_utils_gen_span_json_with_filename(typ->span, loc);
+          goto _l___yv_654;
         } break;
       case compiler_lsp_cli_CommandType_Completions:
-      m_639_3:
+      m_655_3:
         {
-          __yv_638 = compiler_lsp_cli_utils_gen_completions_json(&finder);
-          goto _l___yv_638;
+          __yv_654 = compiler_lsp_cli_utils_gen_completions_json(&finder);
+          goto _l___yv_654;
         } break;
       case compiler_lsp_cli_CommandType_References:
-      m_639_4:
+      m_655_4:
         {
-          __yv_638 = compiler_lsp_cli_utils_gen_references_json(finder.found_sym, loc);
-          goto _l___yv_638;
+          __yv_654 = compiler_lsp_cli_utils_gen_references_json(finder.found_sym, loc);
+          goto _l___yv_654;
         } break;
       case compiler_lsp_cli_CommandType_Renames:
-      m_639_5:
+      m_655_5:
         {
-          __yv_638 = compiler_lsp_cli_utils_gen_renames_json(finder.found_sym, loc);
-          goto _l___yv_638;
+          __yv_654 = compiler_lsp_cli_utils_gen_renames_json(finder.found_sym, loc);
+          goto _l___yv_654;
         } break;
       case compiler_lsp_cli_CommandType_SignatureHelp:
-      m_639_6:
+      m_655_6:
         {
-          __yv_638 = compiler_lsp_cli_utils_gen_signature_help(finder.call, finder.active_param);
-          goto _l___yv_638;
+          __yv_654 = compiler_lsp_cli_utils_gen_signature_help(finder.call, finder.active_param);
+          goto _l___yv_654;
         } break;
       default:
         {
           std_panic("Unhandled command type");
-          goto _l___yv_638;
+          goto _l___yv_654;
         } break;
     }
-_l___yv_638:
-  __yv_638;});
+_l___yv_654:
+  __yv_654;});
   if (!(((bool)resp))) {
     return;
   }
@@ -20432,48 +21354,48 @@ i32 compiler_lsp_cli_main(i32 argc, char **argv, char *contents) {
   while (argc > 0) {
     char *arg = compiler_lsp_cli_shift_args(&argc, &argv);
     {
-      char *__match_var_642 = arg;
-      if (str_eq(__match_var_642, "--help")) {
+      char *__match_var_658 = arg;
+      if (str_eq(__match_var_658, "--help")) {
         compiler_lsp_cli_lsp_usage(0, true);
-      } else if (str_eq(__match_var_642, "-h") || str_eq(__match_var_642, "-d") || str_eq(__match_var_642, "-t") || str_eq(__match_var_642, "-c") || str_eq(__match_var_642, "-r") || str_eq(__match_var_642, "-s") || str_eq(__match_var_642, "--refs") || str_eq(__match_var_642, "--renames")) {
-        cmd_type=({compiler_lsp_cli_CommandType __yv_643;
+      } else if (str_eq(__match_var_658, "-h") || str_eq(__match_var_658, "-d") || str_eq(__match_var_658, "-t") || str_eq(__match_var_658, "-c") || str_eq(__match_var_658, "-r") || str_eq(__match_var_658, "-s") || str_eq(__match_var_658, "--refs") || str_eq(__match_var_658, "--renames")) {
+        cmd_type=({compiler_lsp_cli_CommandType __yv_659;
           {
-            char *__match_var_644 = arg;
-            if (str_eq(__match_var_644, "-h")) {
-              __yv_643 = compiler_lsp_cli_CommandType_Hover;
-              goto _l___yv_643;
-            } else if (str_eq(__match_var_644, "-d")) {
-              __yv_643 = compiler_lsp_cli_CommandType_GoToDefinition;
-              goto _l___yv_643;
-            } else if (str_eq(__match_var_644, "-t")) {
-              __yv_643 = compiler_lsp_cli_CommandType_GoToType;
-              goto _l___yv_643;
-            } else if (str_eq(__match_var_644, "-c")) {
-              __yv_643 = compiler_lsp_cli_CommandType_Completions;
-              goto _l___yv_643;
-            } else if (str_eq(__match_var_644, "-s")) {
-              __yv_643 = compiler_lsp_cli_CommandType_SignatureHelp;
-              goto _l___yv_643;
-            } else if (str_eq(__match_var_644, "-r") || str_eq(__match_var_644, "--refs")) {
-              __yv_643 = compiler_lsp_cli_CommandType_References;
-              goto _l___yv_643;
-            } else if (str_eq(__match_var_644, "--renames")) {
-              __yv_643 = compiler_lsp_cli_CommandType_Renames;
-              goto _l___yv_643;
+            char *__match_var_660 = arg;
+            if (str_eq(__match_var_660, "-h")) {
+              __yv_659 = compiler_lsp_cli_CommandType_Hover;
+              goto _l___yv_659;
+            } else if (str_eq(__match_var_660, "-d")) {
+              __yv_659 = compiler_lsp_cli_CommandType_GoToDefinition;
+              goto _l___yv_659;
+            } else if (str_eq(__match_var_660, "-t")) {
+              __yv_659 = compiler_lsp_cli_CommandType_GoToType;
+              goto _l___yv_659;
+            } else if (str_eq(__match_var_660, "-c")) {
+              __yv_659 = compiler_lsp_cli_CommandType_Completions;
+              goto _l___yv_659;
+            } else if (str_eq(__match_var_660, "-s")) {
+              __yv_659 = compiler_lsp_cli_CommandType_SignatureHelp;
+              goto _l___yv_659;
+            } else if (str_eq(__match_var_660, "-r") || str_eq(__match_var_660, "--refs")) {
+              __yv_659 = compiler_lsp_cli_CommandType_References;
+              goto _l___yv_659;
+            } else if (str_eq(__match_var_660, "--renames")) {
+              __yv_659 = compiler_lsp_cli_CommandType_Renames;
+              goto _l___yv_659;
             } else  std_panic("Invalid command type");
           }
 
-_l___yv_643:
-        __yv_643;});
+_l___yv_659:
+        __yv_659;});
         line=str_to_u32(compiler_lsp_cli_shift_args(&argc, &argv));
         col=str_to_u32(compiler_lsp_cli_shift_args(&argc, &argv));
-      } else if (str_eq(__match_var_642, "--validate")) {
+      } else if (str_eq(__match_var_658, "--validate")) {
         cmd_type=compiler_lsp_cli_CommandType_Validate;
-      } else if (str_eq(__match_var_642, "--doc-symbols")) {
+      } else if (str_eq(__match_var_658, "--doc-symbols")) {
         cmd_type=compiler_lsp_cli_CommandType_DocumentSymbols;
-      } else if (str_eq(__match_var_642, "-v")) {
+      } else if (str_eq(__match_var_658, "-v")) {
         compiler_lsp_cli_utils_verbose=true;
-      } else if (str_eq(__match_var_642, "--show-path")) {
+      } else if (str_eq(__match_var_658, "--show-path")) {
         show_path=compiler_lsp_cli_shift_args(&argc, &argv);
       } else  {
         if (((bool)file_path)) {
@@ -20515,32 +21437,32 @@ _l___yv_643:
   }
   compiler_ast_program_Program_setup_library_paths(program);
   program->include_stdlib=true;
-  bool include_workspace_main = ({bool __yv_645;
+  bool include_workspace_main = ({bool __yv_661;
 switch ((cmd_type)) {
       case compiler_lsp_cli_CommandType_References:
       case compiler_lsp_cli_CommandType_Renames:
-      m_646_0:
+      m_662_0:
         {
-          __yv_645 = true;
-          goto _l___yv_645;
+          __yv_661 = true;
+          goto _l___yv_661;
         } break;
       default:
         {
-          __yv_645 = false;
-          goto _l___yv_645;
+          __yv_661 = false;
+          goto _l___yv_661;
         } break;
     }
-_l___yv_645:
-  __yv_645;});
+_l___yv_661:
+  __yv_661;});
   compiler_parser_Parser_parse_toplevel(program, show_path, contents, include_workspace_main);
 switch ((cmd_type)) {
     case compiler_lsp_cli_CommandType_DocumentSymbols:
-    m_647_0:
+    m_663_0:
       {
         compiler_lsp_cli_handle_document_symbols(program, show_path);
       } break;
     case compiler_lsp_cli_CommandType_Validate:
-    m_647_1:
+    m_663_1:
       {
         compiler_lsp_cli_handle_validate(program, show_path);
       } break;
@@ -20590,7 +21512,7 @@ char *compiler_lsp_cli_utils_gen_template_params(std_vector_Vector__0 *args) {
 }
 
 char *compiler_lsp_cli_utils_gen_type_string(compiler_types_Type *type, bool full) {
-  return ({char *__yv_648;
+  return ({char *__yv_664;
 switch ((type->base)) {
       case compiler_types_BaseType_Char:
       case compiler_types_BaseType_Bool:
@@ -20605,84 +21527,84 @@ switch ((type->base)) {
       case compiler_types_BaseType_U64:
       case compiler_types_BaseType_F32:
       case compiler_types_BaseType_F64:
-      m_649_0:
+      m_665_0:
         {
-          __yv_648 = compiler_types_BaseType_str(type->base);
-          goto _l___yv_648;
+          __yv_664 = compiler_types_BaseType_str(type->base);
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_Pointer:
-      m_649_1:
+      m_665_1:
         {
-          __yv_648 = ({char *__yv_650;
+          __yv_664 = ({char *__yv_666;
 switch ((type->u.ptr->base)) {
               case compiler_types_BaseType_Void:
-              m_651_0:
+              m_667_0:
                 {
-                  __yv_650 = "untyped_ptr";
-                  goto _l___yv_650;
+                  __yv_666 = "untyped_ptr";
+                  goto _l___yv_666;
                 } break;
               case compiler_types_BaseType_Char:
-              m_651_1:
+              m_667_1:
                 {
-                  __yv_650 = "str";
-                  goto _l___yv_650;
+                  __yv_666 = "str";
+                  goto _l___yv_666;
                 } break;
               default:
                 {
-                  __yv_650 = std_format("&%s", compiler_lsp_cli_utils_gen_type_string(type->u.ptr, full));
-                  goto _l___yv_650;
+                  __yv_666 = std_format("&%s", compiler_lsp_cli_utils_gen_type_string(type->u.ptr, full));
+                  goto _l___yv_666;
                 } break;
             }
-_l___yv_650:
-          __yv_650;});
-          goto _l___yv_648;
+_l___yv_666:
+          __yv_666;});
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_Array:
-      m_649_2:
+      m_665_2:
         {
-          __yv_648 = std_format("&%s", compiler_lsp_cli_utils_gen_type_string(type->u.arr.elem_type, full));
-          goto _l___yv_648;
+          __yv_664 = std_format("&%s", compiler_lsp_cli_utils_gen_type_string(type->u.arr.elem_type, full));
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_VectorShorthand:
-      m_649_3:
+      m_665_3:
         {
-          __yv_648 = std_format("$[%s]", compiler_lsp_cli_utils_gen_type_string(type->u.arr.elem_type, full));
-          goto _l___yv_648;
+          __yv_664 = std_format("$[%s]", compiler_lsp_cli_utils_gen_type_string(type->u.arr.elem_type, full));
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_MapShorthand:
-      m_649_4:
+      m_665_4:
         {
           compiler_types_MapShorthandType mpt = type->u.map_types;
-          __yv_648 = std_format("${%s:%s}", compiler_lsp_cli_utils_gen_type_string(mpt.key, full), compiler_lsp_cli_utils_gen_type_string(mpt.value, full));
-          goto _l___yv_648;
+          __yv_664 = std_format("${%s:%s}", compiler_lsp_cli_utils_gen_type_string(mpt.key, full), compiler_lsp_cli_utils_gen_type_string(mpt.value, full));
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_Structure:
       case compiler_types_BaseType_Alias:
       case compiler_types_BaseType_Enum:
-      m_649_5:
+      m_665_5:
         {
           if (!(((bool)type->template_instance))) {
-            return ({char *__yv_652;
+            return ({char *__yv_668;
               if (full) {
-                __yv_652 = type->sym->display;
-                goto _l___yv_652;
+                __yv_668 = type->sym->display;
+                goto _l___yv_668;
               } else {
-                __yv_652 = type->sym->name;
-                goto _l___yv_652;
+                __yv_668 = type->sym->name;
+                goto _l___yv_668;
               }
-_l___yv_652:
-            __yv_652;});
+_l___yv_668:
+            __yv_668;});
           }
           compiler_ast_scopes_TemplateInstance *instance = type->template_instance;
           std_buffer_Buffer sb = std_buffer_Buffer_make(16);
           std_buffer_Buffer_write_str(&sb, (full ? instance->parent->display : instance->parent->name));
           std_buffer_Buffer_write_str_f(&sb, compiler_lsp_cli_utils_gen_template_params(instance->args));
-          __yv_648 = std_buffer_Buffer_str(sb);
-          goto _l___yv_648;
+          __yv_664 = std_buffer_Buffer_str(sb);
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_Closure:
       case compiler_types_BaseType_FunctionPtr:
-      m_649_6:
+      m_665_6:
         {
           std_buffer_Buffer sb = std_buffer_Buffer_make(16);
           compiler_types_FunctionType func_type = type->u.func;
@@ -20736,177 +21658,177 @@ _l___yv_652:
             std_buffer_Buffer_write_str(&sb, ": ");
             std_buffer_Buffer_write_str(&sb, compiler_lsp_cli_utils_gen_type_string(func_type.return_type, false));
           }
-          __yv_648 = std_buffer_Buffer_str(sb);
-          goto _l___yv_648;
+          __yv_664 = std_buffer_Buffer_str(sb);
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_Unresolved:
-      m_649_7:
+      m_665_7:
         {
           compiler_ast_nodes_AST *unres = type->u.unresolved;
-          __yv_648 = ({char *__yv_653;
+          __yv_664 = ({char *__yv_669;
 switch ((unres->type)) {
               case compiler_ast_nodes_ASTType_Identifier:
-              m_654_0:
+              m_670_0:
                 {
-                  __yv_653 = unres->u.ident.name;
-                  goto _l___yv_653;
+                  __yv_669 = unres->u.ident.name;
+                  goto _l___yv_669;
                 } break;
               default:
                 {
-                  __yv_653 = "<unresolved>";
-                  goto _l___yv_653;
+                  __yv_669 = "<unresolved>";
+                  goto _l___yv_669;
                 } break;
             }
-_l___yv_653:
-          __yv_653;});
-          goto _l___yv_648;
+_l___yv_669:
+          __yv_669;});
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_UnresolvedTemplate:
-      m_649_8:
+      m_665_8:
         {
           compiler_types_UnresolvedTemplate unres = type->u.unresolved_spec;
           std_buffer_Buffer sb = std_buffer_Buffer_make(16);
           std_buffer_Buffer_write_str(&sb, compiler_lsp_cli_utils_gen_type_string(unres.base, full));
           std_buffer_Buffer_write_str_f(&sb, compiler_lsp_cli_utils_gen_template_params(unres.args));
-          __yv_648 = std_buffer_Buffer_str(sb);
-          goto _l___yv_648;
+          __yv_664 = std_buffer_Buffer_str(sb);
+          goto _l___yv_664;
         } break;
       case compiler_types_BaseType_Error:
       case compiler_types_BaseType_NUM_BASE_TYPES:
-      m_649_9:
+      m_665_9:
         {
-          __yv_648 = "ERROR";
-          goto _l___yv_648;
+          __yv_664 = "ERROR";
+          goto _l___yv_664;
         } break;
     }
-_l___yv_648:
-  __yv_648;});}
+_l___yv_664:
+  __yv_664;});}
 
 char *compiler_lsp_cli_utils_try_gen_expr_string(compiler_ast_nodes_AST *expr) {
-  return ({char *__yv_655;
+  return ({char *__yv_671;
 switch ((expr->type)) {
       case compiler_ast_nodes_ASTType_BoolLiteral:
-      m_656_0:
-                  __yv_655 = (expr->u.bool_literal ? "true" : "false");
-          goto _l___yv_655;
+      m_672_0:
+                  __yv_671 = (expr->u.bool_literal ? "true" : "false");
+          goto _l___yv_671;
          break;
       case compiler_ast_nodes_ASTType_IntLiteral:
       case compiler_ast_nodes_ASTType_FloatLiteral:
-      m_656_1:
+      m_672_1:
         {
           compiler_ast_nodes_NumLiteral *literal = &expr->u.num_literal;
-          __yv_655 = ({char *__yv_657;
+          __yv_671 = ({char *__yv_673;
             if (((bool)literal->suffix)) {
-              __yv_657 = std_format("%s%s", literal->text, compiler_types_Type_str(literal->suffix));
-              goto _l___yv_657;
+              __yv_673 = std_format("%s%s", literal->text, compiler_types_Type_str(literal->suffix));
+              goto _l___yv_673;
             } else {
-              __yv_657 = literal->text;
-              goto _l___yv_657;
+              __yv_673 = literal->text;
+              goto _l___yv_673;
             }
-_l___yv_657:
-          __yv_657;});
-          goto _l___yv_655;
+_l___yv_673:
+          __yv_673;});
+          goto _l___yv_671;
         } break;
       case compiler_ast_nodes_ASTType_StringLiteral:
-      m_656_2:
+      m_672_2:
         {
-          __yv_655 = std_format("\"%s\"", expr->u.string_literal);
-          goto _l___yv_655;
+          __yv_671 = std_format("\"%s\"", expr->u.string_literal);
+          goto _l___yv_671;
         } break;
       case compiler_ast_nodes_ASTType_CharLiteral:
-      m_656_3:
+      m_672_3:
         {
-          __yv_655 = std_format("'%s'", expr->u.char_literal);
-          goto _l___yv_655;
+          __yv_671 = std_format("'%s'", expr->u.char_literal);
+          goto _l___yv_671;
         } break;
       case compiler_ast_nodes_ASTType_Null:
-      m_656_4:
+      m_672_4:
         {
-          __yv_655 = "null";
-          goto _l___yv_655;
+          __yv_671 = "null";
+          goto _l___yv_671;
         } break;
       case compiler_ast_nodes_ASTType_Identifier:
-      m_656_5:
+      m_672_5:
         {
-          __yv_655 = expr->u.ident.name;
-          goto _l___yv_655;
+          __yv_671 = expr->u.ident.name;
+          goto _l___yv_671;
         } break;
       case compiler_ast_nodes_ASTType_NSLookup:
-      m_656_6:
+      m_672_6:
         {
           char *lhs_str = compiler_lsp_cli_utils_try_gen_expr_string(expr->u.lookup.lhs);
           if (!(((bool)lhs_str))) {
             return NULL;
           }
-          __yv_655 = std_format("%s::%s", lhs_str, expr->u.lookup.rhs_name);
-          goto _l___yv_655;
+          __yv_671 = std_format("%s::%s", lhs_str, expr->u.lookup.rhs_name);
+          goto _l___yv_671;
         } break;
       default:
         {
-          __yv_655 = NULL;
-          goto _l___yv_655;
+          __yv_671 = NULL;
+          goto _l___yv_671;
         } break;
     }
-_l___yv_655:
-  __yv_655;});}
+_l___yv_671:
+  __yv_671;});}
 
 char *compiler_lsp_cli_utils_gen_hover_string(compiler_ast_scopes_Symbol *sym) {
-  return ({char *__yv_658;
+  return ({char *__yv_674;
 switch ((sym->type)) {
       case compiler_ast_scopes_SymbolType_ClosureType:
       case compiler_ast_scopes_SymbolType_TypeDef:
-      m_659_0:
+      m_675_0:
         {
-          __yv_658 = compiler_lsp_cli_utils_gen_type_string(sym->u.type_def, true);
-          goto _l___yv_658;
+          __yv_674 = compiler_lsp_cli_utils_gen_type_string(sym->u.type_def, true);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_Function:
-      m_659_1:
+      m_675_1:
         {
-          __yv_658 = compiler_lsp_cli_utils_gen_type_string(sym->u.func->type, true);
-          goto _l___yv_658;
+          __yv_674 = compiler_lsp_cli_utils_gen_type_string(sym->u.func->type, true);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_Variable:
-      m_659_2:
+      m_675_2:
         {
           std_buffer_Buffer sb = std_buffer_Buffer_make(16);
           std_buffer_Buffer_write_str(&sb, sym->display);
           std_buffer_Buffer_write_str(&sb, ": ");
           std_buffer_Buffer_write_str(&sb, compiler_lsp_cli_utils_gen_type_string(sym->u.var->type, true));
-          __yv_658 = std_buffer_Buffer_str(sb);
-          goto _l___yv_658;
+          __yv_674 = std_buffer_Buffer_str(sb);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_Constant:
-      m_659_3:
+      m_675_3:
         {
           std_buffer_Buffer sb = std_buffer_Buffer_make(16);
           std_buffer_Buffer_write_str(&sb, "const ");
           std_buffer_Buffer_write_str(&sb, sym->display);
           std_buffer_Buffer_write_str(&sb, ": ");
           std_buffer_Buffer_write_str(&sb, compiler_lsp_cli_utils_gen_type_string(sym->u.var->type, true));
-          __yv_658 = std_buffer_Buffer_str(sb);
-          goto _l___yv_658;
+          __yv_674 = std_buffer_Buffer_str(sb);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_Structure:
-      m_659_4:
+      m_675_4:
         {
-          __yv_658 = std_format("struct %s", sym->display);
-          goto _l___yv_658;
+          __yv_674 = std_format("struct %s", sym->display);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_Namespace:
-      m_659_5:
+      m_675_5:
         {
-          __yv_658 = std_format("namespace %s", sym->display);
-          goto _l___yv_658;
+          __yv_674 = std_format("namespace %s", sym->display);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_Enum:
-      m_659_6:
+      m_675_6:
         {
-          __yv_658 = std_format("enum %s", sym->display);
-          goto _l___yv_658;
+          __yv_674 = std_format("enum %s", sym->display);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_EnumVariant:
-      m_659_7:
+      m_675_7:
         {
           compiler_ast_nodes_EnumVariant *variant = sym->u.enum_var;
           std_buffer_Buffer buf = std_buffer_Buffer_make(16);
@@ -20927,115 +21849,115 @@ switch ((sym->type)) {
             }
             std_buffer_Buffer_write_str(&buf, ")");
           }
-          __yv_658 = std_buffer_Buffer_str(buf);
-          goto _l___yv_658;
+          __yv_674 = std_buffer_Buffer_str(buf);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_EnumField:
-      m_659_8:
+      m_675_8:
         {
           compiler_ast_scopes_EnumField field = sym->u.enum_field;
-          __yv_658 = std_format("enum %s.%u", field.variant->sym->display, field.idx);
-          goto _l___yv_658;
+          __yv_674 = std_format("enum %s.%u", field.variant->sym->display, field.idx);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_Closure:
-      m_659_9:
+      m_675_9:
         {
-          __yv_658 = compiler_lsp_cli_utils_gen_type_string(sym->u.func->type, true);
-          goto _l___yv_658;
+          __yv_674 = compiler_lsp_cli_utils_gen_type_string(sym->u.func->type, true);
+          goto _l___yv_674;
         } break;
       case compiler_ast_scopes_SymbolType_ClosedVariable:
-      m_659_10:
+      m_675_10:
         {
           compiler_ast_nodes_Variable *var = sym->u.closed_var.orig;
           std_buffer_Buffer buf = std_buffer_Buffer_make(16);
           std_buffer_Buffer_write_str(&buf, var->sym->display);
           std_buffer_Buffer_write_str(&buf, ": ");
           std_buffer_Buffer_write_str(&buf, compiler_lsp_cli_utils_gen_type_string(var->type, true));
-          __yv_658 = std_buffer_Buffer_str(buf);
-          goto _l___yv_658;
+          __yv_674 = std_buffer_Buffer_str(buf);
+          goto _l___yv_674;
         } break;
     }
-_l___yv_658:
-  __yv_658;});}
+_l___yv_674:
+  __yv_674;});}
 
 compiler_types_Type *compiler_lsp_cli_utils_get_symbol_typedef(compiler_ast_scopes_Symbol *sym) {
-  return ({compiler_types_Type *__yv_660;
+  return ({compiler_types_Type *__yv_676;
 switch ((sym->type)) {
       case compiler_ast_scopes_SymbolType_TypeDef:
-      m_661_0:
+      m_677_0:
         {
-          __yv_660 = sym->u.type_def;
-          goto _l___yv_660;
+          __yv_676 = sym->u.type_def;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_Function:
-      m_661_1:
+      m_677_1:
         {
-          __yv_660 = sym->u.func->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.func->type;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_Variable:
-      m_661_2:
+      m_677_2:
         {
-          __yv_660 = sym->u.var->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.var->type;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_Constant:
-      m_661_3:
+      m_677_3:
         {
-          __yv_660 = sym->u.var->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.var->type;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_Structure:
-      m_661_4:
+      m_677_4:
         {
-          __yv_660 = sym->u.struc->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.struc->type;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_Namespace:
-      m_661_5:
+      m_677_5:
         {
-          __yv_660 = NULL;
-          goto _l___yv_660;
+          __yv_676 = NULL;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_Enum:
-      m_661_6:
+      m_677_6:
         {
-          __yv_660 = sym->u.enom->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.enom->type;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_EnumVariant:
-      m_661_7:
+      m_677_7:
         {
-          __yv_660 = sym->u.enum_var->parent->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.enum_var->parent->type;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_EnumField:
-      m_661_8:
+      m_677_8:
         {
-          __yv_660 = sym->u.enum_field.variant->parent->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.enum_field.variant->parent->type;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_ClosureType:
-      m_661_9:
+      m_677_9:
         {
-          __yv_660 = sym->u.type_def;
-          goto _l___yv_660;
+          __yv_676 = sym->u.type_def;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_Closure:
-      m_661_10:
+      m_677_10:
         {
-          __yv_660 = sym->u.func->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.func->type;
+          goto _l___yv_676;
         } break;
       case compiler_ast_scopes_SymbolType_ClosedVariable:
-      m_661_11:
+      m_677_11:
         {
-          __yv_660 = sym->u.closed_var.orig->type;
-          goto _l___yv_660;
+          __yv_676 = sym->u.closed_var.orig->type;
+          goto _l___yv_676;
         } break;
     }
-_l___yv_660:
-  __yv_660;});}
+_l___yv_676:
+  __yv_676;});}
 
 std_value_Value *compiler_lsp_cli_utils_gen_error_json(compiler_errors_Error *err) {
   std_value_Value *obj = std_value_Value_new(std_value_ValueType_Dictionary);
@@ -21045,30 +21967,30 @@ std_value_Value *compiler_lsp_cli_utils_gen_error_json(compiler_errors_Error *er
 switch ((err->type)) {
     case compiler_errors_ErrorType_WithHint:
     case compiler_errors_ErrorType_WithNote:
-    m_662_0:
+    m_678_0:
       {
         std_value_Value *extra_info = std_value_Value_new(std_value_ValueType_Dictionary);
-        std_span_Span extra_span = ({std_span_Span __yv_663;
+        std_span_Span extra_span = ({std_span_Span __yv_679;
 switch ((err->type)) {
             case compiler_errors_ErrorType_WithHint:
-            m_664_0:
-                              __yv_663 = (std_span_Span_is_valid(err->span2) ? err->span2 : err->span1);
-                goto _l___yv_663;
+            m_680_0:
+                              __yv_679 = (std_span_Span_is_valid(err->span2) ? err->span2 : err->span1);
+                goto _l___yv_679;
                break;
             default:
               {
-                __yv_663 = err->span1;
-                goto _l___yv_663;
+                __yv_679 = err->span1;
+                goto _l___yv_679;
               } break;
           }
-_l___yv_663:
-        __yv_663;});
+_l___yv_679:
+        __yv_679;});
         std_value_Value_insert(extra_info, "span", compiler_lsp_cli_utils_gen_span_json(extra_span));
         std_value_Value_insert_str(extra_info, "message", err->msg2);
         std_value_Value_insert(obj, "extra_info", extra_info);
       } break;
     case compiler_errors_ErrorType_Standard:
-    m_662_1:
+    m_678_1:
       {
       } break;
   }  return obj;
@@ -21136,6 +22058,7 @@ std_value_Value *compiler_lsp_cli_utils_gen_enum_json(compiler_ast_nodes_Enum *e
     {
       std_value_Value *member_obj = std_value_Value_new(std_value_ValueType_Dictionary);
       std_value_Value_insert_str(member_obj, "name", variant->sym->name);
+      std_value_Value_insert_str(member_obj, "detail", compiler_lsp_cli_utils_gen_hover_string(variant->sym));
       std_value_Value_insert_str(member_obj, "kind", "enum-member");
       std_value_Value_insert(member_obj, "range", compiler_lsp_cli_utils_gen_span_json(variant->sym->span));
       std_value_Value_insert(member_obj, "selection_range", compiler_lsp_cli_utils_gen_span_json(variant->sym->span));
@@ -21249,7 +22172,7 @@ void compiler_lsp_cli_utils_insert_completion_item(std_value_Value *completions,
   std_value_Value_insert_str(val, "detail", compiler_lsp_cli_utils_gen_hover_string(sym));
 switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Function:
-    m_665_0:
+    m_681_0:
       {
         std_value_Value_insert_str(val, "insertText", name);
         std_value_Value_insert_str(val, "kind", "function");
@@ -21259,7 +22182,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Variable:
-    m_665_1:
+    m_681_1:
       {
         std_value_Value_insert_str(val, "insertText", name);
         std_value_Value_insert_str(val, "kind", "field");
@@ -21269,7 +22192,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Constant:
-    m_665_2:
+    m_681_2:
       {
         std_value_Value_insert_str(val, "insertText", name);
         std_value_Value_insert_str(val, "kind", "constant");
@@ -21290,7 +22213,7 @@ switch ((sym->type)) {
   }  std_value_Value_push(completions, val);
 }
 
-std_vector_Vector__34 *compiler_lsp_cli_utils_get_unique_reference_spans(compiler_ast_scopes_Symbol *sym, bool for_rename) {
+std_vector_Vector__38 *compiler_lsp_cli_utils_get_unique_reference_spans(compiler_ast_scopes_Symbol *sym, bool for_rename) {
   std_set_Set__3 *set = std_set_Set__3_new();
   for (std_vector_Iterator__21 _i229 = std_vector_Vector__21_iter(sym->references); std_vector_Iterator__21_has_value(&_i229); std_vector_Iterator__21_next(&_i229)) {
     compiler_ast_scopes_Reference ref = std_vector_Iterator__21_cur(&_i229);
@@ -21302,11 +22225,11 @@ std_vector_Vector__34 *compiler_lsp_cli_utils_get_unique_reference_spans(compile
     }
   }
   std_set_Set__3_add(set, sym->span);
-  std_vector_Vector__34 *vec = std_vector_Vector__34_new(16);
+  std_vector_Vector__38 *vec = std_vector_Vector__38_new(16);
   for (std_set_Iterator__3 _i230 = std_set_Set__3_iter(set); std_set_Iterator__3_has_value(&_i230); std_set_Iterator__3_next(&_i230)) {
     std_span_Span span = std_set_Iterator__3_cur(&_i230);
     {
-      std_vector_Vector__34_push(vec, span);
+      std_vector_Vector__38_push(vec, span);
     }
   }
   std_set_Set__3_free(set);
@@ -21315,14 +22238,14 @@ std_vector_Vector__34 *compiler_lsp_cli_utils_get_unique_reference_spans(compile
 
 std_value_Value *compiler_lsp_cli_utils_gen_references_json(compiler_ast_scopes_Symbol *sym, std_span_Location loc) {
   std_value_Value *obj = std_value_Value_new(std_value_ValueType_List);
-  std_vector_Vector__34 *spans = compiler_lsp_cli_utils_get_unique_reference_spans(sym, false);
-  for (std_vector_Iterator__34 _i231 = std_vector_Vector__34_iter(spans); std_vector_Iterator__34_has_value(&_i231); std_vector_Iterator__34_next(&_i231)) {
-    std_span_Span ref = std_vector_Iterator__34_cur(&_i231);
+  std_vector_Vector__38 *spans = compiler_lsp_cli_utils_get_unique_reference_spans(sym, false);
+  for (std_vector_Iterator__38 _i231 = std_vector_Vector__38_iter(spans); std_vector_Iterator__38_has_value(&_i231); std_vector_Iterator__38_next(&_i231)) {
+    std_span_Span ref = std_vector_Iterator__38_cur(&_i231);
     {
       std_value_Value_push(obj, compiler_lsp_cli_utils_gen_span_json_with_filename(ref, loc));
     }
   }
-  std_vector_Vector__34_free(spans);
+  std_vector_Vector__38_free(spans);
   return obj;
 }
 
@@ -21330,19 +22253,19 @@ std_value_Value *compiler_lsp_cli_utils_gen_signature_help(compiler_ast_nodes_AS
   std_value_Value *obj = std_value_Value_new(std_value_ValueType_Dictionary);
   compiler_ast_scopes_Symbol *callee_sym = node->u.call.callee->resolved_symbol;
   bool is_non_static_method = false;
-  std_vector_Vector__3 *params = ({std_vector_Vector__3 *__yv_666;
+  std_vector_Vector__3 *params = ({std_vector_Vector__3 *__yv_682;
 switch ((callee_sym->type)) {
       case compiler_ast_scopes_SymbolType_Function:
-      m_667_0:
+      m_683_0:
         {
           compiler_ast_nodes_Function *func = callee_sym->u.func;
           std_value_Value_insert_str(obj, "label", compiler_lsp_cli_utils_gen_type_string(func->type, true));
           is_non_static_method=(func->kind==compiler_ast_nodes_FunctionKind_Method && !(func->is_static));
-          __yv_666 = func->params;
-          goto _l___yv_666;
+          __yv_682 = func->params;
+          goto _l___yv_682;
         } break;
       case compiler_ast_scopes_SymbolType_Variable:
-      m_667_1:
+      m_683_1:
         {
           compiler_ast_nodes_Variable *var = callee_sym->u.var;
           if (var->type->base != compiler_types_BaseType_FunctionPtr) {
@@ -21352,11 +22275,11 @@ switch ((callee_sym->type)) {
             return obj;
           }
           std_value_Value_insert_str(obj, "label", compiler_lsp_cli_utils_gen_type_string(var->type, true));
-          __yv_666 = var->type->u.func.params;
-          goto _l___yv_666;
+          __yv_682 = var->type->u.func.params;
+          goto _l___yv_682;
         } break;
       case compiler_ast_scopes_SymbolType_Structure:
-      m_667_2:
+      m_683_2:
         {
           compiler_ast_nodes_Structure *struc = callee_sym->u.struc;
           std_buffer_Buffer struc_func_label = std_buffer_Buffer_make(16);
@@ -21373,8 +22296,8 @@ switch ((callee_sym->type)) {
           }
           std_buffer_Buffer_write_str(&struc_func_label, ")");
           std_value_Value_insert_str(obj, "label", std_buffer_Buffer_str(struc_func_label));
-          __yv_666 = struc->fields;
-          goto _l___yv_666;
+          __yv_682 = struc->fields;
+          goto _l___yv_682;
         } break;
       default:
         {
@@ -21384,8 +22307,8 @@ switch ((callee_sym->type)) {
           return obj;
         } break;
     }
-_l___yv_666:
-  __yv_666;});
+_l___yv_682:
+  __yv_682;});
   std_value_Value *params_obj = std_value_Value_new(std_value_ValueType_List);
   for (u32 i = 0; i < params->size; i+=1) {
     compiler_ast_nodes_Variable *param = std_vector_Vector__3_at(params, i);
@@ -21404,9 +22327,9 @@ _l___yv_666:
 
 std_value_Value *compiler_lsp_cli_utils_gen_renames_json(compiler_ast_scopes_Symbol *sym, std_span_Location loc) {
   std_value_Value *obj = std_value_Value_new(std_value_ValueType_List);
-  std_vector_Vector__34 *spans = compiler_lsp_cli_utils_get_unique_reference_spans(sym, true);
-  for (std_vector_Iterator__34 _i232 = std_vector_Vector__34_iter(spans); std_vector_Iterator__34_has_value(&_i232); std_vector_Iterator__34_next(&_i232)) {
-    std_span_Span ref = std_vector_Iterator__34_cur(&_i232);
+  std_vector_Vector__38 *spans = compiler_lsp_cli_utils_get_unique_reference_spans(sym, true);
+  for (std_vector_Iterator__38 _i232 = std_vector_Vector__38_iter(spans); std_vector_Iterator__38_has_value(&_i232); std_vector_Iterator__38_next(&_i232)) {
+    std_span_Span ref = std_vector_Iterator__38_cur(&_i232);
     {
       u32 size = (ref.end.index - ref.start.index);
       if (str_eq(sym->name, "this") && size==1) {
@@ -21545,7 +22468,7 @@ void compiler_lsp_cli_utils_gen_completion_items_from_ns(std_value_Value *comple
 void compiler_lsp_cli_utils_gen_completions_from_symbol(compiler_ast_scopes_Symbol *sym, compiler_ast_nodes_AST *node, std_value_Value *completions, std_set_Set__2 *seen) {
 switch ((sym->type)) {
     case compiler_ast_scopes_SymbolType_Structure:
-    m_668_0:
+    m_684_0:
       {
         if (((bool)node) && (node->type != compiler_ast_nodes_ASTType_NSLookup)) {
           for (std_vector_Iterator__3 _i244 = std_vector_Vector__3_iter(sym->u.struc->fields); std_vector_Iterator__3_has_value(&_i244); std_vector_Iterator__3_next(&_i244)) {
@@ -21563,7 +22486,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_TypeDef:
-    m_668_1:
+    m_684_1:
       {
         for (std_map_ValueIterator__8 _i246 = std_map_Map__8_iter_values(sym->u.type_def->methods); std_map_ValueIterator__8_has_value(&_i246); std_map_ValueIterator__8_next(&_i246)) {
           compiler_ast_nodes_Function *mth = std_map_ValueIterator__8_cur(&_i246);
@@ -21573,7 +22496,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Enum:
-    m_668_2:
+    m_684_2:
       {
         if (((bool)node) && node->type==compiler_ast_nodes_ASTType_NSLookup) {
           for (std_vector_Iterator__23 _i247 = std_vector_Vector__23_iter(sym->u.enom->variants); std_vector_Iterator__23_has_value(&_i247); std_vector_Iterator__23_next(&_i247)) {
@@ -21591,7 +22514,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Variable:
-    m_668_3:
+    m_684_3:
       {
         compiler_types_Type *typ = compiler_lsp_cli_utils_get_symbol_typedef(sym);
         if ((((bool)typ) && !(compiler_types_Type_can_have_methods(typ))) && typ->base==compiler_types_BaseType_Pointer) {
@@ -21602,7 +22525,7 @@ switch ((sym->type)) {
         }
       } break;
     case compiler_ast_scopes_SymbolType_Namespace:
-    m_668_4:
+    m_684_4:
       {
         compiler_lsp_cli_utils_gen_completion_items_from_ns(completions, sym->u.ns, seen);
       } break;
@@ -21621,34 +22544,34 @@ std_value_Value *compiler_lsp_cli_utils_gen_completions_json(compiler_lsp_cli_fi
   }
   std_value_Value *completions = std_value_Value_new(std_value_ValueType_List);
   compiler_types_Type *hint_type = node->hint;
-  compiler_ast_scopes_Symbol *sym = ({compiler_ast_scopes_Symbol *__yv_669;
+  compiler_ast_scopes_Symbol *sym = ({compiler_ast_scopes_Symbol *__yv_685;
 switch ((node->type)) {
       case compiler_ast_nodes_ASTType_Member:
-      m_670_0:
+      m_686_0:
         {
-          __yv_669 = node->u.member.lhs->resolved_symbol;
-          goto _l___yv_669;
+          __yv_685 = node->u.member.lhs->resolved_symbol;
+          goto _l___yv_685;
         } break;
       case compiler_ast_nodes_ASTType_NSLookup:
-      m_670_1:
+      m_686_1:
         {
-          __yv_669 = node->u.lookup.lhs->resolved_symbol;
-          goto _l___yv_669;
+          __yv_685 = node->u.lookup.lhs->resolved_symbol;
+          goto _l___yv_685;
         } break;
       case compiler_ast_nodes_ASTType_Import:
-      m_670_2:
+      m_686_2:
         {
-          __yv_669 = finder->found_import_ns->sym;
-          goto _l___yv_669;
+          __yv_685 = finder->found_import_ns->sym;
+          goto _l___yv_685;
         } break;
       default:
         {
-          __yv_669 = NULL;
-          goto _l___yv_669;
+          __yv_685 = NULL;
+          goto _l___yv_685;
         } break;
     }
-_l___yv_669:
-  __yv_669;});
+_l___yv_685:
+  __yv_685;});
   std_set_Set__2 *seen = std_set_Set__2_new();
   if (((bool)sym)) {
     compiler_lsp_cli_utils_gen_completions_from_symbol(sym, node, completions, seen);
@@ -21735,37 +22658,37 @@ bool compiler_lsp_cli_finder_Finder_find_signature_help(compiler_lsp_cli_finder_
   if (!(((bool)func))) {
     return false;
   }
-  std_vector_Vector__3 *params = ({std_vector_Vector__3 *__yv_671;
+  std_vector_Vector__3 *params = ({std_vector_Vector__3 *__yv_687;
 switch ((func->type)) {
       case compiler_ast_scopes_SymbolType_Function:
-      m_672_0:
+      m_688_0:
         {
-          __yv_671 = func->u.func->params;
-          goto _l___yv_671;
+          __yv_687 = func->u.func->params;
+          goto _l___yv_687;
         } break;
       case compiler_ast_scopes_SymbolType_Structure:
-      m_672_1:
+      m_688_1:
         {
-          __yv_671 = func->u.struc->fields;
-          goto _l___yv_671;
+          __yv_687 = func->u.struc->fields;
+          goto _l___yv_687;
         } break;
       case compiler_ast_scopes_SymbolType_Variable:
-      m_672_2:
+      m_688_2:
         {
           compiler_types_Type *var_type = func->u.var->type;
           if (!(((bool)var_type)) || (var_type->base != compiler_types_BaseType_FunctionPtr)) {
             return false;
           }
-          __yv_671 = func->u.var->type->u.func.params;
-          goto _l___yv_671;
+          __yv_687 = func->u.var->type->u.func.params;
+          goto _l___yv_687;
         } break;
       default:
         {
           return false;
         } break;
     }
-_l___yv_671:
-  __yv_671;});
+_l___yv_687:
+  __yv_687;});
   if (param_idx > params->size) {
     return false;
   }
@@ -21827,10 +22750,10 @@ bool compiler_lsp_cli_finder_Finder_find_in_call_args(compiler_lsp_cli_finder_Fi
 }
 
 bool compiler_lsp_cli_finder_Finder_find_in_import_part(compiler_lsp_cli_finder_Finder *this, compiler_ast_scopes_Symbol *base, compiler_ast_nodes_ImportPart *part, compiler_ast_nodes_AST *node) {
-  return ({bool __yv_673;
+  return ({bool __yv_689;
 switch ((part->type)) {
       case compiler_ast_nodes_ImportPartType_Single:
-      m_674_0:
+      m_690_0:
         {
           if (std_span_Span_contains_loc(part->span, this->loc)) {
             return compiler_lsp_cli_finder_Finder_set_usage(this, part->resolved_symbol, node);
@@ -21838,7 +22761,7 @@ switch ((part->type)) {
           return false;
         } break;
       case compiler_ast_nodes_ImportPartType_Multiple:
-      m_674_1:
+      m_690_1:
         {
           compiler_ast_nodes_ImportPartMultiple *multi = &part->u.multiple;
           for (std_vector_Iterator__26 _i250 = std_vector_Vector__26_iter(multi->paths); std_vector_Iterator__26_has_value(&_i250); std_vector_Iterator__26_next(&_i250)) {
@@ -21870,14 +22793,14 @@ switch ((part->type)) {
           return false;
         } break;
       case compiler_ast_nodes_ImportPartType_Wildcard:
-      m_674_2:
+      m_690_2:
         {
-          __yv_673 = false;
-          goto _l___yv_673;
+          __yv_689 = false;
+          goto _l___yv_689;
         } break;
     }
-_l___yv_673:
-  __yv_673;});}
+_l___yv_689:
+  __yv_689;});}
 
 bool compiler_lsp_cli_finder_Finder_find_in_node(compiler_lsp_cli_finder_Finder *this, compiler_ast_nodes_AST *node) {
   if (!(((bool)node))) {
@@ -21886,7 +22809,7 @@ bool compiler_lsp_cli_finder_Finder_find_in_node(compiler_lsp_cli_finder_Finder 
 switch ((node->type)) {
     case compiler_ast_nodes_ASTType_While:
     case compiler_ast_nodes_ASTType_For:
-    m_675_0:
+    m_691_0:
       {
         compiler_ast_nodes_Loop *loop = &node->u.loop;
         if (compiler_lsp_cli_finder_Finder_find_in_node(this, loop->init)) {
@@ -21903,7 +22826,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_VarDeclaration:
-    m_675_1:
+    m_691_1:
       {
         compiler_ast_nodes_Variable *decl = node->u.var_decl;
         if (((bool)decl) && compiler_lsp_cli_finder_Finder_find_in_var(this, decl, node)) {
@@ -21914,12 +22837,12 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Return:
-    m_675_2:
+    m_691_2:
       {
         return compiler_lsp_cli_finder_Finder_find_in_node(this, node->u.ret.expr);
       } break;
     case compiler_ast_nodes_ASTType_Import:
-    m_675_3:
+    m_691_3:
       {
         compiler_ast_nodes_Import path = node->u.import_path;
         compiler_ast_scopes_Symbol *prev = path.root_sym;
@@ -21942,17 +22865,17 @@ switch ((node->type)) {
     case compiler_ast_nodes_ASTType_StringLiteral:
     case compiler_ast_nodes_ASTType_CharLiteral:
     case compiler_ast_nodes_ASTType_Null:
-    m_675_4:
+    m_691_4:
       {
         return compiler_lsp_cli_finder_Finder_find_in_literal(this, node);
       } break;
     case compiler_ast_nodes_ASTType_CreateNew:
-    m_675_5:
+    m_691_5:
       {
         return compiler_lsp_cli_finder_Finder_find_in_node(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_FormatStringLiteral:
-    m_675_6:
+    m_691_6:
       {
         compiler_ast_nodes_FormatString *fmt = &node->u.fmt_str;
         for (u32 i = 0; i < fmt->exprs->size; i+=1) {
@@ -21963,13 +22886,13 @@ switch ((node->type)) {
         return compiler_lsp_cli_finder_Finder_find_in_literal(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Identifier:
-    m_675_7:
+    m_691_7:
       {
         return compiler_lsp_cli_finder_Finder_find_in_identifier(this, node);
       } break;
     case compiler_ast_nodes_ASTType_Member:
     case compiler_ast_nodes_ASTType_TryMember:
-    m_675_8:
+    m_691_8:
       {
         char *rhs = node->u.member.rhs_name;
         if ((!(((bool)rhs)) && this->cmd==compiler_lsp_cli_CommandType_Completions) && std_span_Span_contains_loc(node->span, this->loc)) {
@@ -21983,12 +22906,12 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_CreateClosure:
-    m_675_9:
+    m_691_9:
       {
         return compiler_lsp_cli_finder_Finder_find_in_function(this, node->u.closure);
       } break;
     case compiler_ast_nodes_ASTType_NSLookup:
-    m_675_10:
+    m_691_10:
       {
         if (compiler_lsp_cli_finder_Finder_find_in_node(this, node->u.lookup.lhs)) {
           return true;
@@ -22003,25 +22926,25 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_BinaryOp:
-    m_675_11:
+    m_691_11:
       {
         compiler_ast_nodes_AST *lhs = node->u.binary.lhs;
         compiler_ast_nodes_AST *rhs = node->u.binary.rhs;
         return compiler_lsp_cli_finder_Finder_find_in_node(this, lhs) || compiler_lsp_cli_finder_Finder_find_in_node(this, rhs);
       } break;
     case compiler_ast_nodes_ASTType_UnaryOp:
-    m_675_12:
+    m_691_12:
       {
         return compiler_lsp_cli_finder_Finder_find_in_node(this, node->u.unary.expr);
       } break;
     case compiler_ast_nodes_ASTType_Defer:
     case compiler_ast_nodes_ASTType_Yield:
-    m_675_13:
+    m_691_13:
       {
         return compiler_lsp_cli_finder_Finder_find_in_node(this, node->u.child);
       } break;
     case compiler_ast_nodes_ASTType_Call:
-    m_675_14:
+    m_691_14:
       {
         compiler_ast_nodes_FuncCall *call = &node->u.call;
         if (compiler_lsp_cli_finder_Finder_find_in_node(this, call->callee)) {
@@ -22032,7 +22955,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Cast:
-    m_675_15:
+    m_691_15:
       {
         if (compiler_lsp_cli_finder_Finder_find_in_node(this, node->u.cast.lhs)) {
           return true;
@@ -22040,12 +22963,12 @@ switch ((node->type)) {
         return compiler_lsp_cli_finder_Finder_find_in_type(this, node->u.cast.parsed_to);
       } break;
     case compiler_ast_nodes_ASTType_SizeOf:
-    m_675_16:
+    m_691_16:
       {
         return compiler_lsp_cli_finder_Finder_find_in_type(this, node->u.size_of_type);
       } break;
     case compiler_ast_nodes_ASTType_If:
-    m_675_17:
+    m_691_17:
       {
         compiler_ast_nodes_IfStatement *stmt = &node->u.if_stmt;
         for (std_vector_Iterator__27 _i253 = std_vector_Vector__27_iter(stmt->branches); std_vector_Iterator__27_has_value(&_i253); std_vector_Iterator__27_next(&_i253)) {
@@ -22064,7 +22987,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Match:
-    m_675_18:
+    m_691_18:
       {
         compiler_ast_nodes_Match *stmt = &node->u.match_stmt;
         if (compiler_lsp_cli_finder_Finder_find_in_node(this, stmt->expr)) {
@@ -22087,16 +23010,16 @@ switch ((node->type)) {
       } break;
     case compiler_ast_nodes_ASTType_Break:
     case compiler_ast_nodes_ASTType_Continue:
-    m_675_19:
+    m_691_19:
       {
       } break;
     case compiler_ast_nodes_ASTType_Assert:
-    m_675_20:
+    m_691_20:
       {
         return compiler_lsp_cli_finder_Finder_find_in_node(this, node->u.assertion.expr);
       } break;
     case compiler_ast_nodes_ASTType_Specialization:
-    m_675_21:
+    m_691_21:
       {
         compiler_ast_nodes_Specialization *spec = &node->u.spec;
         if (compiler_lsp_cli_finder_Finder_find_in_node(this, spec->base)) {
@@ -22112,12 +23035,12 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Block:
-    m_675_22:
+    m_691_22:
       {
         return compiler_lsp_cli_finder_Finder_find_in_block(this, node);
       } break;
     case compiler_ast_nodes_ASTType_OverloadedOperator:
-    m_675_23:
+    m_691_23:
       {
         std_span_Span op_span = node->u.operator_span;
         if (std_span_Span_contains_loc(op_span, this->loc)) {
@@ -22125,7 +23048,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_ArrayLiteral:
-    m_675_24:
+    m_691_24:
       {
         for (std_vector_Iterator__19 _i256 = std_vector_Vector__19_iter(node->u.array_literal.elements); std_vector_Iterator__19_has_value(&_i256); std_vector_Iterator__19_next(&_i256)) {
           compiler_ast_nodes_AST *elem = std_vector_Iterator__19_cur(&_i256);
@@ -22137,7 +23060,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_VectorLiteral:
-    m_675_25:
+    m_691_25:
       {
         for (std_vector_Iterator__19 _i257 = std_vector_Vector__19_iter(node->u.vec_literal.elements); std_vector_Iterator__19_has_value(&_i257); std_vector_Iterator__19_next(&_i257)) {
           compiler_ast_nodes_AST *elem = std_vector_Iterator__19_cur(&_i257);
@@ -22154,7 +23077,7 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_MapLiteral:
-    m_675_26:
+    m_691_26:
       {
         for (std_vector_Iterator__29 _i258 = std_vector_Vector__29_iter(node->u.map_literal.elements); std_vector_Iterator__29_has_value(&_i258); std_vector_Iterator__29_next(&_i258)) {
           compiler_ast_nodes_MapLiteralPair elem = std_vector_Iterator__29_cur(&_i258);
@@ -22174,14 +23097,14 @@ switch ((node->type)) {
         }
       } break;
     case compiler_ast_nodes_ASTType_Error:
-    m_675_27:
+    m_691_27:
       {
         if (std_span_Span_contains_loc(node->span, this->loc)) {
           return compiler_lsp_cli_finder_Finder_set_usage(this, node->resolved_symbol, node);
         }
       } break;
     case compiler_ast_nodes_ASTType_Is:
-    m_675_28:
+    m_691_28:
       {
         compiler_ast_nodes_IsExpression *is_expr = &node->u.is_expr;
         if (compiler_lsp_cli_finder_Finder_find_in_node(this, is_expr->lhs)) {
@@ -22237,12 +23160,12 @@ bool compiler_lsp_cli_finder_Finder_find_in_block(compiler_lsp_cli_finder_Finder
 bool compiler_lsp_cli_finder_Finder_find_in_type(compiler_lsp_cli_finder_Finder *this, compiler_types_Type *type) {
 switch ((type->base)) {
     case compiler_types_BaseType_Pointer:
-    m_676_0:
+    m_692_0:
       {
         return compiler_lsp_cli_finder_Finder_find_in_type(this, type->u.ptr);
       } break;
     case compiler_types_BaseType_Array:
-    m_676_1:
+    m_692_1:
       {
         if (compiler_lsp_cli_finder_Finder_find_in_node(this, type->u.arr.size_expr)) {
           return true;
@@ -22250,12 +23173,12 @@ switch ((type->base)) {
         return compiler_lsp_cli_finder_Finder_find_in_type(this, type->u.arr.elem_type);
       } break;
     case compiler_types_BaseType_Unresolved:
-    m_676_2:
+    m_692_2:
       {
         return compiler_lsp_cli_finder_Finder_find_in_node(this, type->u.unresolved);
       } break;
     case compiler_types_BaseType_UnresolvedTemplate:
-    m_676_3:
+    m_692_3:
       {
         compiler_types_UnresolvedTemplate spec = type->u.unresolved_spec;
         if (compiler_lsp_cli_finder_Finder_find_in_type(this, spec.base)) {
@@ -22272,7 +23195,7 @@ switch ((type->base)) {
       } break;
     case compiler_types_BaseType_FunctionPtr:
     case compiler_types_BaseType_Closure:
-    m_676_4:
+    m_692_4:
       {
         compiler_types_FunctionType func = type->u.func;
         for (std_vector_Iterator__3 _i262 = std_vector_Vector__3_iter(func.params); std_vector_Iterator__3_has_value(&_i262); std_vector_Iterator__3_next(&_i262)) {
@@ -22291,7 +23214,7 @@ switch ((type->base)) {
         }
       } break;
     case compiler_types_BaseType_VectorShorthand:
-    m_676_5:
+    m_692_5:
       {
         if (compiler_lsp_cli_finder_Finder_find_in_type(this, type->u.ptr)) {
           return true;
@@ -22301,7 +23224,7 @@ switch ((type->base)) {
         }
       } break;
     case compiler_types_BaseType_MapShorthand:
-    m_676_6:
+    m_692_6:
       {
         if (compiler_lsp_cli_finder_Finder_find_in_type(this, type->u.map_types.key)) {
           return true;
@@ -22471,53 +23394,53 @@ bool compiler_lsp_cli_finder_Finder_find(compiler_lsp_cli_finder_Finder *this, c
 }
 
 compiler_attributes_AttributeType compiler_attributes_AttributeType_from_str(char *s) {
-  return ({compiler_attributes_AttributeType __yv_677;
+  return ({compiler_attributes_AttributeType __yv_693;
     {
-      char *__match_var_678 = s;
-      if (str_eq(__match_var_678, "extern")) {
-        __yv_677 = compiler_attributes_AttributeType_Extern;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "exits")) {
-        __yv_677 = compiler_attributes_AttributeType_Exits;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "variadic_format")) {
-        __yv_677 = compiler_attributes_AttributeType_VariadicFormat;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "export")) {
-        __yv_677 = compiler_attributes_AttributeType_Export;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "formatting")) {
-        __yv_677 = compiler_attributes_AttributeType_Formatting;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "operator")) {
-        __yv_677 = compiler_attributes_AttributeType_Operator;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "atomic")) {
-        __yv_677 = compiler_attributes_AttributeType_Atomic;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "alive")) {
-        __yv_677 = compiler_attributes_AttributeType_Alive;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "test")) {
-        __yv_677 = compiler_attributes_AttributeType_Test;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "flatten")) {
-        __yv_677 = compiler_attributes_AttributeType_Flatten;
-        goto _l___yv_677;
-      } else if (str_eq(__match_var_678, "flags")) {
-        __yv_677 = compiler_attributes_AttributeType_Flags;
-        goto _l___yv_677;
+      char *__match_var_694 = s;
+      if (str_eq(__match_var_694, "extern")) {
+        __yv_693 = compiler_attributes_AttributeType_Extern;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "exits")) {
+        __yv_693 = compiler_attributes_AttributeType_Exits;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "variadic_format")) {
+        __yv_693 = compiler_attributes_AttributeType_VariadicFormat;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "export")) {
+        __yv_693 = compiler_attributes_AttributeType_Export;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "formatting")) {
+        __yv_693 = compiler_attributes_AttributeType_Formatting;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "operator")) {
+        __yv_693 = compiler_attributes_AttributeType_Operator;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "atomic")) {
+        __yv_693 = compiler_attributes_AttributeType_Atomic;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "alive")) {
+        __yv_693 = compiler_attributes_AttributeType_Alive;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "test")) {
+        __yv_693 = compiler_attributes_AttributeType_Test;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "flatten")) {
+        __yv_693 = compiler_attributes_AttributeType_Flatten;
+        goto _l___yv_693;
+      } else if (str_eq(__match_var_694, "flags")) {
+        __yv_693 = compiler_attributes_AttributeType_Flags;
+        goto _l___yv_693;
       } else  {
-        __yv_677 = compiler_attributes_AttributeType_Invalid;
-        goto _l___yv_677;
+        __yv_693 = compiler_attributes_AttributeType_Invalid;
+        goto _l___yv_693;
       }
     }
 
-_l___yv_677:
-  __yv_677;});}
+_l___yv_693:
+  __yv_693;});}
 
 compiler_attributes_Attribute *compiler_attributes_Attribute_new(compiler_attributes_AttributeType type, std_span_Span span) {
-  compiler_attributes_Attribute *attr = std_mem_alloc__19(1);
+  compiler_attributes_Attribute *attr = std_mem_alloc__20(1);
   attr->type=type;
   attr->args=std_vector_Vector__11_new(2);
   attr->span=span;
@@ -22527,7 +23450,7 @@ compiler_attributes_Attribute *compiler_attributes_Attribute_new(compiler_attrib
 bool compiler_attributes_Attribute_validate(compiler_attributes_Attribute *this, compiler_parser_Parser *parser_for_errors) {
 switch ((this->type)) {
     case compiler_attributes_AttributeType_Extern:
-    m_679_0:
+    m_695_0:
       {
         if (this->args->size > 1) {
           compiler_parser_Parser_error(parser_for_errors, compiler_errors_Error_new(this->span, "Extern attribute takes at most one argument"));
@@ -22535,7 +23458,7 @@ switch ((this->type)) {
         }
       } break;
     case compiler_attributes_AttributeType_Formatting:
-    m_679_1:
+    m_695_1:
       {
         if ((this->args->size < 1) || (this->args->size > 2)) {
           compiler_parser_Parser_error(parser_for_errors, compiler_errors_Error_new_note(this->span, "Incorrect number of arguments for formatting attribute", "Only one or two arguments are allowed"));
@@ -22567,7 +23490,7 @@ switch ((this->type)) {
     case compiler_attributes_AttributeType_Test:
     case compiler_attributes_AttributeType_Flatten:
     case compiler_attributes_AttributeType_Flags:
-    m_679_2:
+    m_695_2:
       {
         if (this->args->size > 0) {
           compiler_parser_Parser_error(parser_for_errors, compiler_errors_Error_new(this->span, std_format("%s attribute takes no arguments", compiler_attributes_AttributeType_dbg(this->type))));
@@ -22575,13 +23498,13 @@ switch ((this->type)) {
         }
       } break;
     case compiler_attributes_AttributeType_Invalid:
-    m_679_3:
+    m_695_3:
       {
         compiler_parser_Parser_error(parser_for_errors, compiler_errors_Error_new(this->span, "Invalid attribute"));
         return false;
       } break;
     case compiler_attributes_AttributeType_Operator:
-    m_679_4:
+    m_695_4:
       {
         if (this->args->size != 1) {
           compiler_parser_Parser_error(parser_for_errors, compiler_errors_Error_new(this->span, "Operator attribute takes exactly one argument"));
@@ -22592,7 +23515,7 @@ switch ((this->type)) {
 }
 
 compiler_tokens_Token *compiler_tokens_Token_new(compiler_tokens_TokenType type, std_span_Span span, char *text) {
-  compiler_tokens_Token *tok = std_mem_alloc__20(1);
+  compiler_tokens_Token *tok = std_mem_alloc__21(1);
   (*tok)=(compiler_tokens_Token){.type=type, .span=span, .text=text, .suffix=NULL, .seen_newline=false, .comment=NULL, .comment_loc=std_span_Location_default()};
   return tok;
 }
@@ -22606,353 +23529,353 @@ compiler_tokens_Token *compiler_tokens_Token_from_ident(char *text, std_span_Spa
 }
 
 bool compiler_tokens_Token_is_word(compiler_tokens_Token this) {
-  return ({bool __yv_680;
+  return ({bool __yv_696;
 switch ((this.type)) {
       case compiler_tokens_TokenType_Identifier:
-      m_681_0:
+      m_697_0:
         {
-          __yv_680 = true;
-          goto _l___yv_680;
+          __yv_696 = true;
+          goto _l___yv_696;
         } break;
       default:
         {
-          __yv_680 = (((u64)this.type) > ((u64)compiler_tokens_TokenType_BEGIN_KEYWORDS));
-          goto _l___yv_680;
+          __yv_696 = (((u64)this.type) > ((u64)compiler_tokens_TokenType_BEGIN_KEYWORDS));
+          goto _l___yv_696;
         } break;
     }
-_l___yv_680:
-  __yv_680;});}
+_l___yv_696:
+  __yv_696;});}
 
 bool compiler_tokens_Token_is_identifier(compiler_tokens_Token this, char *name) {
-  return ({bool __yv_682;
+  return ({bool __yv_698;
 switch ((this.type)) {
       case compiler_tokens_TokenType_Identifier:
-      m_683_0:
+      m_699_0:
         {
-          __yv_682 = str_eq(name, this.text);
-          goto _l___yv_682;
+          __yv_698 = str_eq(name, this.text);
+          goto _l___yv_698;
         } break;
       default:
         {
-          __yv_682 = false;
-          goto _l___yv_682;
+          __yv_698 = false;
+          goto _l___yv_698;
         } break;
     }
-_l___yv_682:
-  __yv_682;});}
+_l___yv_698:
+  __yv_698;});}
 
 compiler_tokens_TokenType compiler_tokens_TokenType_from_text(char *text) {
-  return ({compiler_tokens_TokenType __yv_684;
+  return ({compiler_tokens_TokenType __yv_700;
     {
-      char *__match_var_685 = text;
-      if (str_eq(__match_var_685, "and")) {
-        __yv_684 = compiler_tokens_TokenType_And;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "as")) {
-        __yv_684 = compiler_tokens_TokenType_As;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "assert")) {
-        __yv_684 = compiler_tokens_TokenType_Assert;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "break")) {
-        __yv_684 = compiler_tokens_TokenType_Break;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "const")) {
-        __yv_684 = compiler_tokens_TokenType_Const;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "continue")) {
-        __yv_684 = compiler_tokens_TokenType_Continue;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "def")) {
-        __yv_684 = compiler_tokens_TokenType_Def;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "defer")) {
-        __yv_684 = compiler_tokens_TokenType_Defer;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "else")) {
-        __yv_684 = compiler_tokens_TokenType_Else;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "enum")) {
-        __yv_684 = compiler_tokens_TokenType_Enum;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "extern")) {
-        __yv_684 = compiler_tokens_TokenType_Extern;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "false")) {
-        __yv_684 = compiler_tokens_TokenType_False;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "for")) {
-        __yv_684 = compiler_tokens_TokenType_For;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "fn")) {
-        __yv_684 = compiler_tokens_TokenType_Fn;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "if")) {
-        __yv_684 = compiler_tokens_TokenType_If;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "let")) {
-        __yv_684 = compiler_tokens_TokenType_Let;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "match")) {
-        __yv_684 = compiler_tokens_TokenType_Match;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "namespace")) {
-        __yv_684 = compiler_tokens_TokenType_Namespace;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "not")) {
-        __yv_684 = compiler_tokens_TokenType_Not;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "null")) {
-        __yv_684 = compiler_tokens_TokenType_Null;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "or")) {
-        __yv_684 = compiler_tokens_TokenType_Or;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "return")) {
-        __yv_684 = compiler_tokens_TokenType_Return;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "sizeof")) {
-        __yv_684 = compiler_tokens_TokenType_SizeOf;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "struct")) {
-        __yv_684 = compiler_tokens_TokenType_Struct;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "true")) {
-        __yv_684 = compiler_tokens_TokenType_True;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "then")) {
-        __yv_684 = compiler_tokens_TokenType_Then;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "typedef")) {
-        __yv_684 = compiler_tokens_TokenType_TypeDef;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "union")) {
-        __yv_684 = compiler_tokens_TokenType_Union;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "import")) {
-        __yv_684 = compiler_tokens_TokenType_Import;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "void")) {
-        __yv_684 = compiler_tokens_TokenType_Void;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "yield")) {
-        __yv_684 = compiler_tokens_TokenType_Yield;
-        goto _l___yv_684;
-      } else if (str_eq(__match_var_685, "while")) {
-        __yv_684 = compiler_tokens_TokenType_While;
-        goto _l___yv_684;
+      char *__match_var_701 = text;
+      if (str_eq(__match_var_701, "and")) {
+        __yv_700 = compiler_tokens_TokenType_And;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "as")) {
+        __yv_700 = compiler_tokens_TokenType_As;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "assert")) {
+        __yv_700 = compiler_tokens_TokenType_Assert;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "break")) {
+        __yv_700 = compiler_tokens_TokenType_Break;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "const")) {
+        __yv_700 = compiler_tokens_TokenType_Const;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "continue")) {
+        __yv_700 = compiler_tokens_TokenType_Continue;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "def")) {
+        __yv_700 = compiler_tokens_TokenType_Def;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "defer")) {
+        __yv_700 = compiler_tokens_TokenType_Defer;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "else")) {
+        __yv_700 = compiler_tokens_TokenType_Else;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "enum")) {
+        __yv_700 = compiler_tokens_TokenType_Enum;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "extern")) {
+        __yv_700 = compiler_tokens_TokenType_Extern;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "false")) {
+        __yv_700 = compiler_tokens_TokenType_False;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "for")) {
+        __yv_700 = compiler_tokens_TokenType_For;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "fn")) {
+        __yv_700 = compiler_tokens_TokenType_Fn;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "if")) {
+        __yv_700 = compiler_tokens_TokenType_If;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "let")) {
+        __yv_700 = compiler_tokens_TokenType_Let;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "match")) {
+        __yv_700 = compiler_tokens_TokenType_Match;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "namespace")) {
+        __yv_700 = compiler_tokens_TokenType_Namespace;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "not")) {
+        __yv_700 = compiler_tokens_TokenType_Not;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "null")) {
+        __yv_700 = compiler_tokens_TokenType_Null;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "or")) {
+        __yv_700 = compiler_tokens_TokenType_Or;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "return")) {
+        __yv_700 = compiler_tokens_TokenType_Return;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "sizeof")) {
+        __yv_700 = compiler_tokens_TokenType_SizeOf;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "struct")) {
+        __yv_700 = compiler_tokens_TokenType_Struct;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "true")) {
+        __yv_700 = compiler_tokens_TokenType_True;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "then")) {
+        __yv_700 = compiler_tokens_TokenType_Then;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "typedef")) {
+        __yv_700 = compiler_tokens_TokenType_TypeDef;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "union")) {
+        __yv_700 = compiler_tokens_TokenType_Union;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "import")) {
+        __yv_700 = compiler_tokens_TokenType_Import;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "void")) {
+        __yv_700 = compiler_tokens_TokenType_Void;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "yield")) {
+        __yv_700 = compiler_tokens_TokenType_Yield;
+        goto _l___yv_700;
+      } else if (str_eq(__match_var_701, "while")) {
+        __yv_700 = compiler_tokens_TokenType_While;
+        goto _l___yv_700;
       } else  {
-        __yv_684 = compiler_tokens_TokenType_Identifier;
-        goto _l___yv_684;
+        __yv_700 = compiler_tokens_TokenType_Identifier;
+        goto _l___yv_700;
       }
     }
 
-_l___yv_684:
-  __yv_684;});}
+_l___yv_700:
+  __yv_700;});}
 
 char *compiler_tokens_TokenType_str(compiler_tokens_TokenType this) {
-  return ({char *__yv_686;
+  return ({char *__yv_702;
 switch ((this)) {
       case compiler_tokens_TokenType_And:
-      m_687_0:
+      m_703_0:
         {
-          __yv_686 = "and";
-          goto _l___yv_686;
+          __yv_702 = "and";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_As:
-      m_687_1:
+      m_703_1:
         {
-          __yv_686 = "as";
-          goto _l___yv_686;
+          __yv_702 = "as";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Assert:
-      m_687_2:
+      m_703_2:
         {
-          __yv_686 = "assert";
-          goto _l___yv_686;
+          __yv_702 = "assert";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Break:
-      m_687_3:
+      m_703_3:
         {
-          __yv_686 = "break";
-          goto _l___yv_686;
+          __yv_702 = "break";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Const:
-      m_687_4:
+      m_703_4:
         {
-          __yv_686 = "const";
-          goto _l___yv_686;
+          __yv_702 = "const";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Continue:
-      m_687_5:
+      m_703_5:
         {
-          __yv_686 = "continue";
-          goto _l___yv_686;
+          __yv_702 = "continue";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Def:
-      m_687_6:
+      m_703_6:
         {
-          __yv_686 = "def";
-          goto _l___yv_686;
+          __yv_702 = "def";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Defer:
-      m_687_7:
+      m_703_7:
         {
-          __yv_686 = "defer";
-          goto _l___yv_686;
+          __yv_702 = "defer";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Else:
-      m_687_8:
+      m_703_8:
         {
-          __yv_686 = "else";
-          goto _l___yv_686;
+          __yv_702 = "else";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Enum:
-      m_687_9:
+      m_703_9:
         {
-          __yv_686 = "enum";
-          goto _l___yv_686;
+          __yv_702 = "enum";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Extern:
-      m_687_10:
+      m_703_10:
         {
-          __yv_686 = "extern";
-          goto _l___yv_686;
+          __yv_702 = "extern";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_False:
-      m_687_11:
+      m_703_11:
         {
-          __yv_686 = "false";
-          goto _l___yv_686;
+          __yv_702 = "false";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_For:
-      m_687_12:
+      m_703_12:
         {
-          __yv_686 = "for";
-          goto _l___yv_686;
+          __yv_702 = "for";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Fn:
-      m_687_13:
+      m_703_13:
         {
-          __yv_686 = "fn";
-          goto _l___yv_686;
+          __yv_702 = "fn";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_If:
-      m_687_14:
+      m_703_14:
         {
-          __yv_686 = "if";
-          goto _l___yv_686;
+          __yv_702 = "if";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Let:
-      m_687_15:
+      m_703_15:
         {
-          __yv_686 = "let";
-          goto _l___yv_686;
+          __yv_702 = "let";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Match:
-      m_687_16:
+      m_703_16:
         {
-          __yv_686 = "match";
-          goto _l___yv_686;
+          __yv_702 = "match";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Namespace:
-      m_687_17:
+      m_703_17:
         {
-          __yv_686 = "namespace";
-          goto _l___yv_686;
+          __yv_702 = "namespace";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Not:
-      m_687_18:
+      m_703_18:
         {
-          __yv_686 = "not";
-          goto _l___yv_686;
+          __yv_702 = "not";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Null:
-      m_687_19:
+      m_703_19:
         {
-          __yv_686 = "null";
-          goto _l___yv_686;
+          __yv_702 = "null";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Or:
-      m_687_20:
+      m_703_20:
         {
-          __yv_686 = "or";
-          goto _l___yv_686;
+          __yv_702 = "or";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Return:
-      m_687_21:
+      m_703_21:
         {
-          __yv_686 = "return";
-          goto _l___yv_686;
+          __yv_702 = "return";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_SizeOf:
-      m_687_22:
+      m_703_22:
         {
-          __yv_686 = "sizeof";
-          goto _l___yv_686;
+          __yv_702 = "sizeof";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Struct:
-      m_687_23:
+      m_703_23:
         {
-          __yv_686 = "struct";
-          goto _l___yv_686;
+          __yv_702 = "struct";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_True:
-      m_687_24:
+      m_703_24:
         {
-          __yv_686 = "true";
-          goto _l___yv_686;
+          __yv_702 = "true";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Then:
-      m_687_25:
+      m_703_25:
         {
-          __yv_686 = "then";
-          goto _l___yv_686;
+          __yv_702 = "then";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_TypeDef:
-      m_687_26:
+      m_703_26:
         {
-          __yv_686 = "typedef";
-          goto _l___yv_686;
+          __yv_702 = "typedef";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Union:
-      m_687_27:
+      m_703_27:
         {
-          __yv_686 = "union";
-          goto _l___yv_686;
+          __yv_702 = "union";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Import:
-      m_687_28:
+      m_703_28:
         {
-          __yv_686 = "import";
-          goto _l___yv_686;
+          __yv_702 = "import";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Void:
-      m_687_29:
+      m_703_29:
         {
-          __yv_686 = "void";
-          goto _l___yv_686;
+          __yv_702 = "void";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_Yield:
-      m_687_30:
+      m_703_30:
         {
-          __yv_686 = "yield";
-          goto _l___yv_686;
+          __yv_702 = "yield";
+          goto _l___yv_702;
         } break;
       case compiler_tokens_TokenType_While:
-      m_687_31:
+      m_703_31:
         {
-          __yv_686 = "while";
-          goto _l___yv_686;
+          __yv_702 = "while";
+          goto _l___yv_702;
         } break;
       default:
         {
-          __yv_686 = compiler_tokens_TokenType_dbg(this);
-          goto _l___yv_686;
+          __yv_702 = compiler_tokens_TokenType_dbg(this);
+          goto _l___yv_702;
         } break;
     }
-_l___yv_686:
-  __yv_686;});}
+_l___yv_702:
+  __yv_702;});}
 
 void usage(i32 code, bool full) {
   printf("Usage:""\n");
@@ -23043,43 +23966,43 @@ void parse_args(i32 *argc, char ***argv, compiler_ast_program_Program *program) 
   while ((*argc) > 0) {
     char *arg = std_shift_args(argc, argv, "here");
     {
-      char *__match_var_688 = arg;
-      if (str_eq(__match_var_688, "--help")) {
+      char *__match_var_704 = arg;
+      if (str_eq(__match_var_704, "--help")) {
         usage(0, true);
-      } else if (str_eq(__match_var_688, "-s")) {
+      } else if (str_eq(__match_var_704, "-s")) {
         silent=true;
-      } else if (str_eq(__match_var_688, "-d")) {
+      } else if (str_eq(__match_var_704, "-d")) {
         debug=true;
-      } else if (str_eq(__match_var_688, "-b") || str_eq(__match_var_688, "-bt") || str_eq(__match_var_688, "--backtrace")) {
+      } else if (str_eq(__match_var_704, "-b") || str_eq(__match_var_704, "-bt") || str_eq(__match_var_704, "--backtrace")) {
         backtrace=true;
         debug=true;
-      } else if (str_eq(__match_var_688, "-n")) {
+      } else if (str_eq(__match_var_704, "-n")) {
         compile_c=false;
-      } else if (str_eq(__match_var_688, "--no-dce")) {
+      } else if (str_eq(__match_var_704, "--no-dce")) {
         program->keep_all_code=true;
-      } else if (str_eq(__match_var_688, "-o")) {
+      } else if (str_eq(__match_var_704, "-o")) {
         exec_path=std_shift_args(argc, argv, "here");
-      } else if (str_eq(__match_var_688, "-c")) {
+      } else if (str_eq(__match_var_704, "-c")) {
         c_path=std_shift_args(argc, argv, "here");
-      } else if (str_eq(__match_var_688, "-l")) {
+      } else if (str_eq(__match_var_704, "-l")) {
         std_vector_Vector__11_push(program->library_paths, std_shift_args(argc, argv, "here"));
-      } else if (str_eq(__match_var_688, "-e0")) {
+      } else if (str_eq(__match_var_704, "-e0")) {
         error_level=0;
-      } else if (str_eq(__match_var_688, "-e1")) {
+      } else if (str_eq(__match_var_704, "-e1")) {
         error_level=1;
-      } else if (str_eq(__match_var_688, "-e2")) {
+      } else if (str_eq(__match_var_704, "-e2")) {
         error_level=2;
-      } else if (str_eq(__match_var_688, "--docs")) {
+      } else if (str_eq(__match_var_704, "--docs")) {
         docs_path=std_shift_args(argc, argv, "here");
         program->check_doc_links=true;
-      } else if (str_eq(__match_var_688, "--no-stdlib")) {
+      } else if (str_eq(__match_var_704, "--no-stdlib")) {
         include_stdlib=false;
-      } else if (str_eq(__match_var_688, "--cflags") || str_eq(__match_var_688, "-cf")) {
+      } else if (str_eq(__match_var_704, "--cflags") || str_eq(__match_var_704, "-cf")) {
         std_vector_Vector__11_push(extra_c_flags, std_shift_args(argc, argv, "here"));
-      } else if (str_eq(__match_var_688, "-r") || str_eq(__match_var_688, "--run")) {
+      } else if (str_eq(__match_var_704, "-r") || str_eq(__match_var_704, "--run")) {
         run_after_compile=true;
-        goto _While_break_689;
-      } else if (str_eq(__match_var_688, "-a") || str_eq(__match_var_688, "--asan")) {
+        goto _While_break_705;
+      } else if (str_eq(__match_var_704, "-a") || str_eq(__match_var_704, "--asan")) {
         compile_asan=true;
       } else  {
         if (arg[0]=='-') {
@@ -23094,7 +24017,7 @@ void parse_args(i32 *argc, char ***argv, compiler_ast_program_Program *program) 
       }
     }
   }
-  _While_break_689:;
+  _While_break_705:;
   if (!(((bool)filename))) {
     printf("No file specified""\n");
     usage(1, false);
@@ -23115,14 +24038,14 @@ i32 main(i32 argc, char **argv) {
   bool is_test = false;
   if (argc > 0) {
     {
-      char *__match_var_690 = argv[0];
-      if (str_eq(__match_var_690, "lsp")) {
+      char *__match_var_706 = argv[0];
+      if (str_eq(__match_var_706, "lsp")) {
         return compiler_lsp_cli_main(argc, argv, NULL);
-      } else if (str_eq(__match_var_690, "lsp-server")) {
+      } else if (str_eq(__match_var_706, "lsp-server")) {
         return compiler_lsp_server_main(argc, argv);
-      } else if (str_eq(__match_var_690, "format")) {
+      } else if (str_eq(__match_var_706, "format")) {
         return compiler_formatter_format_main(argc, argv);
-      } else if (str_eq(__match_var_690, "test")) {
+      } else if (str_eq(__match_var_706, "test")) {
         is_test=true;
         std_shift_args(&argc, &argv, "here");
       } else  {
@@ -23140,16 +24063,16 @@ i32 main(i32 argc, char **argv) {
   }
   compiler_ast_program_Program_setup_library_paths(program);
   parse_args(&argc, &argv, program);
-  std_logging_LogLevel level = ({std_logging_LogLevel __yv_691;
+  std_logging_LogLevel level = ({std_logging_LogLevel __yv_707;
     if (silent) {
-      __yv_691 = std_logging_LogLevel_Error;
-      goto _l___yv_691;
+      __yv_707 = std_logging_LogLevel_Error;
+      goto _l___yv_707;
     } else {
-      __yv_691 = std_logging_LogLevel_Info;
-      goto _l___yv_691;
+      __yv_707 = std_logging_LogLevel_Info;
+      goto _l___yv_707;
     }
-_l___yv_691:
-  __yv_691;});
+_l___yv_707:
+  __yv_707;});
   std_logging_init_logging(level, NULL);
   program->error_level=error_level;
   program->gen_debug_info=debug;
@@ -23173,54 +24096,54 @@ _l___yv_691:
 }
 
 char *compiler_errors_MessageType_to_color(compiler_errors_MessageType this) {
-  return ({char *__yv_692;
+  return ({char *__yv_708;
 switch ((this)) {
       case compiler_errors_MessageType_Error:
-      m_693_0:
+      m_709_0:
         {
-          __yv_692 = "\x1b[31m";
-          goto _l___yv_692;
+          __yv_708 = "\x1b[31m";
+          goto _l___yv_708;
         } break;
       case compiler_errors_MessageType_Warning:
-      m_693_1:
+      m_709_1:
         {
-          __yv_692 = "\x1b[33m";
-          goto _l___yv_692;
+          __yv_708 = "\x1b[33m";
+          goto _l___yv_708;
         } break;
       case compiler_errors_MessageType_Note:
-      m_693_2:
+      m_709_2:
         {
-          __yv_692 = "\x1b[32m";
-          goto _l___yv_692;
+          __yv_708 = "\x1b[32m";
+          goto _l___yv_708;
         } break;
     }
-_l___yv_692:
-  __yv_692;});}
+_l___yv_708:
+  __yv_708;});}
 
 char *compiler_errors_MessageType_str(compiler_errors_MessageType this) {
-  return ({char *__yv_694;
+  return ({char *__yv_710;
 switch ((this)) {
       case compiler_errors_MessageType_Error:
-      m_695_0:
+      m_711_0:
         {
-          __yv_694 = "Error";
-          goto _l___yv_694;
+          __yv_710 = "Error";
+          goto _l___yv_710;
         } break;
       case compiler_errors_MessageType_Warning:
-      m_695_1:
+      m_711_1:
         {
-          __yv_694 = "Warning";
-          goto _l___yv_694;
+          __yv_710 = "Warning";
+          goto _l___yv_710;
         } break;
       case compiler_errors_MessageType_Note:
-      m_695_2:
+      m_711_2:
         {
-          __yv_694 = "Note";
-          goto _l___yv_694;
+          __yv_710 = "Note";
+          goto _l___yv_710;
         } break;
     }
-_l___yv_694:
-  __yv_694;});}
+_l___yv_710:
+  __yv_710;});}
 
 void compiler_errors_display_line(void) {
   printf("--------------------------------------------------------------------------------""\n");
@@ -23292,18 +24215,18 @@ void compiler_errors_display_message_span(compiler_errors_MessageType type, std_
 void compiler_errors_Error_display(compiler_errors_Error *this) {
 switch ((this->type)) {
     case compiler_errors_ErrorType_Standard:
-    m_696_0:
+    m_712_0:
       {
         compiler_errors_display_message_span(compiler_errors_MessageType_Error, this->span1, this->msg1, true);
       } break;
     case compiler_errors_ErrorType_WithNote:
-    m_696_1:
+    m_712_1:
       {
         compiler_errors_display_message_span(compiler_errors_MessageType_Error, this->span1, this->msg1, false);
         compiler_errors_display_message(compiler_errors_MessageType_Note, this->span1, this->msg2);
       } break;
     case compiler_errors_ErrorType_WithHint:
-    m_696_2:
+    m_712_2:
       {
         compiler_errors_display_message_span(compiler_errors_MessageType_Error, this->span1, this->msg1, false);
         compiler_errors_display_message_span(compiler_errors_MessageType_Note, this->span2, this->msg2, true);
@@ -23316,7 +24239,7 @@ void compiler_errors_Error_panic(compiler_errors_Error *this) {
 }
 
 compiler_errors_Error *compiler_errors_Error_new(std_span_Span span, char *msg) {
-  compiler_errors_Error *err = std_mem_alloc__21(1);
+  compiler_errors_Error *err = std_mem_alloc__22(1);
   err->type=compiler_errors_ErrorType_Standard;
   err->msg1=msg;
   err->span1=span;
@@ -23324,7 +24247,7 @@ compiler_errors_Error *compiler_errors_Error_new(std_span_Span span, char *msg) 
 }
 
 compiler_errors_Error *compiler_errors_Error_new_note(std_span_Span span, char *msg, char *note) {
-  compiler_errors_Error *err = std_mem_alloc__21(1);
+  compiler_errors_Error *err = std_mem_alloc__22(1);
   err->type=compiler_errors_ErrorType_WithNote;
   err->msg1=msg;
   err->span1=span;
@@ -23333,7 +24256,7 @@ compiler_errors_Error *compiler_errors_Error_new_note(std_span_Span span, char *
 }
 
 compiler_errors_Error *compiler_errors_Error_new_hint(std_span_Span span, char *msg, std_span_Span span2, char *hint) {
-  compiler_errors_Error *err = std_mem_alloc__21(1);
+  compiler_errors_Error *err = std_mem_alloc__22(1);
   err->type=compiler_errors_ErrorType_WithHint;
   err->msg1=msg;
   err->span1=span;
@@ -23364,106 +24287,106 @@ void compiler_errors_display_error_messages(std_vector_Vector__15 *errors, u32 d
 }
 
 char *compiler_types_BaseType_str(compiler_types_BaseType this) {
-  return ({char *__yv_697;
+  return ({char *__yv_713;
 switch ((this)) {
       case compiler_types_BaseType_Char:
-      m_698_0:
+      m_714_0:
         {
-          __yv_697 = "char";
-          goto _l___yv_697;
+          __yv_713 = "char";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_Bool:
-      m_698_1:
+      m_714_1:
         {
-          __yv_697 = "bool";
-          goto _l___yv_697;
+          __yv_713 = "bool";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_Void:
-      m_698_2:
+      m_714_2:
         {
-          __yv_697 = "void";
-          goto _l___yv_697;
+          __yv_713 = "void";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_I8:
-      m_698_3:
+      m_714_3:
         {
-          __yv_697 = "i8";
-          goto _l___yv_697;
+          __yv_713 = "i8";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_I16:
-      m_698_4:
+      m_714_4:
         {
-          __yv_697 = "i16";
-          goto _l___yv_697;
+          __yv_713 = "i16";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_I32:
-      m_698_5:
+      m_714_5:
         {
-          __yv_697 = "i32";
-          goto _l___yv_697;
+          __yv_713 = "i32";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_I64:
-      m_698_6:
+      m_714_6:
         {
-          __yv_697 = "i64";
-          goto _l___yv_697;
+          __yv_713 = "i64";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_U8:
-      m_698_7:
+      m_714_7:
         {
-          __yv_697 = "u8";
-          goto _l___yv_697;
+          __yv_713 = "u8";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_U16:
-      m_698_8:
+      m_714_8:
         {
-          __yv_697 = "u16";
-          goto _l___yv_697;
+          __yv_713 = "u16";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_U32:
-      m_698_9:
+      m_714_9:
         {
-          __yv_697 = "u32";
-          goto _l___yv_697;
+          __yv_713 = "u32";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_U64:
-      m_698_10:
+      m_714_10:
         {
-          __yv_697 = "u64";
-          goto _l___yv_697;
+          __yv_713 = "u64";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_F32:
-      m_698_11:
+      m_714_11:
         {
-          __yv_697 = "f32";
-          goto _l___yv_697;
+          __yv_713 = "f32";
+          goto _l___yv_713;
         } break;
       case compiler_types_BaseType_F64:
-      m_698_12:
+      m_714_12:
         {
-          __yv_697 = "f64";
-          goto _l___yv_697;
+          __yv_713 = "f64";
+          goto _l___yv_713;
         } break;
       default:
         {
-          __yv_697 = compiler_types_BaseType_dbg(this);
-          goto _l___yv_697;
+          __yv_713 = compiler_types_BaseType_dbg(this);
+          goto _l___yv_713;
         } break;
     }
-_l___yv_697:
-  __yv_697;});}
+_l___yv_713:
+  __yv_713;});}
 
 bool compiler_types_BaseType_is_callable(compiler_types_BaseType this) {
   return (this==compiler_types_BaseType_FunctionPtr || this==compiler_types_BaseType_Closure);}
 
 compiler_types_Type *compiler_types_Type_shallow_copy(compiler_types_Type *old) {
-  compiler_types_Type *new = std_mem_alloc__22(1);
+  compiler_types_Type *new = std_mem_alloc__23(1);
   (*new)=(*old);
   return new;
 }
 
 compiler_types_Type *compiler_types_Type_new_resolved(compiler_types_BaseType base, std_span_Span span) {
-  compiler_types_Type *type = std_mem_alloc__22(1);
+  compiler_types_Type *type = std_mem_alloc__23(1);
   type->base=base;
   type->span=span;
   type->name=compiler_types_BaseType_str(base);
@@ -23486,7 +24409,7 @@ compiler_types_Type *compiler_types_Type_new_unresolved_base(compiler_types_Base
 }
 
 bool compiler_types_Type_is_integer(compiler_types_Type *this) {
-  return ({bool __yv_699;
+  return ({bool __yv_715;
 switch ((this->base)) {
       case compiler_types_BaseType_I8:
       case compiler_types_BaseType_I16:
@@ -23496,19 +24419,19 @@ switch ((this->base)) {
       case compiler_types_BaseType_U16:
       case compiler_types_BaseType_U32:
       case compiler_types_BaseType_U64:
-      m_700_0:
+      m_716_0:
         {
-          __yv_699 = true;
-          goto _l___yv_699;
+          __yv_715 = true;
+          goto _l___yv_715;
         } break;
       default:
         {
-          __yv_699 = false;
-          goto _l___yv_699;
+          __yv_715 = false;
+          goto _l___yv_715;
         } break;
     }
-_l___yv_699:
-  __yv_699;});}
+_l___yv_715:
+  __yv_715;});}
 
 bool compiler_types_Type_is_enum_flag(compiler_types_Type *this) {
   return (this->base==compiler_types_BaseType_Enum && this->u.enom->is_flag_enum);}
@@ -23517,7 +24440,7 @@ bool compiler_types_Type_is_float(compiler_types_Type *this) {
   return (this->base==compiler_types_BaseType_F32 || this->base==compiler_types_BaseType_F64);}
 
 bool compiler_types_Type_is_numeric(compiler_types_Type *this) {
-  return ({bool __yv_701;
+  return ({bool __yv_717;
 switch ((this->base)) {
       case compiler_types_BaseType_I8:
       case compiler_types_BaseType_I16:
@@ -23529,19 +24452,19 @@ switch ((this->base)) {
       case compiler_types_BaseType_U64:
       case compiler_types_BaseType_F32:
       case compiler_types_BaseType_F64:
-      m_702_0:
+      m_718_0:
         {
-          __yv_701 = true;
-          goto _l___yv_701;
+          __yv_717 = true;
+          goto _l___yv_717;
         } break;
       default:
         {
-          __yv_701 = false;
-          goto _l___yv_701;
+          __yv_717 = false;
+          goto _l___yv_717;
         } break;
     }
-_l___yv_701:
-  __yv_701;});}
+_l___yv_717:
+  __yv_717;});}
 
 bool compiler_types_Type_is_pointer_to(compiler_types_Type *this, compiler_types_BaseType base) {
   return (this->base==compiler_types_BaseType_Pointer && this->u.ptr->base==base);}
@@ -23549,7 +24472,7 @@ bool compiler_types_Type_is_pointer_to(compiler_types_Type *this, compiler_types
 compiler_ast_scopes_Symbol *compiler_types_Type_get_member(compiler_types_Type *this, char *name) {
 switch ((this->base)) {
     case compiler_types_BaseType_Structure:
-    m_703_0:
+    m_719_0:
       {
         compiler_ast_nodes_Structure *struc = this->u.struc;
         compiler_ast_nodes_Variable *field = compiler_ast_nodes_Structure_get_field(struc, name);
@@ -23564,7 +24487,7 @@ switch ((this->base)) {
         }
       } break;
     case compiler_types_BaseType_Enum:
-    m_703_1:
+    m_719_1:
       {
         compiler_ast_nodes_Enum *enom = this->u.enom;
         compiler_ast_nodes_Variable *field = compiler_ast_nodes_Enum_get_shared_field(enom, name);
@@ -23588,7 +24511,7 @@ bool compiler_types_Type_is_numeric_or_char(compiler_types_Type *this) {
   return (compiler_types_Type_is_numeric(this) || this->base==compiler_types_BaseType_Char);}
 
 bool compiler_types_Type_can_have_methods(compiler_types_Type *this) {
-  return ({bool __yv_704;
+  return ({bool __yv_720;
 switch ((this->base)) {
       case compiler_types_BaseType_Char:
       case compiler_types_BaseType_Bool:
@@ -23606,43 +24529,43 @@ switch ((this->base)) {
       case compiler_types_BaseType_Structure:
       case compiler_types_BaseType_Alias:
       case compiler_types_BaseType_Enum:
-      m_705_0:
+      m_721_0:
         {
-          __yv_704 = true;
-          goto _l___yv_704;
+          __yv_720 = true;
+          goto _l___yv_720;
         } break;
       default:
         {
-          __yv_704 = false;
-          goto _l___yv_704;
+          __yv_720 = false;
+          goto _l___yv_720;
         } break;
     }
-_l___yv_704:
-  __yv_704;});}
+_l___yv_720:
+  __yv_720;});}
 
 bool compiler_types_Type_is_resolved(compiler_types_Type *this) {
-  return ({bool __yv_706;
+  return ({bool __yv_722;
 switch ((this->base)) {
       case compiler_types_BaseType_Unresolved:
-      m_707_0:
+      m_723_0:
         {
-          __yv_706 = false;
-          goto _l___yv_706;
+          __yv_722 = false;
+          goto _l___yv_722;
         } break;
       case compiler_types_BaseType_Alias:
-      m_707_1:
+      m_723_1:
         {
-          __yv_706 = compiler_types_Type_is_resolved(this->u.ptr);
-          goto _l___yv_706;
+          __yv_722 = compiler_types_Type_is_resolved(this->u.ptr);
+          goto _l___yv_722;
         } break;
       case compiler_types_BaseType_Pointer:
-      m_707_2:
+      m_723_2:
         {
-          __yv_706 = compiler_types_Type_is_resolved(this->u.ptr);
-          goto _l___yv_706;
+          __yv_722 = compiler_types_Type_is_resolved(this->u.ptr);
+          goto _l___yv_722;
         } break;
       case compiler_types_BaseType_FunctionPtr:
-      m_707_3:
+      m_723_3:
         {
           bool resolved = compiler_types_Type_is_resolved(this->u.func.return_type);
           for (std_vector_Iterator__3 _i28 = std_vector_Vector__3_iter(this->u.func.params); std_vector_Iterator__3_has_value(&_i28); std_vector_Iterator__3_next(&_i28)) {
@@ -23651,17 +24574,17 @@ switch ((this->base)) {
               resolved=(resolved && compiler_types_Type_is_resolved(param->type));
             }
           }
-          __yv_706 = resolved;
-          goto _l___yv_706;
+          __yv_722 = resolved;
+          goto _l___yv_722;
         } break;
       default:
         {
-          __yv_706 = true;
-          goto _l___yv_706;
+          __yv_722 = true;
+          goto _l___yv_722;
         } break;
     }
-_l___yv_706:
-  __yv_706;});}
+_l___yv_722:
+  __yv_722;});}
 
 bool compiler_types_Type_eq(compiler_types_Type *this, compiler_types_Type *other, bool strict) {
   if (this==NULL && other==NULL) {
@@ -23683,17 +24606,17 @@ switch ((this->base)) {
     case compiler_types_BaseType_Error:
     case compiler_types_BaseType_Unresolved:
     case compiler_types_BaseType_UnresolvedTemplate:
-    m_708_0:
+    m_724_0:
       {
         return false;
       } break;
     case compiler_types_BaseType_Closure:
-    m_708_1:
+    m_724_1:
       {
         return str_eq(this->sym->full_name, other->sym->full_name);
       } break;
     case compiler_types_BaseType_FunctionPtr:
-    m_708_2:
+    m_724_2:
       {
         compiler_types_FunctionType af = this->u.func;
         compiler_types_FunctionType bf = other->u.func;
@@ -23713,7 +24636,7 @@ switch ((this->base)) {
         return true;
       } break;
     case compiler_types_BaseType_Pointer:
-    m_708_3:
+    m_724_3:
       {
         if (!(strict)) {
           if (this->u.ptr->base==compiler_types_BaseType_Void || other->u.ptr->base==compiler_types_BaseType_Void) {
@@ -23723,17 +24646,17 @@ switch ((this->base)) {
         return compiler_types_Type_eq(this->u.ptr, other->u.ptr, true);
       } break;
     case compiler_types_BaseType_Structure:
-    m_708_4:
+    m_724_4:
       {
         return this->u.struc==other->u.struc;
       } break;
     case compiler_types_BaseType_Enum:
-    m_708_5:
+    m_724_5:
       {
         return this->u.enom==other->u.enom;
       } break;
     case compiler_types_BaseType_Array:
-    m_708_6:
+    m_724_6:
       {
         if (!(compiler_types_Type_eq(this->u.arr.elem_type, other->u.arr.elem_type, true))) {
           return false;
@@ -23769,7 +24692,7 @@ bool compiler_types_Type_can_assign(compiler_types_Type *this, compiler_types_Ty
         if (cur==lhs_struc) {
           return true;
         }
-        cur=({compiler_ast_nodes_Structure *_t709 = cur->u.struc->parent; _t709 ? _t709->type : NULL;});
+        cur=({compiler_ast_nodes_Structure *_t725 = cur->u.struc->parent; _t725 ? _t725->type : NULL;});
       }
     }
   }
@@ -23797,17 +24720,17 @@ compiler_types_Type *compiler_types_Type_decay_array(compiler_types_Type *this) 
 }
 
 char *compiler_types_Type_str(compiler_types_Type *this) {
-  return ({char *__yv_710;
+  return ({char *__yv_726;
 switch ((this->base)) {
       case compiler_types_BaseType_Pointer:
-      m_711_0:
+      m_727_0:
         {
-          __yv_710 = std_format("&%s", compiler_types_Type_str(this->u.ptr));
-          goto _l___yv_710;
+          __yv_726 = std_format("&%s", compiler_types_Type_str(this->u.ptr));
+          goto _l___yv_726;
         } break;
       case compiler_types_BaseType_Closure:
       case compiler_types_BaseType_FunctionPtr:
-      m_711_1:
+      m_727_1:
         {
           std_buffer_Buffer buf = std_buffer_Buffer_make(16);
           if (this->base==compiler_types_BaseType_Closure) {
@@ -23830,7 +24753,7 @@ switch ((this->base)) {
           return std_buffer_Buffer_str(buf);
         } break;
       case compiler_types_BaseType_Array:
-      m_711_2:
+      m_727_2:
         {
           std_buffer_Buffer buf = std_buffer_Buffer_make(16);
           std_buffer_Buffer_write_str(&buf, compiler_types_Type_str(this->u.arr.elem_type));
@@ -23844,31 +24767,31 @@ switch ((this->base)) {
           return std_buffer_Buffer_str(buf);
         } break;
       case compiler_types_BaseType_Structure:
-      m_711_3:
+      m_727_3:
         {
-          __yv_710 = this->u.struc->sym->display;
-          goto _l___yv_710;
+          __yv_726 = this->u.struc->sym->display;
+          goto _l___yv_726;
         } break;
       case compiler_types_BaseType_Enum:
-      m_711_4:
+      m_727_4:
         {
-          __yv_710 = this->u.enom->sym->display;
-          goto _l___yv_710;
+          __yv_726 = this->u.enom->sym->display;
+          goto _l___yv_726;
         } break;
       case compiler_types_BaseType_Alias:
-      m_711_5:
+      m_727_5:
         {
-          __yv_710 = this->name;
-          goto _l___yv_710;
+          __yv_726 = this->name;
+          goto _l___yv_726;
         } break;
       default:
         {
-          __yv_710 = compiler_types_BaseType_str(this->base);
-          goto _l___yv_710;
+          __yv_726 = compiler_types_BaseType_str(this->base);
+          goto _l___yv_726;
         } break;
     }
-_l___yv_710:
-  __yv_710;});}
+_l___yv_726:
+  __yv_726;});}
 
 void std_panic(char *msg) {
   dump_backtrace();
@@ -23899,7 +24822,7 @@ char *std_format(char *fmt, ...) {
   u32 size = vsnprintf(NULL, 0, fmt, args);
   va_end(args);
   va_start(args, fmt);
-  char *s = std_mem_alloc__18(((u32)(size + 1)));
+  char *s = std_mem_alloc__19(((u32)(size + 1)));
   vsnprintf(s, (size + 1), fmt, args);
   s[size]='\0';
   va_end(args);
@@ -23907,7 +24830,7 @@ char *std_format(char *fmt, ...) {
 }
 
 char *str_substring(char *this, u32 start, u32 len) {
-  char *new_str = std_mem_alloc__18(((u32)(len + 1)));
+  char *new_str = std_mem_alloc__19(((u32)(len + 1)));
   memcpy(new_str, &this[start], len);
   return new_str;
 }
@@ -23998,6 +24921,9 @@ bool char_is_alnum(char this) {
 
 bool char_is_print(char this) {
   return isprint(this);}
+
+bool char_is_space(char this) {
+  return isspace(this);}
 
 u32 u32_min(u32 this, u32 other) {
   return ((this < other) ? this : other);}
@@ -24132,7 +25058,7 @@ std_sv_SVSplitIterator std_sv_SV_split_str(std_sv_SV this, char *delim) {
   return (std_sv_SVSplitIterator){.sv=this, .delim=std_sv_SV_from_str(delim)};}
 
 char *std_sv_SV_copy_data_to_cstr(std_sv_SV this) {
-  char *buf = std_mem_alloc__18((this.len + 1));
+  char *buf = std_mem_alloc__19((this.len + 1));
   memcpy(buf, this.data, this.len);
   buf[this.len]='\0';
   return buf;
@@ -24235,532 +25161,548 @@ compiler_ast_nodes_AST *std_mem_alloc__17(u32 count) {
   return ((compiler_ast_nodes_AST *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_AST)))));
 }
 
-char *std_mem_alloc__18(u32 count) {
+char *std_mem_alloc__19(u32 count) {
   return ((char *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(char)))));
 }
 
-compiler_attributes_Attribute *std_mem_alloc__19(u32 count) {
+compiler_attributes_Attribute *std_mem_alloc__20(u32 count) {
   return ((compiler_attributes_Attribute *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_attributes_Attribute)))));
 }
 
-compiler_tokens_Token *std_mem_alloc__20(u32 count) {
+compiler_tokens_Token *std_mem_alloc__21(u32 count) {
   return ((compiler_tokens_Token *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_tokens_Token)))));
 }
 
-compiler_errors_Error *std_mem_alloc__21(u32 count) {
+compiler_errors_Error *std_mem_alloc__22(u32 count) {
   return ((compiler_errors_Error *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_errors_Error)))));
 }
 
-compiler_types_Type *std_mem_alloc__22(u32 count) {
+compiler_types_Type *std_mem_alloc__23(u32 count) {
   return ((compiler_types_Type *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_types_Type)))));
 }
 
-i32 *std_mem_alloc__23(u32 count) {
+i32 *std_mem_alloc__24(u32 count) {
   return ((i32 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(i32)))));
 }
 
-std_compact_map_Map__0 *std_mem_alloc__24(u32 count) {
+std_compact_map_Map__0 *std_mem_alloc__25(u32 count) {
   return ((std_compact_map_Map__0 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Map__0)))));
 }
 
-std_compact_map_Map__1 *std_mem_alloc__25(u32 count) {
+std_compact_map_Map__1 *std_mem_alloc__26(u32 count) {
   return ((std_compact_map_Map__1 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Map__1)))));
 }
 
-std_compact_map_Map__2 *std_mem_alloc__26(u32 count) {
+std_compact_map_Map__2 *std_mem_alloc__27(u32 count) {
   return ((std_compact_map_Map__2 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Map__2)))));
 }
 
-std_compact_map_Map__3 *std_mem_alloc__27(u32 count) {
+std_compact_map_Map__3 *std_mem_alloc__28(u32 count) {
   return ((std_compact_map_Map__3 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Map__3)))));
 }
 
-std_compact_map_Map__4 *std_mem_alloc__28(u32 count) {
+std_compact_map_Map__4 *std_mem_alloc__29(u32 count) {
   return ((std_compact_map_Map__4 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Map__4)))));
 }
 
-std_compact_map_Map__5 *std_mem_alloc__29(u32 count) {
+std_compact_map_Map__5 *std_mem_alloc__30(u32 count) {
   return ((std_compact_map_Map__5 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Map__5)))));
 }
 
-std_compact_map_Map__6 *std_mem_alloc__30(u32 count) {
+std_compact_map_Map__6 *std_mem_alloc__31(u32 count) {
   return ((std_compact_map_Map__6 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Map__6)))));
 }
 
-std_compact_map_Map__7 *std_mem_alloc__31(u32 count) {
+std_compact_map_Map__7 *std_mem_alloc__32(u32 count) {
   return ((std_compact_map_Map__7 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Map__7)))));
 }
 
-u8 *std_mem_alloc__32(u32 count) {
+u8 *std_mem_alloc__33(u32 count) {
   return ((u8 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(u8)))));
 }
 
-std_set_Set__0 *std_mem_alloc__33(u32 count) {
+std_set_Set__0 *std_mem_alloc__34(u32 count) {
   return ((std_set_Set__0 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_set_Set__0)))));
 }
 
-std_set_Set__1 *std_mem_alloc__34(u32 count) {
+std_set_Set__1 *std_mem_alloc__35(u32 count) {
   return ((std_set_Set__1 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_set_Set__1)))));
 }
 
-std_set_Set__2 *std_mem_alloc__35(u32 count) {
+std_set_Set__2 *std_mem_alloc__36(u32 count) {
   return ((std_set_Set__2 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_set_Set__2)))));
 }
 
-std_set_Set__3 *std_mem_alloc__36(u32 count) {
+std_set_Set__3 *std_mem_alloc__37(u32 count) {
   return ((std_set_Set__3 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_set_Set__3)))));
 }
 
-std_value_Value *std_mem_alloc__37(u32 count) {
+std_value_Value *std_mem_alloc__38(u32 count) {
   return ((std_value_Value *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_value_Value)))));
 }
 
-std_map_Item__0 *std_mem_alloc__38(u32 count) {
+std_map_Item__0 *std_mem_alloc__39(u32 count) {
   return ((std_map_Item__0 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__0)))));
 }
 
-std_map_Item__0 **std_mem_alloc__39(u32 count) {
+std_map_Item__0 **std_mem_alloc__40(u32 count) {
   return ((std_map_Item__0 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__0 *)))));
 }
 
-std_map_Map__0 *std_mem_alloc__40(u32 count) {
+std_map_Map__0 *std_mem_alloc__41(u32 count) {
   return ((std_map_Map__0 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__0)))));
 }
 
-std_map_Item__1 *std_mem_alloc__41(u32 count) {
+std_map_Item__1 *std_mem_alloc__42(u32 count) {
   return ((std_map_Item__1 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__1)))));
 }
 
-std_map_Item__1 **std_mem_alloc__42(u32 count) {
+std_map_Item__1 **std_mem_alloc__43(u32 count) {
   return ((std_map_Item__1 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__1 *)))));
 }
 
-std_map_Map__1 *std_mem_alloc__43(u32 count) {
+std_map_Map__1 *std_mem_alloc__44(u32 count) {
   return ((std_map_Map__1 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__1)))));
 }
 
-std_map_Item__2 *std_mem_alloc__44(u32 count) {
+std_map_Item__2 *std_mem_alloc__45(u32 count) {
   return ((std_map_Item__2 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__2)))));
 }
 
-std_map_Item__2 **std_mem_alloc__45(u32 count) {
+std_map_Item__2 **std_mem_alloc__46(u32 count) {
   return ((std_map_Item__2 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__2 *)))));
 }
 
-std_map_Map__2 *std_mem_alloc__46(u32 count) {
+std_map_Map__2 *std_mem_alloc__47(u32 count) {
   return ((std_map_Map__2 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__2)))));
 }
 
-std_map_Item__3 *std_mem_alloc__47(u32 count) {
+std_map_Item__3 *std_mem_alloc__48(u32 count) {
   return ((std_map_Item__3 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__3)))));
 }
 
-std_map_Item__3 **std_mem_alloc__48(u32 count) {
+std_map_Item__3 **std_mem_alloc__49(u32 count) {
   return ((std_map_Item__3 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__3 *)))));
 }
 
-std_map_Map__3 *std_mem_alloc__49(u32 count) {
+std_map_Map__3 *std_mem_alloc__50(u32 count) {
   return ((std_map_Map__3 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__3)))));
 }
 
-std_map_Item__4 *std_mem_alloc__50(u32 count) {
+std_map_Item__4 *std_mem_alloc__51(u32 count) {
   return ((std_map_Item__4 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__4)))));
 }
 
-std_map_Item__4 **std_mem_alloc__51(u32 count) {
+std_map_Item__4 **std_mem_alloc__52(u32 count) {
   return ((std_map_Item__4 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__4 *)))));
 }
 
-std_map_Map__4 *std_mem_alloc__52(u32 count) {
+std_map_Map__4 *std_mem_alloc__53(u32 count) {
   return ((std_map_Map__4 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__4)))));
 }
 
-std_map_Item__5 *std_mem_alloc__53(u32 count) {
+std_map_Item__5 *std_mem_alloc__54(u32 count) {
   return ((std_map_Item__5 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__5)))));
 }
 
-std_map_Item__5 **std_mem_alloc__54(u32 count) {
+std_map_Item__5 **std_mem_alloc__55(u32 count) {
   return ((std_map_Item__5 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__5 *)))));
 }
 
-std_map_Map__5 *std_mem_alloc__55(u32 count) {
+std_map_Map__5 *std_mem_alloc__56(u32 count) {
   return ((std_map_Map__5 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__5)))));
 }
 
-std_map_Item__6 *std_mem_alloc__56(u32 count) {
+std_map_Item__6 *std_mem_alloc__57(u32 count) {
   return ((std_map_Item__6 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__6)))));
 }
 
-std_map_Item__6 **std_mem_alloc__57(u32 count) {
+std_map_Item__6 **std_mem_alloc__58(u32 count) {
   return ((std_map_Item__6 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__6 *)))));
 }
 
-std_map_Map__6 *std_mem_alloc__58(u32 count) {
+std_map_Map__6 *std_mem_alloc__59(u32 count) {
   return ((std_map_Map__6 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__6)))));
 }
 
-std_map_Item__7 *std_mem_alloc__59(u32 count) {
+std_map_Item__7 *std_mem_alloc__60(u32 count) {
   return ((std_map_Item__7 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__7)))));
 }
 
-std_map_Item__7 **std_mem_alloc__60(u32 count) {
+std_map_Item__7 **std_mem_alloc__61(u32 count) {
   return ((std_map_Item__7 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__7 *)))));
 }
 
-std_map_Map__7 *std_mem_alloc__61(u32 count) {
+std_map_Map__7 *std_mem_alloc__62(u32 count) {
   return ((std_map_Map__7 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__7)))));
 }
 
-std_map_Item__8 *std_mem_alloc__62(u32 count) {
+std_map_Item__8 *std_mem_alloc__63(u32 count) {
   return ((std_map_Item__8 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__8)))));
 }
 
-std_map_Item__8 **std_mem_alloc__63(u32 count) {
+std_map_Item__8 **std_mem_alloc__64(u32 count) {
   return ((std_map_Item__8 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__8 *)))));
 }
 
-std_map_Map__8 *std_mem_alloc__64(u32 count) {
+std_map_Map__8 *std_mem_alloc__65(u32 count) {
   return ((std_map_Map__8 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__8)))));
 }
 
-std_map_Item__9 *std_mem_alloc__65(u32 count) {
+std_map_Item__9 *std_mem_alloc__66(u32 count) {
   return ((std_map_Item__9 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__9)))));
 }
 
-std_map_Item__9 **std_mem_alloc__66(u32 count) {
+std_map_Item__9 **std_mem_alloc__67(u32 count) {
   return ((std_map_Item__9 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Item__9 *)))));
 }
 
-std_map_Map__9 *std_mem_alloc__67(u32 count) {
+std_map_Map__9 *std_mem_alloc__68(u32 count) {
   return ((std_map_Map__9 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_map_Map__9)))));
 }
 
-std_vector_Vector__0 *std_mem_alloc__68(u32 count) {
+std_vector_Vector__0 *std_mem_alloc__69(u32 count) {
   return ((std_vector_Vector__0 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__0)))));
 }
 
-compiler_types_Type **std_mem_alloc__69(u32 count) {
+compiler_types_Type **std_mem_alloc__70(u32 count) {
   return ((compiler_types_Type **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_types_Type *)))));
 }
 
-std_vector_Vector__1 *std_mem_alloc__70(u32 count) {
+std_vector_Vector__1 *std_mem_alloc__71(u32 count) {
   return ((std_vector_Vector__1 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__1)))));
 }
 
-compiler_ast_scopes_Scope **std_mem_alloc__71(u32 count) {
+compiler_ast_scopes_Scope **std_mem_alloc__72(u32 count) {
   return ((compiler_ast_scopes_Scope **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_scopes_Scope *)))));
 }
 
-std_vector_Vector__2 *std_mem_alloc__72(u32 count) {
+std_vector_Vector__2 *std_mem_alloc__73(u32 count) {
   return ((std_vector_Vector__2 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__2)))));
 }
 
-compiler_ast_program_Namespace **std_mem_alloc__73(u32 count) {
+compiler_ast_program_Namespace **std_mem_alloc__74(u32 count) {
   return ((compiler_ast_program_Namespace **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_program_Namespace *)))));
 }
 
-std_vector_Vector__3 *std_mem_alloc__74(u32 count) {
+std_vector_Vector__3 *std_mem_alloc__75(u32 count) {
   return ((std_vector_Vector__3 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__3)))));
 }
 
-compiler_ast_nodes_Variable **std_mem_alloc__75(u32 count) {
+compiler_ast_nodes_Variable **std_mem_alloc__76(u32 count) {
   return ((compiler_ast_nodes_Variable **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_Variable *)))));
 }
 
-std_vector_Vector__4 *std_mem_alloc__76(u32 count) {
+std_vector_Vector__4 *std_mem_alloc__77(u32 count) {
   return ((std_vector_Vector__4 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__4)))));
 }
 
-compiler_ast_scopes_TemplateInstance **std_mem_alloc__77(u32 count) {
+compiler_ast_scopes_TemplateInstance **std_mem_alloc__78(u32 count) {
   return ((compiler_ast_scopes_TemplateInstance **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_scopes_TemplateInstance *)))));
 }
 
-std_vector_Vector__5 *std_mem_alloc__78(u32 count) {
+std_vector_Vector__5 *std_mem_alloc__79(u32 count) {
   return ((std_vector_Vector__5 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__5)))));
 }
 
-compiler_ast_nodes_MatchCond **std_mem_alloc__79(u32 count) {
+compiler_ast_nodes_MatchCond **std_mem_alloc__80(u32 count) {
   return ((compiler_ast_nodes_MatchCond **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_MatchCond *)))));
 }
 
-std_vector_Vector__6 *std_mem_alloc__80(u32 count) {
+std_vector_Vector__6 *std_mem_alloc__81(u32 count) {
   return ((std_vector_Vector__6 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__6)))));
 }
 
-std_compact_map_Item__0 *std_mem_alloc__81(u32 count) {
+std_compact_map_Item__0 *std_mem_alloc__82(u32 count) {
   return ((std_compact_map_Item__0 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__0)))));
 }
 
-std_vector_Vector__7 *std_mem_alloc__82(u32 count) {
+std_vector_Vector__7 *std_mem_alloc__83(u32 count) {
   return ((std_vector_Vector__7 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__7)))));
 }
 
-std_compact_map_Item__1 *std_mem_alloc__83(u32 count) {
+std_compact_map_Item__1 *std_mem_alloc__84(u32 count) {
   return ((std_compact_map_Item__1 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__1)))));
 }
 
-std_vector_Vector__8 *std_mem_alloc__84(u32 count) {
+std_vector_Vector__8 *std_mem_alloc__85(u32 count) {
   return ((std_vector_Vector__8 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__8)))));
 }
 
-compiler_ast_nodes_ImportPart **std_mem_alloc__85(u32 count) {
+compiler_ast_nodes_ImportPart **std_mem_alloc__86(u32 count) {
   return ((compiler_ast_nodes_ImportPart **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_ImportPart *)))));
 }
 
-std_vector_Vector__9 *std_mem_alloc__86(u32 count) {
+std_vector_Vector__9 *std_mem_alloc__87(u32 count) {
   return ((std_vector_Vector__9 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__9)))));
 }
 
-compiler_ast_nodes_Function **std_mem_alloc__87(u32 count) {
+compiler_ast_nodes_Function **std_mem_alloc__88(u32 count) {
   return ((compiler_ast_nodes_Function **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_Function *)))));
 }
 
-std_vector_Vector__10 *std_mem_alloc__88(u32 count) {
+std_vector_Vector__10 *std_mem_alloc__89(u32 count) {
   return ((std_vector_Vector__10 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__10)))));
 }
 
-compiler_ast_nodes_Argument **std_mem_alloc__89(u32 count) {
+compiler_ast_nodes_Argument **std_mem_alloc__90(u32 count) {
   return ((compiler_ast_nodes_Argument **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_Argument *)))));
 }
 
-std_vector_Vector__11 *std_mem_alloc__90(u32 count) {
+std_vector_Vector__11 *std_mem_alloc__91(u32 count) {
   return ((std_vector_Vector__11 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__11)))));
 }
 
-char **std_mem_alloc__91(u32 count) {
+char **std_mem_alloc__92(u32 count) {
   return ((char **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(char *)))));
 }
 
-std_vector_Vector__12 *std_mem_alloc__92(u32 count) {
+std_vector_Vector__12 *std_mem_alloc__93(u32 count) {
   return ((std_vector_Vector__12 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__12)))));
 }
 
-compiler_ast_scopes_Symbol **std_mem_alloc__93(u32 count) {
+compiler_ast_scopes_Symbol **std_mem_alloc__94(u32 count) {
   return ((compiler_ast_scopes_Symbol **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_scopes_Symbol *)))));
 }
 
-std_vector_Vector__13 *std_mem_alloc__94(u32 count) {
+std_vector_Vector__13 *std_mem_alloc__95(u32 count) {
   return ((std_vector_Vector__13 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__13)))));
 }
 
-compiler_tokens_Token **std_mem_alloc__95(u32 count) {
+compiler_tokens_Token **std_mem_alloc__96(u32 count) {
   return ((compiler_tokens_Token **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_tokens_Token *)))));
 }
 
-std_vector_Vector__14 *std_mem_alloc__96(u32 count) {
+std_vector_Vector__14 *std_mem_alloc__97(u32 count) {
   return ((std_vector_Vector__14 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__14)))));
 }
 
-compiler_attributes_Attribute **std_mem_alloc__97(u32 count) {
+compiler_attributes_Attribute **std_mem_alloc__98(u32 count) {
   return ((compiler_attributes_Attribute **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_attributes_Attribute *)))));
 }
 
-std_vector_Vector__15 *std_mem_alloc__98(u32 count) {
+std_vector_Vector__15 *std_mem_alloc__99(u32 count) {
   return ((std_vector_Vector__15 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__15)))));
 }
 
-compiler_errors_Error **std_mem_alloc__99(u32 count) {
+compiler_errors_Error **std_mem_alloc__100(u32 count) {
   return ((compiler_errors_Error **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_errors_Error *)))));
 }
 
-std_vector_Vector__16 *std_mem_alloc__100(u32 count) {
+std_vector_Vector__16 *std_mem_alloc__101(u32 count) {
   return ((std_vector_Vector__16 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__16)))));
 }
 
-compiler_tokens_Comment *std_mem_alloc__101(u32 count) {
+compiler_tokens_Comment *std_mem_alloc__102(u32 count) {
   return ((compiler_tokens_Comment *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_tokens_Comment)))));
 }
 
-std_vector_Vector__17 *std_mem_alloc__102(u32 count) {
+std_vector_Vector__17 *std_mem_alloc__103(u32 count) {
   return ((std_vector_Vector__17 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__17)))));
 }
 
-compiler_ast_nodes_Structure **std_mem_alloc__103(u32 count) {
+compiler_ast_nodes_Structure **std_mem_alloc__104(u32 count) {
   return ((compiler_ast_nodes_Structure **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_Structure *)))));
 }
 
-std_vector_Vector__18 *std_mem_alloc__104(u32 count) {
+std_vector_Vector__18 *std_mem_alloc__105(u32 count) {
   return ((std_vector_Vector__18 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__18)))));
 }
 
-compiler_ast_nodes_Enum **std_mem_alloc__105(u32 count) {
+compiler_ast_nodes_Enum **std_mem_alloc__106(u32 count) {
   return ((compiler_ast_nodes_Enum **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_Enum *)))));
 }
 
-std_vector_Vector__19 *std_mem_alloc__106(u32 count) {
+std_vector_Vector__19 *std_mem_alloc__107(u32 count) {
   return ((std_vector_Vector__19 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__19)))));
 }
 
-compiler_ast_nodes_AST **std_mem_alloc__107(u32 count) {
+compiler_ast_nodes_AST **std_mem_alloc__108(u32 count) {
   return ((compiler_ast_nodes_AST **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_AST *)))));
 }
 
-std_vector_Vector__20 *std_mem_alloc__108(u32 count) {
+std_vector_Vector__20 *std_mem_alloc__109(u32 count) {
   return ((std_vector_Vector__20 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__20)))));
 }
 
-jmp_buf *std_mem_alloc__109(u32 count) {
+jmp_buf *std_mem_alloc__110(u32 count) {
   return ((jmp_buf *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(jmp_buf)))));
 }
 
-std_vector_Vector__21 *std_mem_alloc__110(u32 count) {
+std_vector_Vector__21 *std_mem_alloc__111(u32 count) {
   return ((std_vector_Vector__21 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__21)))));
 }
 
-compiler_ast_scopes_Reference *std_mem_alloc__111(u32 count) {
+compiler_ast_scopes_Reference *std_mem_alloc__112(u32 count) {
   return ((compiler_ast_scopes_Reference *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_scopes_Reference)))));
 }
 
-std_vector_Vector__22 *std_mem_alloc__112(u32 count) {
+std_vector_Vector__22 *std_mem_alloc__113(u32 count) {
   return ((std_vector_Vector__22 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__22)))));
 }
 
-compiler_ast_nodes_MatchCondArg **std_mem_alloc__113(u32 count) {
+compiler_ast_nodes_MatchCondArg **std_mem_alloc__114(u32 count) {
   return ((compiler_ast_nodes_MatchCondArg **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_MatchCondArg *)))));
 }
 
-std_vector_Vector__23 *std_mem_alloc__114(u32 count) {
+std_vector_Vector__23 *std_mem_alloc__115(u32 count) {
   return ((std_vector_Vector__23 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__23)))));
 }
 
-compiler_ast_nodes_EnumVariant **std_mem_alloc__115(u32 count) {
+compiler_ast_nodes_EnumVariant **std_mem_alloc__116(u32 count) {
   return ((compiler_ast_nodes_EnumVariant **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_EnumVariant *)))));
 }
 
-std_vector_Vector__24 *std_mem_alloc__116(u32 count) {
+std_vector_Vector__24 *std_mem_alloc__117(u32 count) {
   return ((std_vector_Vector__24 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__24)))));
 }
 
-std_compact_map_Item__2 *std_mem_alloc__117(u32 count) {
+std_compact_map_Item__2 *std_mem_alloc__118(u32 count) {
   return ((std_compact_map_Item__2 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__2)))));
 }
 
-std_vector_Vector__25 *std_mem_alloc__118(u32 count) {
+std_vector_Vector__25 *std_mem_alloc__119(u32 count) {
   return ((std_vector_Vector__25 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__25)))));
 }
 
-compiler_ast_operators_Operator *std_mem_alloc__119(u32 count) {
+compiler_ast_operators_Operator *std_mem_alloc__120(u32 count) {
   return ((compiler_ast_operators_Operator *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_operators_Operator)))));
 }
 
-std_vector_Vector__26 *std_mem_alloc__120(u32 count) {
+std_vector_Vector__26 *std_mem_alloc__121(u32 count) {
   return ((std_vector_Vector__26 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__26)))));
 }
 
-std_vector_Vector__8 **std_mem_alloc__121(u32 count) {
+std_vector_Vector__8 **std_mem_alloc__122(u32 count) {
   return ((std_vector_Vector__8 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__8 *)))));
 }
 
-std_vector_Vector__27 *std_mem_alloc__122(u32 count) {
+std_vector_Vector__27 *std_mem_alloc__123(u32 count) {
   return ((std_vector_Vector__27 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__27)))));
 }
 
-compiler_ast_nodes_IfBranch *std_mem_alloc__123(u32 count) {
+compiler_ast_nodes_IfBranch *std_mem_alloc__124(u32 count) {
   return ((compiler_ast_nodes_IfBranch *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_IfBranch)))));
 }
 
-std_vector_Vector__28 *std_mem_alloc__124(u32 count) {
+std_vector_Vector__28 *std_mem_alloc__125(u32 count) {
   return ((std_vector_Vector__28 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__28)))));
 }
 
-compiler_ast_nodes_MatchCase *std_mem_alloc__125(u32 count) {
+compiler_ast_nodes_MatchCase *std_mem_alloc__126(u32 count) {
   return ((compiler_ast_nodes_MatchCase *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_MatchCase)))));
 }
 
-std_vector_Vector__29 *std_mem_alloc__126(u32 count) {
+std_vector_Vector__29 *std_mem_alloc__127(u32 count) {
   return ((std_vector_Vector__29 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__29)))));
 }
 
-compiler_ast_nodes_MapLiteralPair *std_mem_alloc__127(u32 count) {
+compiler_ast_nodes_MapLiteralPair *std_mem_alloc__128(u32 count) {
   return ((compiler_ast_nodes_MapLiteralPair *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_ast_nodes_MapLiteralPair)))));
 }
 
-std_vector_Vector__30 *std_mem_alloc__128(u32 count) {
-  return ((std_vector_Vector__30 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__30)))));
-}
-
-compiler_formatter_Decl *std_mem_alloc__129(u32 count) {
-  return ((compiler_formatter_Decl *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_formatter_Decl)))));
-}
-
-std_vector_Vector__31 *std_mem_alloc__130(u32 count) {
+std_vector_Vector__31 *std_mem_alloc__131(u32 count) {
   return ((std_vector_Vector__31 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__31)))));
 }
 
-std_sv_SV *std_mem_alloc__131(u32 count) {
-  return ((std_sv_SV *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_sv_SV)))));
+u32 *std_mem_alloc__132(u32 count) {
+  return ((u32 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(u32)))));
 }
 
-std_vector_Vector__32 *std_mem_alloc__132(u32 count) {
+std_vector_Vector__32 *std_mem_alloc__133(u32 count) {
   return ((std_vector_Vector__32 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__32)))));
 }
 
-compiler_formatter_DeclMapping *std_mem_alloc__133(u32 count) {
-  return ((compiler_formatter_DeclMapping *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_formatter_DeclMapping)))));
+compiler_formatter_Decl *std_mem_alloc__134(u32 count) {
+  return ((compiler_formatter_Decl *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_formatter_Decl)))));
 }
 
-std_vector_Vector__33 *std_mem_alloc__134(u32 count) {
+std_vector_Vector__33 *std_mem_alloc__135(u32 count) {
   return ((std_vector_Vector__33 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__33)))));
 }
 
-std_compact_map_Item__3 *std_mem_alloc__135(u32 count) {
-  return ((std_compact_map_Item__3 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__3)))));
+std_sv_SV *std_mem_alloc__136(u32 count) {
+  return ((std_sv_SV *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_sv_SV)))));
 }
 
-std_vector_Vector__34 *std_mem_alloc__136(u32 count) {
+std_vector_Vector__34 *std_mem_alloc__137(u32 count) {
   return ((std_vector_Vector__34 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__34)))));
 }
 
-std_span_Span *std_mem_alloc__137(u32 count) {
-  return ((std_span_Span *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_span_Span)))));
+compiler_formatter_DeclMapping *std_mem_alloc__138(u32 count) {
+  return ((compiler_formatter_DeclMapping *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(compiler_formatter_DeclMapping)))));
 }
 
-std_vector_Vector__35 *std_mem_alloc__138(u32 count) {
+std_vector_Vector__35 *std_mem_alloc__139(u32 count) {
   return ((std_vector_Vector__35 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__35)))));
 }
 
-std_value_Value **std_mem_alloc__139(u32 count) {
-  return ((std_value_Value **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_value_Value *)))));
+std_vector_Vector__31 **std_mem_alloc__140(u32 count) {
+  return ((std_vector_Vector__31 **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__31 *)))));
 }
 
-std_vector_Vector__36 *std_mem_alloc__140(u32 count) {
+std_vector_Vector__36 *std_mem_alloc__141(u32 count) {
   return ((std_vector_Vector__36 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__36)))));
 }
 
-std_compact_map_Item__4 *std_mem_alloc__141(u32 count) {
-  return ((std_compact_map_Item__4 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__4)))));
+bool *std_mem_alloc__142(u32 count) {
+  return ((bool *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(bool)))));
 }
 
-std_vector_Vector__37 *std_mem_alloc__142(u32 count) {
+std_vector_Vector__37 *std_mem_alloc__143(u32 count) {
   return ((std_vector_Vector__37 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__37)))));
 }
 
-std_compact_map_Item__5 *std_mem_alloc__143(u32 count) {
-  return ((std_compact_map_Item__5 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__5)))));
+std_compact_map_Item__3 *std_mem_alloc__144(u32 count) {
+  return ((std_compact_map_Item__3 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__3)))));
 }
 
-std_vector_Vector__38 *std_mem_alloc__144(u32 count) {
+std_vector_Vector__38 *std_mem_alloc__145(u32 count) {
   return ((std_vector_Vector__38 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__38)))));
 }
 
-std_compact_map_Item__6 *std_mem_alloc__145(u32 count) {
-  return ((std_compact_map_Item__6 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__6)))));
+std_span_Span *std_mem_alloc__146(u32 count) {
+  return ((std_span_Span *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_span_Span)))));
 }
 
-std_vector_Vector__39 *std_mem_alloc__146(u32 count) {
+std_vector_Vector__39 *std_mem_alloc__147(u32 count) {
   return ((std_vector_Vector__39 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__39)))));
 }
 
-std_compact_map_Item__7 *std_mem_alloc__147(u32 count) {
-  return ((std_compact_map_Item__7 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__7)))));
+std_value_Value **std_mem_alloc__148(u32 count) {
+  return ((std_value_Value **)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_value_Value *)))));
 }
 
-std_vector_Vector__40 *std_mem_alloc__148(u32 count) {
+std_vector_Vector__40 *std_mem_alloc__149(u32 count) {
   return ((std_vector_Vector__40 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__40)))));
 }
 
-u32 *std_mem_alloc__149(u32 count) {
-  return ((u32 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(u32)))));
+std_compact_map_Item__4 *std_mem_alloc__150(u32 count) {
+  return ((std_compact_map_Item__4 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__4)))));
+}
+
+std_vector_Vector__41 *std_mem_alloc__151(u32 count) {
+  return ((std_vector_Vector__41 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__41)))));
+}
+
+std_compact_map_Item__5 *std_mem_alloc__152(u32 count) {
+  return ((std_compact_map_Item__5 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__5)))));
+}
+
+std_vector_Vector__42 *std_mem_alloc__153(u32 count) {
+  return ((std_vector_Vector__42 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__42)))));
+}
+
+std_compact_map_Item__6 *std_mem_alloc__154(u32 count) {
+  return ((std_compact_map_Item__6 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__6)))));
+}
+
+std_vector_Vector__43 *std_mem_alloc__155(u32 count) {
+  return ((std_vector_Vector__43 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_vector_Vector__43)))));
+}
+
+std_compact_map_Item__7 *std_mem_alloc__156(u32 count) {
+  return ((std_compact_map_Item__7 *)std_mem_state_alloc_fn(std_mem_state_allocator, (count * ((u32)sizeof(std_compact_map_Item__7)))));
 }
 
 void std_mem_free(void *ptr) {
@@ -24777,7 +25719,7 @@ u8 *std_mem_realloc__0(u8 *ptr, u32 old_count, u32 new_count) {
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  u8 *new_ptr = std_mem_alloc__32(new_count);
+  u8 *new_ptr = std_mem_alloc__33(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24790,7 +25732,7 @@ compiler_types_Type **std_mem_realloc__1(compiler_types_Type **ptr, u32 old_coun
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_types_Type **new_ptr = std_mem_alloc__69(new_count);
+  compiler_types_Type **new_ptr = std_mem_alloc__70(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24803,7 +25745,7 @@ compiler_ast_scopes_Scope **std_mem_realloc__2(compiler_ast_scopes_Scope **ptr, 
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_scopes_Scope **new_ptr = std_mem_alloc__71(new_count);
+  compiler_ast_scopes_Scope **new_ptr = std_mem_alloc__72(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24816,7 +25758,7 @@ compiler_ast_program_Namespace **std_mem_realloc__3(compiler_ast_program_Namespa
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_program_Namespace **new_ptr = std_mem_alloc__73(new_count);
+  compiler_ast_program_Namespace **new_ptr = std_mem_alloc__74(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24829,7 +25771,7 @@ compiler_ast_nodes_Variable **std_mem_realloc__4(compiler_ast_nodes_Variable **p
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_Variable **new_ptr = std_mem_alloc__75(new_count);
+  compiler_ast_nodes_Variable **new_ptr = std_mem_alloc__76(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24842,7 +25784,7 @@ compiler_ast_scopes_TemplateInstance **std_mem_realloc__5(compiler_ast_scopes_Te
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_scopes_TemplateInstance **new_ptr = std_mem_alloc__77(new_count);
+  compiler_ast_scopes_TemplateInstance **new_ptr = std_mem_alloc__78(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24855,7 +25797,7 @@ compiler_ast_nodes_MatchCond **std_mem_realloc__6(compiler_ast_nodes_MatchCond *
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_MatchCond **new_ptr = std_mem_alloc__79(new_count);
+  compiler_ast_nodes_MatchCond **new_ptr = std_mem_alloc__80(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24868,7 +25810,7 @@ std_compact_map_Item__0 *std_mem_realloc__7(std_compact_map_Item__0 *ptr, u32 ol
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_compact_map_Item__0 *new_ptr = std_mem_alloc__81(new_count);
+  std_compact_map_Item__0 *new_ptr = std_mem_alloc__82(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24881,7 +25823,7 @@ std_compact_map_Item__1 *std_mem_realloc__8(std_compact_map_Item__1 *ptr, u32 ol
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_compact_map_Item__1 *new_ptr = std_mem_alloc__83(new_count);
+  std_compact_map_Item__1 *new_ptr = std_mem_alloc__84(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24894,7 +25836,7 @@ compiler_ast_nodes_ImportPart **std_mem_realloc__9(compiler_ast_nodes_ImportPart
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_ImportPart **new_ptr = std_mem_alloc__85(new_count);
+  compiler_ast_nodes_ImportPart **new_ptr = std_mem_alloc__86(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24907,7 +25849,7 @@ compiler_ast_nodes_Function **std_mem_realloc__10(compiler_ast_nodes_Function **
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_Function **new_ptr = std_mem_alloc__87(new_count);
+  compiler_ast_nodes_Function **new_ptr = std_mem_alloc__88(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24920,7 +25862,7 @@ compiler_ast_nodes_Argument **std_mem_realloc__11(compiler_ast_nodes_Argument **
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_Argument **new_ptr = std_mem_alloc__89(new_count);
+  compiler_ast_nodes_Argument **new_ptr = std_mem_alloc__90(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24933,7 +25875,7 @@ char **std_mem_realloc__12(char **ptr, u32 old_count, u32 new_count) {
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  char **new_ptr = std_mem_alloc__91(new_count);
+  char **new_ptr = std_mem_alloc__92(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24946,7 +25888,7 @@ compiler_ast_scopes_Symbol **std_mem_realloc__13(compiler_ast_scopes_Symbol **pt
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_scopes_Symbol **new_ptr = std_mem_alloc__93(new_count);
+  compiler_ast_scopes_Symbol **new_ptr = std_mem_alloc__94(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24959,7 +25901,7 @@ compiler_tokens_Token **std_mem_realloc__14(compiler_tokens_Token **ptr, u32 old
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_tokens_Token **new_ptr = std_mem_alloc__95(new_count);
+  compiler_tokens_Token **new_ptr = std_mem_alloc__96(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24972,7 +25914,7 @@ compiler_attributes_Attribute **std_mem_realloc__15(compiler_attributes_Attribut
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_attributes_Attribute **new_ptr = std_mem_alloc__97(new_count);
+  compiler_attributes_Attribute **new_ptr = std_mem_alloc__98(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24985,7 +25927,7 @@ compiler_errors_Error **std_mem_realloc__16(compiler_errors_Error **ptr, u32 old
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_errors_Error **new_ptr = std_mem_alloc__99(new_count);
+  compiler_errors_Error **new_ptr = std_mem_alloc__100(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -24998,7 +25940,7 @@ compiler_tokens_Comment *std_mem_realloc__17(compiler_tokens_Comment *ptr, u32 o
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_tokens_Comment *new_ptr = std_mem_alloc__101(new_count);
+  compiler_tokens_Comment *new_ptr = std_mem_alloc__102(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25011,7 +25953,7 @@ compiler_ast_nodes_Structure **std_mem_realloc__18(compiler_ast_nodes_Structure 
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_Structure **new_ptr = std_mem_alloc__103(new_count);
+  compiler_ast_nodes_Structure **new_ptr = std_mem_alloc__104(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25024,7 +25966,7 @@ compiler_ast_nodes_Enum **std_mem_realloc__19(compiler_ast_nodes_Enum **ptr, u32
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_Enum **new_ptr = std_mem_alloc__105(new_count);
+  compiler_ast_nodes_Enum **new_ptr = std_mem_alloc__106(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25037,7 +25979,7 @@ compiler_ast_nodes_AST **std_mem_realloc__20(compiler_ast_nodes_AST **ptr, u32 o
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_AST **new_ptr = std_mem_alloc__107(new_count);
+  compiler_ast_nodes_AST **new_ptr = std_mem_alloc__108(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25050,7 +25992,7 @@ jmp_buf *std_mem_realloc__21(jmp_buf *ptr, u32 old_count, u32 new_count) {
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  jmp_buf *new_ptr = std_mem_alloc__109(new_count);
+  jmp_buf *new_ptr = std_mem_alloc__110(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25063,7 +26005,7 @@ compiler_ast_scopes_Reference *std_mem_realloc__22(compiler_ast_scopes_Reference
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_scopes_Reference *new_ptr = std_mem_alloc__111(new_count);
+  compiler_ast_scopes_Reference *new_ptr = std_mem_alloc__112(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25076,7 +26018,7 @@ compiler_ast_nodes_MatchCondArg **std_mem_realloc__23(compiler_ast_nodes_MatchCo
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_MatchCondArg **new_ptr = std_mem_alloc__113(new_count);
+  compiler_ast_nodes_MatchCondArg **new_ptr = std_mem_alloc__114(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25089,7 +26031,7 @@ compiler_ast_nodes_EnumVariant **std_mem_realloc__24(compiler_ast_nodes_EnumVari
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_EnumVariant **new_ptr = std_mem_alloc__115(new_count);
+  compiler_ast_nodes_EnumVariant **new_ptr = std_mem_alloc__116(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25102,7 +26044,7 @@ std_compact_map_Item__2 *std_mem_realloc__25(std_compact_map_Item__2 *ptr, u32 o
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_compact_map_Item__2 *new_ptr = std_mem_alloc__117(new_count);
+  std_compact_map_Item__2 *new_ptr = std_mem_alloc__118(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25115,7 +26057,7 @@ compiler_ast_operators_Operator *std_mem_realloc__26(compiler_ast_operators_Oper
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_operators_Operator *new_ptr = std_mem_alloc__119(new_count);
+  compiler_ast_operators_Operator *new_ptr = std_mem_alloc__120(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25128,7 +26070,7 @@ std_vector_Vector__8 **std_mem_realloc__27(std_vector_Vector__8 **ptr, u32 old_c
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_vector_Vector__8 **new_ptr = std_mem_alloc__121(new_count);
+  std_vector_Vector__8 **new_ptr = std_mem_alloc__122(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25141,7 +26083,7 @@ compiler_ast_nodes_IfBranch *std_mem_realloc__28(compiler_ast_nodes_IfBranch *pt
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_IfBranch *new_ptr = std_mem_alloc__123(new_count);
+  compiler_ast_nodes_IfBranch *new_ptr = std_mem_alloc__124(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25154,7 +26096,7 @@ compiler_ast_nodes_MatchCase *std_mem_realloc__29(compiler_ast_nodes_MatchCase *
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_MatchCase *new_ptr = std_mem_alloc__125(new_count);
+  compiler_ast_nodes_MatchCase *new_ptr = std_mem_alloc__126(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25167,150 +26109,176 @@ compiler_ast_nodes_MapLiteralPair *std_mem_realloc__30(compiler_ast_nodes_MapLit
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_ast_nodes_MapLiteralPair *new_ptr = std_mem_alloc__127(new_count);
+  compiler_ast_nodes_MapLiteralPair *new_ptr = std_mem_alloc__128(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
 }
 
-compiler_formatter_Decl *std_mem_realloc__31(compiler_formatter_Decl *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(compiler_formatter_Decl)));
-  u32 new_size = (new_count * ((u32)sizeof(compiler_formatter_Decl)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_formatter_Decl *new_ptr = std_mem_alloc__129(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-std_sv_SV *std_mem_realloc__32(std_sv_SV *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(std_sv_SV)));
-  u32 new_size = (new_count * ((u32)sizeof(std_sv_SV)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_sv_SV *new_ptr = std_mem_alloc__131(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-compiler_formatter_DeclMapping *std_mem_realloc__33(compiler_formatter_DeclMapping *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(compiler_formatter_DeclMapping)));
-  u32 new_size = (new_count * ((u32)sizeof(compiler_formatter_DeclMapping)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  compiler_formatter_DeclMapping *new_ptr = std_mem_alloc__133(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-std_compact_map_Item__3 *std_mem_realloc__34(std_compact_map_Item__3 *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__3)));
-  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__3)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_compact_map_Item__3 *new_ptr = std_mem_alloc__135(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-std_span_Span *std_mem_realloc__35(std_span_Span *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(std_span_Span)));
-  u32 new_size = (new_count * ((u32)sizeof(std_span_Span)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_span_Span *new_ptr = std_mem_alloc__137(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-std_value_Value **std_mem_realloc__36(std_value_Value **ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(std_value_Value *)));
-  u32 new_size = (new_count * ((u32)sizeof(std_value_Value *)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_value_Value **new_ptr = std_mem_alloc__139(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-std_compact_map_Item__4 *std_mem_realloc__37(std_compact_map_Item__4 *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__4)));
-  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__4)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_compact_map_Item__4 *new_ptr = std_mem_alloc__141(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-std_compact_map_Item__5 *std_mem_realloc__38(std_compact_map_Item__5 *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__5)));
-  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__5)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_compact_map_Item__5 *new_ptr = std_mem_alloc__143(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-std_compact_map_Item__6 *std_mem_realloc__39(std_compact_map_Item__6 *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__6)));
-  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__6)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_compact_map_Item__6 *new_ptr = std_mem_alloc__145(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-std_compact_map_Item__7 *std_mem_realloc__40(std_compact_map_Item__7 *ptr, u32 old_count, u32 new_count) {
-  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__7)));
-  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__7)));
-  if (std_mem_state_realloc_fn != NULL) {
-    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
-  }
-  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  std_compact_map_Item__7 *new_ptr = std_mem_alloc__147(new_count);
-  memcpy(new_ptr, ptr, old_size);
-  std_mem_free(ptr);
-  return new_ptr;
-}
-
-u32 *std_mem_realloc__41(u32 *ptr, u32 old_count, u32 new_count) {
+u32 *std_mem_realloc__32(u32 *ptr, u32 old_count, u32 new_count) {
   u32 old_size = (old_count * ((u32)sizeof(u32)));
   u32 new_size = (new_count * ((u32)sizeof(u32)));
   if (std_mem_state_realloc_fn != NULL) {
     return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
   }
   if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
-  u32 *new_ptr = std_mem_alloc__149(new_count);
+  u32 *new_ptr = std_mem_alloc__132(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+compiler_formatter_Decl *std_mem_realloc__33(compiler_formatter_Decl *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(compiler_formatter_Decl)));
+  u32 new_size = (new_count * ((u32)sizeof(compiler_formatter_Decl)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  compiler_formatter_Decl *new_ptr = std_mem_alloc__134(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_sv_SV *std_mem_realloc__34(std_sv_SV *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_sv_SV)));
+  u32 new_size = (new_count * ((u32)sizeof(std_sv_SV)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_sv_SV *new_ptr = std_mem_alloc__136(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+compiler_formatter_DeclMapping *std_mem_realloc__35(compiler_formatter_DeclMapping *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(compiler_formatter_DeclMapping)));
+  u32 new_size = (new_count * ((u32)sizeof(compiler_formatter_DeclMapping)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  compiler_formatter_DeclMapping *new_ptr = std_mem_alloc__138(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_vector_Vector__31 **std_mem_realloc__36(std_vector_Vector__31 **ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_vector_Vector__31 *)));
+  u32 new_size = (new_count * ((u32)sizeof(std_vector_Vector__31 *)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_vector_Vector__31 **new_ptr = std_mem_alloc__140(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+bool *std_mem_realloc__37(bool *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(bool)));
+  u32 new_size = (new_count * ((u32)sizeof(bool)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  bool *new_ptr = std_mem_alloc__142(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_compact_map_Item__3 *std_mem_realloc__38(std_compact_map_Item__3 *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__3)));
+  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__3)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_compact_map_Item__3 *new_ptr = std_mem_alloc__144(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_span_Span *std_mem_realloc__39(std_span_Span *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_span_Span)));
+  u32 new_size = (new_count * ((u32)sizeof(std_span_Span)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_span_Span *new_ptr = std_mem_alloc__146(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_value_Value **std_mem_realloc__40(std_value_Value **ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_value_Value *)));
+  u32 new_size = (new_count * ((u32)sizeof(std_value_Value *)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_value_Value **new_ptr = std_mem_alloc__148(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_compact_map_Item__4 *std_mem_realloc__41(std_compact_map_Item__4 *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__4)));
+  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__4)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_compact_map_Item__4 *new_ptr = std_mem_alloc__150(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_compact_map_Item__5 *std_mem_realloc__42(std_compact_map_Item__5 *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__5)));
+  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__5)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_compact_map_Item__5 *new_ptr = std_mem_alloc__152(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_compact_map_Item__6 *std_mem_realloc__43(std_compact_map_Item__6 *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__6)));
+  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__6)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_compact_map_Item__6 *new_ptr = std_mem_alloc__154(new_count);
+  memcpy(new_ptr, ptr, old_size);
+  std_mem_free(ptr);
+  return new_ptr;
+}
+
+std_compact_map_Item__7 *std_mem_realloc__44(std_compact_map_Item__7 *ptr, u32 old_count, u32 new_count) {
+  u32 old_size = (old_count * ((u32)sizeof(std_compact_map_Item__7)));
+  u32 new_size = (new_count * ((u32)sizeof(std_compact_map_Item__7)));
+  if (std_mem_state_realloc_fn != NULL) {
+    return std_mem_state_realloc_fn(std_mem_state_allocator, ptr, old_size, new_size);
+  }
+  if(!(new_size >= old_size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/mem.oc:63:12: Assertion failed: `new_size >= old_size`", "Cannot shrink memory in default allocator"); }
+  std_compact_map_Item__7 *new_ptr = std_mem_alloc__156(new_count);
   memcpy(new_ptr, ptr, old_size);
   std_mem_free(ptr);
   return new_ptr;
@@ -25547,7 +26515,7 @@ compiler_ast_nodes_MatchCond *std_compact_map_Map__0_get(std_compact_map_Map__0 
 
 void std_compact_map_Map__0_resize(std_compact_map_Map__0 *this, u32 new_capacity) {
   i32 *old_indices = this->indices;
-  this->indices=std_mem_alloc__23(new_capacity);
+  this->indices=std_mem_alloc__24(new_capacity);
   this->capacity=new_capacity;
   for (u32 i = 0; i < new_capacity; i++) {
     this->indices[i]=std_compact_map_INDEX_FREE;
@@ -25575,11 +26543,11 @@ std_compact_map_Item__0 *std_compact_map_Map__0_get_item(std_compact_map_Map__0 
 
 std_compact_map_Map__0 *std_compact_map_Map__0_new(u32 capacity) {
   std_vector_Vector__6 *items = std_vector_Vector__6_new(capacity);
-  i32 *indices = std_mem_alloc__23(capacity);
+  i32 *indices = std_mem_alloc__24(capacity);
   for (u32 i = 0; i < capacity; i++) {
     indices[i]=std_compact_map_INDEX_FREE;
   }
-  std_compact_map_Map__0 *map = std_mem_alloc__24(1);
+  std_compact_map_Map__0 *map = std_mem_alloc__25(1);
   map->items=items;
   map->indices=indices;
   map->capacity=capacity;
@@ -25662,7 +26630,7 @@ u32 std_compact_map_Map__1_get_index(std_compact_map_Map__1 *this, char *key, u3
 
 void std_compact_map_Map__1_resize(std_compact_map_Map__1 *this, u32 new_capacity) {
   i32 *old_indices = this->indices;
-  this->indices=std_mem_alloc__23(new_capacity);
+  this->indices=std_mem_alloc__24(new_capacity);
   this->capacity=new_capacity;
   for (u32 i = 0; i < new_capacity; i++) {
     this->indices[i]=std_compact_map_INDEX_FREE;
@@ -25690,11 +26658,11 @@ std_compact_map_Item__1 *std_compact_map_Map__1_get_item(std_compact_map_Map__1 
 
 std_compact_map_Map__1 *std_compact_map_Map__1_new(u32 capacity) {
   std_vector_Vector__7 *items = std_vector_Vector__7_new(capacity);
-  i32 *indices = std_mem_alloc__23(capacity);
+  i32 *indices = std_mem_alloc__24(capacity);
   for (u32 i = 0; i < capacity; i++) {
     indices[i]=std_compact_map_INDEX_FREE;
   }
-  std_compact_map_Map__1 *map = std_mem_alloc__25(1);
+  std_compact_map_Map__1 *map = std_mem_alloc__26(1);
   map->items=items;
   map->indices=indices;
   map->capacity=capacity;
@@ -25770,7 +26738,7 @@ u32 std_compact_map_Map__2_get_index(std_compact_map_Map__2 *this, char *key, u3
 
 void std_compact_map_Map__2_resize(std_compact_map_Map__2 *this, u32 new_capacity) {
   i32 *old_indices = this->indices;
-  this->indices=std_mem_alloc__23(new_capacity);
+  this->indices=std_mem_alloc__24(new_capacity);
   this->capacity=new_capacity;
   for (u32 i = 0; i < new_capacity; i++) {
     this->indices[i]=std_compact_map_INDEX_FREE;
@@ -25798,11 +26766,11 @@ std_compact_map_Item__2 *std_compact_map_Map__2_get_item(std_compact_map_Map__2 
 
 std_compact_map_Map__2 *std_compact_map_Map__2_new(u32 capacity) {
   std_vector_Vector__24 *items = std_vector_Vector__24_new(capacity);
-  i32 *indices = std_mem_alloc__23(capacity);
+  i32 *indices = std_mem_alloc__24(capacity);
   for (u32 i = 0; i < capacity; i++) {
     indices[i]=std_compact_map_INDEX_FREE;
   }
-  std_compact_map_Map__2 *map = std_mem_alloc__26(1);
+  std_compact_map_Map__2 *map = std_mem_alloc__27(1);
   map->items=items;
   map->indices=indices;
   map->capacity=capacity;
@@ -25824,8 +26792,8 @@ void std_compact_map_Map__3_remove(std_compact_map_Map__3 *this, std_sv_SV key) 
   }
   if(!(index >= 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/compact_map.oc:82:12: Assertion failed: `index >= 0`", NULL); }
   u32 item_index = ((u32)this->indices[index]);
-  std_compact_map_Item__3 item = std_vector_Vector__33_at(this->items, item_index);
-  std_compact_map_Item__3 last_item = std_vector_Vector__33_at(this->items, (this->items->size - 1));
+  std_compact_map_Item__3 item = std_vector_Vector__37_at(this->items, item_index);
+  std_compact_map_Item__3 last_item = std_vector_Vector__37_at(this->items, (this->items->size - 1));
   u32 last_index = std_compact_map_Map__3_get_index(this, last_item.key, last_item.hash);
   if(!(last_index >= 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/compact_map.oc:90:12: Assertion failed: `last_index >= 0`", NULL); }
   if(!(this->indices[last_index] >= 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/compact_map.oc:91:12: Assertion failed: `.indices[last_index] >= 0`", NULL); }
@@ -25834,10 +26802,10 @@ void std_compact_map_Map__3_remove(std_compact_map_Map__3 *this, std_sv_SV key) 
   this->indices[last_index]=((i32)item_index);
   this->indices[index]=std_compact_map_INDEX_DELETED;
   this->items->data[item_index]=last_item;
-  std_vector_Vector__33_pop(this->items);
+  std_vector_Vector__37_pop(this->items);
   this->num_tombstones+=1;
   std_compact_map_Map__3_resize_if_necessary(this);
-  std_vector_Vector__33_zero_unused(this->items);
+  std_vector_Vector__37_zero_unused(this->items);
 }
 
 bool std_compact_map_Map__3_contains(std_compact_map_Map__3 *this, std_sv_SV key) {
@@ -25859,7 +26827,7 @@ void std_compact_map_Map__3_insert(std_compact_map_Map__3 *this, std_sv_SV key, 
   u32 index = std_compact_map_Map__3_get_index(this, key, hash);
   if (this->indices[index] < 0) {
     this->indices[index]=((i32)this->items->size);
-    std_vector_Vector__33_push(this->items, (std_compact_map_Item__3){.hash=hash, .key=key, .value=value});
+    std_vector_Vector__37_push(this->items, (std_compact_map_Item__3){.hash=hash, .key=key, .value=value});
     std_compact_map_Map__3_resize_if_necessary(this);
   } else {
     if (this->indices[index]==std_compact_map_INDEX_DELETED) {
@@ -25898,13 +26866,13 @@ u32 std_compact_map_Map__3_get_index(std_compact_map_Map__3 *this, std_sv_SV key
 
 void std_compact_map_Map__3_resize(std_compact_map_Map__3 *this, u32 new_capacity) {
   i32 *old_indices = this->indices;
-  this->indices=std_mem_alloc__23(new_capacity);
+  this->indices=std_mem_alloc__24(new_capacity);
   this->capacity=new_capacity;
   for (u32 i = 0; i < new_capacity; i++) {
     this->indices[i]=std_compact_map_INDEX_FREE;
   }
   for (u32 i = 0; i < this->items->size; i++) {
-    std_compact_map_Item__3 item = std_vector_Vector__33_at(this->items, i);
+    std_compact_map_Item__3 item = std_vector_Vector__37_at(this->items, i);
     u32 index = std_compact_map_Map__3_get_index(this, item.key, item.hash);
     if (this->indices[index]==std_compact_map_INDEX_FREE) {
       this->indices[index]=((i32)i);
@@ -25925,12 +26893,12 @@ std_compact_map_Item__3 *std_compact_map_Map__3_get_item(std_compact_map_Map__3 
 }
 
 std_compact_map_Map__3 *std_compact_map_Map__3_new(u32 capacity) {
-  std_vector_Vector__33 *items = std_vector_Vector__33_new(capacity);
-  i32 *indices = std_mem_alloc__23(capacity);
+  std_vector_Vector__37 *items = std_vector_Vector__37_new(capacity);
+  i32 *indices = std_mem_alloc__24(capacity);
   for (u32 i = 0; i < capacity; i++) {
     indices[i]=std_compact_map_INDEX_FREE;
   }
-  std_compact_map_Map__3 *map = std_mem_alloc__27(1);
+  std_compact_map_Map__3 *map = std_mem_alloc__28(1);
   map->items=items;
   map->indices=indices;
   map->capacity=capacity;
@@ -25954,24 +26922,24 @@ bool std_compact_map_Map__4_contains(std_compact_map_Map__4 *this, char *key) {
 }
 
 std_compact_map_Iterator__4 std_compact_map_Map__4_iter(std_compact_map_Map__4 *this) {
-  return (std_compact_map_Iterator__4){.iter=std_vector_Vector__36_iter(this->items)};}
+  return (std_compact_map_Iterator__4){.iter=std_vector_Vector__40_iter(this->items)};}
 
 std_compact_map_Item__4 std_compact_map_Iterator__4_cur(std_compact_map_Iterator__4 *this) {
-  return std_vector_Iterator__36_cur(&this->iter);}
+  return std_vector_Iterator__40_cur(&this->iter);}
 
 void std_compact_map_Iterator__4_next(std_compact_map_Iterator__4 *this) {
-  std_vector_Iterator__36_next(&this->iter);
+  std_vector_Iterator__40_next(&this->iter);
 }
 
 bool std_compact_map_Iterator__4_has_value(std_compact_map_Iterator__4 *this) {
-  return std_vector_Iterator__36_has_value(&this->iter);}
+  return std_vector_Iterator__40_has_value(&this->iter);}
 
 void std_compact_map_Map__4_insert(std_compact_map_Map__4 *this, char *key, std_value_Value *value) {
   u32 hash = str_hash(key);
   u32 index = std_compact_map_Map__4_get_index(this, key, hash);
   if (this->indices[index] < 0) {
     this->indices[index]=((i32)this->items->size);
-    std_vector_Vector__36_push(this->items, (std_compact_map_Item__4){.hash=hash, .key=key, .value=value});
+    std_vector_Vector__40_push(this->items, (std_compact_map_Item__4){.hash=hash, .key=key, .value=value});
     std_compact_map_Map__4_resize_if_necessary(this);
   } else {
     if (this->indices[index]==std_compact_map_INDEX_DELETED) {
@@ -26021,13 +26989,13 @@ bool std_compact_map_Map__4_is_empty(std_compact_map_Map__4 *this) {
 
 void std_compact_map_Map__4_resize(std_compact_map_Map__4 *this, u32 new_capacity) {
   i32 *old_indices = this->indices;
-  this->indices=std_mem_alloc__23(new_capacity);
+  this->indices=std_mem_alloc__24(new_capacity);
   this->capacity=new_capacity;
   for (u32 i = 0; i < new_capacity; i++) {
     this->indices[i]=std_compact_map_INDEX_FREE;
   }
   for (u32 i = 0; i < this->items->size; i++) {
-    std_compact_map_Item__4 item = std_vector_Vector__36_at(this->items, i);
+    std_compact_map_Item__4 item = std_vector_Vector__40_at(this->items, i);
     u32 index = std_compact_map_Map__4_get_index(this, item.key, item.hash);
     if (this->indices[index]==std_compact_map_INDEX_FREE) {
       this->indices[index]=((i32)i);
@@ -26048,12 +27016,12 @@ std_compact_map_Item__4 *std_compact_map_Map__4_get_item(std_compact_map_Map__4 
 }
 
 std_compact_map_Map__4 *std_compact_map_Map__4_new(u32 capacity) {
-  std_vector_Vector__36 *items = std_vector_Vector__36_new(capacity);
-  i32 *indices = std_mem_alloc__23(capacity);
+  std_vector_Vector__40 *items = std_vector_Vector__40_new(capacity);
+  i32 *indices = std_mem_alloc__24(capacity);
   for (u32 i = 0; i < capacity; i++) {
     indices[i]=std_compact_map_INDEX_FREE;
   }
-  std_compact_map_Map__4 *map = std_mem_alloc__28(1);
+  std_compact_map_Map__4 *map = std_mem_alloc__29(1);
   map->items=items;
   map->indices=indices;
   map->capacity=capacity;
@@ -26072,7 +27040,7 @@ void std_compact_map_Map__5_free(std_compact_map_Map__5 *this) {
     return;
   }
   std_mem_free(this->indices);
-  std_vector_Vector__37_free(this->items);
+  std_vector_Vector__41_free(this->items);
   std_mem_free(this);
 }
 
@@ -26081,7 +27049,7 @@ void std_compact_map_Map__5_insert(std_compact_map_Map__5 *this, char *key, std_
   u32 index = std_compact_map_Map__5_get_index(this, key, hash);
   if (this->indices[index] < 0) {
     this->indices[index]=((i32)this->items->size);
-    std_vector_Vector__37_push(this->items, (std_compact_map_Item__5){.hash=hash, .key=key, .value=value});
+    std_vector_Vector__41_push(this->items, (std_compact_map_Item__5){.hash=hash, .key=key, .value=value});
     std_compact_map_Map__5_resize_if_necessary(this);
   } else {
     if (this->indices[index]==std_compact_map_INDEX_DELETED) {
@@ -26120,13 +27088,13 @@ u32 std_compact_map_Map__5_get_index(std_compact_map_Map__5 *this, char *key, u3
 
 void std_compact_map_Map__5_resize(std_compact_map_Map__5 *this, u32 new_capacity) {
   i32 *old_indices = this->indices;
-  this->indices=std_mem_alloc__23(new_capacity);
+  this->indices=std_mem_alloc__24(new_capacity);
   this->capacity=new_capacity;
   for (u32 i = 0; i < new_capacity; i++) {
     this->indices[i]=std_compact_map_INDEX_FREE;
   }
   for (u32 i = 0; i < this->items->size; i++) {
-    std_compact_map_Item__5 item = std_vector_Vector__37_at(this->items, i);
+    std_compact_map_Item__5 item = std_vector_Vector__41_at(this->items, i);
     u32 index = std_compact_map_Map__5_get_index(this, item.key, item.hash);
     if (this->indices[index]==std_compact_map_INDEX_FREE) {
       this->indices[index]=((i32)i);
@@ -26147,12 +27115,12 @@ std_compact_map_Item__5 *std_compact_map_Map__5_get_item(std_compact_map_Map__5 
 }
 
 std_compact_map_Map__5 *std_compact_map_Map__5_new(u32 capacity) {
-  std_vector_Vector__37 *items = std_vector_Vector__37_new(capacity);
-  i32 *indices = std_mem_alloc__23(capacity);
+  std_vector_Vector__41 *items = std_vector_Vector__41_new(capacity);
+  i32 *indices = std_mem_alloc__24(capacity);
   for (u32 i = 0; i < capacity; i++) {
     indices[i]=std_compact_map_INDEX_FREE;
   }
-  std_compact_map_Map__5 *map = std_mem_alloc__29(1);
+  std_compact_map_Map__5 *map = std_mem_alloc__30(1);
   map->items=items;
   map->indices=indices;
   map->capacity=capacity;
@@ -26171,7 +27139,7 @@ void std_compact_map_Map__6_free(std_compact_map_Map__6 *this) {
     return;
   }
   std_mem_free(this->indices);
-  std_vector_Vector__38_free(this->items);
+  std_vector_Vector__42_free(this->items);
   std_mem_free(this);
 }
 
@@ -26180,7 +27148,7 @@ void std_compact_map_Map__6_insert(std_compact_map_Map__6 *this, char *key, comp
   u32 index = std_compact_map_Map__6_get_index(this, key, hash);
   if (this->indices[index] < 0) {
     this->indices[index]=((i32)this->items->size);
-    std_vector_Vector__38_push(this->items, (std_compact_map_Item__6){.hash=hash, .key=key, .value=value});
+    std_vector_Vector__42_push(this->items, (std_compact_map_Item__6){.hash=hash, .key=key, .value=value});
     std_compact_map_Map__6_resize_if_necessary(this);
   } else {
     if (this->indices[index]==std_compact_map_INDEX_DELETED) {
@@ -26219,13 +27187,13 @@ u32 std_compact_map_Map__6_get_index(std_compact_map_Map__6 *this, char *key, u3
 
 void std_compact_map_Map__6_resize(std_compact_map_Map__6 *this, u32 new_capacity) {
   i32 *old_indices = this->indices;
-  this->indices=std_mem_alloc__23(new_capacity);
+  this->indices=std_mem_alloc__24(new_capacity);
   this->capacity=new_capacity;
   for (u32 i = 0; i < new_capacity; i++) {
     this->indices[i]=std_compact_map_INDEX_FREE;
   }
   for (u32 i = 0; i < this->items->size; i++) {
-    std_compact_map_Item__6 item = std_vector_Vector__38_at(this->items, i);
+    std_compact_map_Item__6 item = std_vector_Vector__42_at(this->items, i);
     u32 index = std_compact_map_Map__6_get_index(this, item.key, item.hash);
     if (this->indices[index]==std_compact_map_INDEX_FREE) {
       this->indices[index]=((i32)i);
@@ -26246,12 +27214,12 @@ std_compact_map_Item__6 *std_compact_map_Map__6_get_item(std_compact_map_Map__6 
 }
 
 std_compact_map_Map__6 *std_compact_map_Map__6_new(u32 capacity) {
-  std_vector_Vector__38 *items = std_vector_Vector__38_new(capacity);
-  i32 *indices = std_mem_alloc__23(capacity);
+  std_vector_Vector__42 *items = std_vector_Vector__42_new(capacity);
+  i32 *indices = std_mem_alloc__24(capacity);
   for (u32 i = 0; i < capacity; i++) {
     indices[i]=std_compact_map_INDEX_FREE;
   }
-  std_compact_map_Map__6 *map = std_mem_alloc__30(1);
+  std_compact_map_Map__6 *map = std_mem_alloc__31(1);
   map->items=items;
   map->indices=indices;
   map->capacity=capacity;
@@ -26270,7 +27238,7 @@ void std_compact_map_Map__7_free(std_compact_map_Map__7 *this) {
     return;
   }
   std_mem_free(this->indices);
-  std_vector_Vector__39_free(this->items);
+  std_vector_Vector__43_free(this->items);
   std_mem_free(this);
 }
 
@@ -26279,7 +27247,7 @@ void std_compact_map_Map__7_insert(std_compact_map_Map__7 *this, char *key, comp
   u32 index = std_compact_map_Map__7_get_index(this, key, hash);
   if (this->indices[index] < 0) {
     this->indices[index]=((i32)this->items->size);
-    std_vector_Vector__39_push(this->items, (std_compact_map_Item__7){.hash=hash, .key=key, .value=value});
+    std_vector_Vector__43_push(this->items, (std_compact_map_Item__7){.hash=hash, .key=key, .value=value});
     std_compact_map_Map__7_resize_if_necessary(this);
   } else {
     if (this->indices[index]==std_compact_map_INDEX_DELETED) {
@@ -26318,13 +27286,13 @@ u32 std_compact_map_Map__7_get_index(std_compact_map_Map__7 *this, char *key, u3
 
 void std_compact_map_Map__7_resize(std_compact_map_Map__7 *this, u32 new_capacity) {
   i32 *old_indices = this->indices;
-  this->indices=std_mem_alloc__23(new_capacity);
+  this->indices=std_mem_alloc__24(new_capacity);
   this->capacity=new_capacity;
   for (u32 i = 0; i < new_capacity; i++) {
     this->indices[i]=std_compact_map_INDEX_FREE;
   }
   for (u32 i = 0; i < this->items->size; i++) {
-    std_compact_map_Item__7 item = std_vector_Vector__39_at(this->items, i);
+    std_compact_map_Item__7 item = std_vector_Vector__43_at(this->items, i);
     u32 index = std_compact_map_Map__7_get_index(this, item.key, item.hash);
     if (this->indices[index]==std_compact_map_INDEX_FREE) {
       this->indices[index]=((i32)i);
@@ -26345,12 +27313,12 @@ std_compact_map_Item__7 *std_compact_map_Map__7_get_item(std_compact_map_Map__7 
 }
 
 std_compact_map_Map__7 *std_compact_map_Map__7_new(u32 capacity) {
-  std_vector_Vector__39 *items = std_vector_Vector__39_new(capacity);
-  i32 *indices = std_mem_alloc__23(capacity);
+  std_vector_Vector__43 *items = std_vector_Vector__43_new(capacity);
+  i32 *indices = std_mem_alloc__24(capacity);
   for (u32 i = 0; i < capacity; i++) {
     indices[i]=std_compact_map_INDEX_FREE;
   }
-  std_compact_map_Map__7 *map = std_mem_alloc__31(1);
+  std_compact_map_Map__7 *map = std_mem_alloc__32(1);
   map->items=items;
   map->indices=indices;
   map->capacity=capacity;
@@ -26365,7 +27333,7 @@ void std_compact_map_Map__7_resize_if_necessary(std_compact_map_Map__7 *this) {
 }
 
 std_buffer_Buffer std_buffer_Buffer_make(u32 capacity) {
-  return (std_buffer_Buffer){.data=std_mem_alloc__32(capacity), .size=0, .capacity=capacity};
+  return (std_buffer_Buffer){.data=std_mem_alloc__33(capacity), .size=0, .capacity=capacity};
 }
 
 std_buffer_Buffer std_buffer_Buffer_from_str(char *s) {
@@ -26440,14 +27408,14 @@ void std_logging_init_logging(std_logging_LogLevel level, char *time_format) {
     return;
   }
   {
-    char *__match_var_712 = s;
-    if (str_eq(__match_var_712, "debug") || str_eq(__match_var_712, "DEBUG")) {
+    char *__match_var_728 = s;
+    if (str_eq(__match_var_728, "debug") || str_eq(__match_var_728, "DEBUG")) {
       std_logging_log_level=std_logging_LogLevel_Debug;
-    } else if (str_eq(__match_var_712, "info") || str_eq(__match_var_712, "INFO")) {
+    } else if (str_eq(__match_var_728, "info") || str_eq(__match_var_728, "INFO")) {
       std_logging_log_level=std_logging_LogLevel_Info;
-    } else if (str_eq(__match_var_712, "warn") || str_eq(__match_var_712, "WARN")) {
+    } else if (str_eq(__match_var_728, "warn") || str_eq(__match_var_728, "WARN")) {
       std_logging_log_level=std_logging_LogLevel_Warn;
-    } else if (str_eq(__match_var_712, "error") || str_eq(__match_var_712, "ERROR")) {
+    } else if (str_eq(__match_var_728, "error") || str_eq(__match_var_728, "ERROR")) {
       std_logging_log_level=std_logging_LogLevel_Error;
     } else  {
     }
@@ -26467,22 +27435,22 @@ void std_logging_vlog(std_logging_LogLevel level, char *fmt, va_list vargs) {
   }
 switch ((level)) {
     case std_logging_LogLevel_Debug:
-    m_713_0:
+    m_729_0:
       {
         printf("[DEBUG] ");
       } break;
     case std_logging_LogLevel_Info:
-    m_713_1:
+    m_729_1:
       {
         printf("[INFO] ");
       } break;
     case std_logging_LogLevel_Warn:
-    m_713_2:
+    m_729_2:
       {
         printf("[WARN] ");
       } break;
     case std_logging_LogLevel_Error:
-    m_713_3:
+    m_729_3:
       {
         printf("[ERROR] ");
       } break;
@@ -26511,7 +27479,7 @@ bool std_set_Set__0_contains(std_set_Set__0 *this, u64 key) {
   return std_map_Map__0_contains(this->map, key);}
 
 std_set_Set__0 *std_set_Set__0_new(void) {
-  std_set_Set__0 *set = std_mem_alloc__33(1);
+  std_set_Set__0 *set = std_mem_alloc__34(1);
   set->map=std_map_Map__0_new(8);
   return set;
 }
@@ -26530,7 +27498,7 @@ bool std_set_Set__1_contains(std_set_Set__1 *this, void *key) {
   return std_map_Map__1_contains(this->map, key);}
 
 std_set_Set__1 *std_set_Set__1_new(void) {
-  std_set_Set__1 *set = std_mem_alloc__34(1);
+  std_set_Set__1 *set = std_mem_alloc__35(1);
   set->map=std_map_Map__1_new(8);
   return set;
 }
@@ -26549,7 +27517,7 @@ bool std_set_Set__2_contains(std_set_Set__2 *this, char *key) {
   return std_map_Map__7_contains(this->map, key);}
 
 std_set_Set__2 *std_set_Set__2_new(void) {
-  std_set_Set__2 *set = std_mem_alloc__35(1);
+  std_set_Set__2 *set = std_mem_alloc__36(1);
   set->map=std_map_Map__7_new(8);
   return set;
 }
@@ -26565,7 +27533,7 @@ void std_set_Set__3_add(std_set_Set__3 *this, std_span_Span key) {
 }
 
 std_set_Set__3 *std_set_Set__3_new(void) {
-  std_set_Set__3 *set = std_mem_alloc__36(1);
+  std_set_Set__3 *set = std_mem_alloc__37(1);
   set->map=std_map_Map__9_new(8);
   return set;
 }
@@ -26702,7 +27670,7 @@ std_process_Output std_process_Output_from_error(i32 error_code) {
   return out;
 }
 
-std_process_Output std_process_get_output(char *cmd, _ClosureTy_37 callback, bool capture_stderr, char *shell) {
+std_process_Output std_process_get_output(char *cmd, _ClosureTy_41 callback, bool capture_stderr, char *shell) {
   if ((((bool)cmd) && ((bool)callback.fn)) || (!(((bool)cmd)) && !(((bool)callback.fn)))) {
     std_panic("Exactly one of cmd or callback must be provided");
   }
@@ -26764,18 +27732,18 @@ char *std_value_ValueType_str(std_value_ValueType this) {
   return std_value_ValueType_dbg(this);}
 
 std_value_Value *std_value_Value_new(std_value_ValueType type) {
-  std_value_Value *val = std_mem_alloc__37(1);
+  std_value_Value *val = std_mem_alloc__38(1);
   val->type=type;
 switch ((type)) {
     case std_value_ValueType_Dictionary:
-    m_714_0:
+    m_730_0:
       {
         val->u.as_dict=std_compact_map_Map__4_new(16);
       } break;
     case std_value_ValueType_List:
-    m_714_1:
+    m_730_1:
       {
-        val->u.as_list=std_vector_Vector__35_new(16);
+        val->u.as_list=std_vector_Vector__39_new(16);
       } break;
     default:
       {
@@ -26802,7 +27770,7 @@ std_value_Value *std_value_Value_new_int(i64 num) {
   return val;
 }
 
-std_value_Value *std_value_Value_new_list(std_vector_Vector__35 *vec) {
+std_value_Value *std_value_Value_new_list(std_vector_Vector__39 *vec) {
   std_value_Value *val = std_value_Value_new(std_value_ValueType_List);
   std_mem_free(val->u.as_list);
   val->u.as_list=vec;
@@ -26837,7 +27805,7 @@ std_value_Value *std_value_Value_at_key(std_value_Value *this, char *key) {
 
 void std_value_Value_push(std_value_Value *this, std_value_Value *value) {
   std_value_Value_ensure(this, std_value_ValueType_List);
-  std_vector_Vector__35_push(this->u.as_list, value);
+  std_vector_Vector__39_push(this->u.as_list, value);
 }
 
 bool std_value_Value_contains(std_value_Value *this, char *key) {
@@ -26866,19 +27834,19 @@ void std_value_Value_insert_u32(std_value_Value *this, char *key, u32 i) {
 }
 
 i64 std_value_Value_as_int(std_value_Value *this) {
-  return ({i64 __yv_715;
+  return ({i64 __yv_731;
 switch ((this->type)) {
       case std_value_ValueType_Integer:
-      m_716_0:
+      m_732_0:
         {
-          __yv_715 = this->u.as_int;
-          goto _l___yv_715;
+          __yv_731 = this->u.as_int;
+          goto _l___yv_731;
         } break;
       case std_value_ValueType_Float:
-      m_716_1:
+      m_732_1:
         {
-          __yv_715 = ((i64)this->u.as_float);
-          goto _l___yv_715;
+          __yv_731 = ((i64)this->u.as_float);
+          goto _l___yv_731;
         } break;
       default:
         {
@@ -26886,8 +27854,8 @@ switch ((this->type)) {
           if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/value.oc:190:20: Assertion failed: `false`", "unreachable"); exit(1); }
         } break;
     }
-_l___yv_715:
-  __yv_715;});
+_l___yv_731:
+  __yv_731;});
 }
 
 std_buffer_Buffer std_value_Value_as_str(std_value_Value *this) {
@@ -26895,7 +27863,7 @@ std_buffer_Buffer std_value_Value_as_str(std_value_Value *this) {
   return this->u.as_str;
 }
 
-std_vector_Vector__35 *std_value_Value_as_list(std_value_Value *this) {
+std_vector_Vector__39 *std_value_Value_as_list(std_value_Value *this) {
   std_value_Value_ensure(this, std_value_ValueType_List);
   return this->u.as_list;
 }
@@ -26924,7 +27892,7 @@ f64 std_time_get_time_monotonic_ms(void) {
 }
 
 char *std_fs_realpath(char *path) {
-  char *res = std_mem_alloc__18((2048 + 1));
+  char *res = std_mem_alloc__19((2048 + 1));
   realpath(path, res);
   return res;
 }
@@ -27013,46 +27981,46 @@ void std_fs_DirectoryIterator_next(std_fs_DirectoryIterator *this) {
   this->dp=readdir(this->dir);
   while (((bool)this->dp) && this->skip_self_and_parent) {
     {
-      char *__match_var_717 = this->dp->d_name;
-      if (str_eq(__match_var_717, ".") || str_eq(__match_var_717, "..")) {
+      char *__match_var_733 = this->dp->d_name;
+      if (str_eq(__match_var_733, ".") || str_eq(__match_var_733, "..")) {
         this->dp=readdir(this->dir);
       } else  {
-        goto _While_break_718;
+        goto _While_break_734;
       }
     }
   }
-  _While_break_718:;
+  _While_break_734:;
 }
 
 std_fs_DirectoryEntry std_fs_DirectoryIterator_cur(std_fs_DirectoryIterator *this) {
   char *name = this->dp->d_name;
-  std_fs_EntryType type = ({std_fs_EntryType __yv_719;
+  std_fs_EntryType type = ({std_fs_EntryType __yv_735;
     switch (this->dp->d_type) {
       case DT_DIR: {
-        __yv_719 = std_fs_EntryType_Directory;
-        goto _l___yv_719;
+        __yv_735 = std_fs_EntryType_Directory;
+        goto _l___yv_735;
       } break;
       case DT_REG: {
-        __yv_719 = std_fs_EntryType_File;
-        goto _l___yv_719;
+        __yv_735 = std_fs_EntryType_File;
+        goto _l___yv_735;
       } break;
       case DT_LNK: {
-        __yv_719 = std_fs_EntryType_SymbolicLink;
-        goto _l___yv_719;
+        __yv_735 = std_fs_EntryType_SymbolicLink;
+        goto _l___yv_735;
       } break;
       default: {
-        __yv_719 = std_fs_EntryType_Unknown;
-        goto _l___yv_719;
+        __yv_735 = std_fs_EntryType_Unknown;
+        goto _l___yv_735;
       } break;
     }
 
-_l___yv_719:
-  __yv_719;});
+_l___yv_735:
+  __yv_735;});
   return (std_fs_DirectoryEntry){.type=type, .name=name};
 }
 
 std_map_Item__0 *std_map_Item__0_new(u64 key, bool value, std_map_Item__0 *next) {
-  std_map_Item__0 *node = std_mem_alloc__38(1);
+  std_map_Item__0 *node = std_mem_alloc__39(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -27105,7 +28073,7 @@ void std_map_Map__0_resize(std_map_Map__0 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__39(this->num_buckets);
+  this->buckets=std_mem_alloc__40(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__0 *node = old_buckets[i];
     while (((bool)node)) {
@@ -27134,9 +28102,9 @@ u32 std_map_Map__0_hash(std_map_Map__0 *this, u64 key) {
 }
 
 std_map_Map__0 *std_map_Map__0_new(u32 capacity) {
-  std_map_Map__0 *map = std_mem_alloc__40(1);
+  std_map_Map__0 *map = std_mem_alloc__41(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__39(map->num_buckets);
+  map->buckets=std_mem_alloc__40(map->num_buckets);
   return map;
 }
 
@@ -27153,7 +28121,7 @@ std_map_Item__0 *std_map_Map__0_get_item(std_map_Map__0 *this, u64 key) {
 }
 
 std_map_Item__1 *std_map_Item__1_new(void *key, bool value, std_map_Item__1 *next) {
-  std_map_Item__1 *node = std_mem_alloc__41(1);
+  std_map_Item__1 *node = std_mem_alloc__42(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -27206,7 +28174,7 @@ void std_map_Map__1_resize(std_map_Map__1 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__42(this->num_buckets);
+  this->buckets=std_mem_alloc__43(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__1 *node = old_buckets[i];
     while (((bool)node)) {
@@ -27235,9 +28203,9 @@ u32 std_map_Map__1_hash(std_map_Map__1 *this, void *key) {
 }
 
 std_map_Map__1 *std_map_Map__1_new(u32 capacity) {
-  std_map_Map__1 *map = std_mem_alloc__43(1);
+  std_map_Map__1 *map = std_mem_alloc__44(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__42(map->num_buckets);
+  map->buckets=std_mem_alloc__43(map->num_buckets);
   return map;
 }
 
@@ -27254,7 +28222,7 @@ std_map_Item__1 *std_map_Map__1_get_item(std_map_Map__1 *this, void *key) {
 }
 
 std_map_Item__2 *std_map_Item__2_new(char *key, compiler_types_Type *value, std_map_Item__2 *next) {
-  std_map_Item__2 *node = std_mem_alloc__44(1);
+  std_map_Item__2 *node = std_mem_alloc__45(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -27308,17 +28276,17 @@ void std_map_Iterator__2_next(std_map_Iterator__2 *this) {
       }
     }
     this->idx+=1;
-    this->node=({std_map_Item__2 *__yv_720;
+    this->node=({std_map_Item__2 *__yv_736;
       if (this->idx < ((i32)this->map->num_buckets)) {
-        __yv_720 = this->map->buckets[this->idx];
-        goto _l___yv_720;
+        __yv_736 = this->map->buckets[this->idx];
+        goto _l___yv_736;
       } else {
-        __yv_720 = NULL;
-        goto _l___yv_720;
+        __yv_736 = NULL;
+        goto _l___yv_736;
       }
 
-_l___yv_720:
-    __yv_720;});
+_l___yv_736:
+    __yv_736;});
     if (((bool)this->node)) {
       return;
     }
@@ -27344,7 +28312,7 @@ void std_map_Map__2_resize(std_map_Map__2 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__45(this->num_buckets);
+  this->buckets=std_mem_alloc__46(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__2 *node = old_buckets[i];
     while (((bool)node)) {
@@ -27373,9 +28341,9 @@ u32 std_map_Map__2_hash(std_map_Map__2 *this, char *key) {
 }
 
 std_map_Map__2 *std_map_Map__2_new(u32 capacity) {
-  std_map_Map__2 *map = std_mem_alloc__46(1);
+  std_map_Map__2 *map = std_mem_alloc__47(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__45(map->num_buckets);
+  map->buckets=std_mem_alloc__46(map->num_buckets);
   return map;
 }
 
@@ -27396,7 +28364,7 @@ std_map_Iterator__2 std_map_Map__2_iter(std_map_Map__2 *this) {
 }
 
 std_map_Item__3 *std_map_Item__3_new(char *key, compiler_ast_program_Namespace *value, std_map_Item__3 *next) {
-  std_map_Item__3 *node = std_mem_alloc__47(1);
+  std_map_Item__3 *node = std_mem_alloc__48(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -27456,17 +28424,17 @@ void std_map_Iterator__3_next(std_map_Iterator__3 *this) {
       }
     }
     this->idx+=1;
-    this->node=({std_map_Item__3 *__yv_721;
+    this->node=({std_map_Item__3 *__yv_737;
       if (this->idx < ((i32)this->map->num_buckets)) {
-        __yv_721 = this->map->buckets[this->idx];
-        goto _l___yv_721;
+        __yv_737 = this->map->buckets[this->idx];
+        goto _l___yv_737;
       } else {
-        __yv_721 = NULL;
-        goto _l___yv_721;
+        __yv_737 = NULL;
+        goto _l___yv_737;
       }
 
-_l___yv_721:
-    __yv_721;});
+_l___yv_737:
+    __yv_737;});
     if (((bool)this->node)) {
       return;
     }
@@ -27496,7 +28464,7 @@ void std_map_Map__3_resize(std_map_Map__3 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__48(this->num_buckets);
+  this->buckets=std_mem_alloc__49(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__3 *node = old_buckets[i];
     while (((bool)node)) {
@@ -27538,9 +28506,9 @@ bool std_map_ValueIterator__3_has_value(std_map_ValueIterator__3 *this) {
   return std_map_Iterator__3_has_value(&this->map_iter);}
 
 std_map_Map__3 *std_map_Map__3_new(u32 capacity) {
-  std_map_Map__3 *map = std_mem_alloc__49(1);
+  std_map_Map__3 *map = std_mem_alloc__50(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__48(map->num_buckets);
+  map->buckets=std_mem_alloc__49(map->num_buckets);
   return map;
 }
 
@@ -27561,7 +28529,7 @@ std_map_Iterator__3 std_map_Map__3_iter(std_map_Map__3 *this) {
 }
 
 std_map_Item__4 *std_map_Item__4_new(char *key, compiler_ast_scopes_Symbol *value, std_map_Item__4 *next) {
-  std_map_Item__4 *node = std_mem_alloc__50(1);
+  std_map_Item__4 *node = std_mem_alloc__51(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -27621,17 +28589,17 @@ void std_map_Iterator__4_next(std_map_Iterator__4 *this) {
       }
     }
     this->idx+=1;
-    this->node=({std_map_Item__4 *__yv_722;
+    this->node=({std_map_Item__4 *__yv_738;
       if (this->idx < ((i32)this->map->num_buckets)) {
-        __yv_722 = this->map->buckets[this->idx];
-        goto _l___yv_722;
+        __yv_738 = this->map->buckets[this->idx];
+        goto _l___yv_738;
       } else {
-        __yv_722 = NULL;
-        goto _l___yv_722;
+        __yv_738 = NULL;
+        goto _l___yv_738;
       }
 
-_l___yv_722:
-    __yv_722;});
+_l___yv_738:
+    __yv_738;});
     if (((bool)this->node)) {
       return;
     }
@@ -27658,7 +28626,7 @@ void std_map_Map__4_resize(std_map_Map__4 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__51(this->num_buckets);
+  this->buckets=std_mem_alloc__52(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__4 *node = old_buckets[i];
     while (((bool)node)) {
@@ -27700,9 +28668,9 @@ bool std_map_ValueIterator__4_has_value(std_map_ValueIterator__4 *this) {
   return std_map_Iterator__4_has_value(&this->map_iter);}
 
 std_map_Map__4 *std_map_Map__4_new(u32 capacity) {
-  std_map_Map__4 *map = std_mem_alloc__52(1);
+  std_map_Map__4 *map = std_mem_alloc__53(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__51(map->num_buckets);
+  map->buckets=std_mem_alloc__52(map->num_buckets);
   return map;
 }
 
@@ -27723,7 +28691,7 @@ std_map_Iterator__4 std_map_Map__4_iter(std_map_Map__4 *this) {
 }
 
 std_map_Item__5 *std_map_Item__5_new(compiler_ast_operators_OperatorOverload key, compiler_ast_nodes_Function *value, std_map_Item__5 *next) {
-  std_map_Item__5 *node = std_mem_alloc__53(1);
+  std_map_Item__5 *node = std_mem_alloc__54(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -27772,7 +28740,7 @@ void std_map_Map__5_resize(std_map_Map__5 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__54(this->num_buckets);
+  this->buckets=std_mem_alloc__55(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__5 *node = old_buckets[i];
     while (((bool)node)) {
@@ -27801,9 +28769,9 @@ u32 std_map_Map__5_hash(std_map_Map__5 *this, compiler_ast_operators_OperatorOve
 }
 
 std_map_Map__5 *std_map_Map__5_new(u32 capacity) {
-  std_map_Map__5 *map = std_mem_alloc__55(1);
+  std_map_Map__5 *map = std_mem_alloc__56(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__54(map->num_buckets);
+  map->buckets=std_mem_alloc__55(map->num_buckets);
   return map;
 }
 
@@ -27820,7 +28788,7 @@ std_map_Item__5 *std_map_Map__5_get_item(std_map_Map__5 *this, compiler_ast_oper
 }
 
 std_map_Item__6 *std_map_Item__6_new(char *key, char *value, std_map_Item__6 *next) {
-  std_map_Item__6 *node = std_mem_alloc__56(1);
+  std_map_Item__6 *node = std_mem_alloc__57(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -27874,17 +28842,17 @@ void std_map_Iterator__6_next(std_map_Iterator__6 *this) {
       }
     }
     this->idx+=1;
-    this->node=({std_map_Item__6 *__yv_723;
+    this->node=({std_map_Item__6 *__yv_739;
       if (this->idx < ((i32)this->map->num_buckets)) {
-        __yv_723 = this->map->buckets[this->idx];
-        goto _l___yv_723;
+        __yv_739 = this->map->buckets[this->idx];
+        goto _l___yv_739;
       } else {
-        __yv_723 = NULL;
-        goto _l___yv_723;
+        __yv_739 = NULL;
+        goto _l___yv_739;
       }
 
-_l___yv_723:
-    __yv_723;});
+_l___yv_739:
+    __yv_739;});
     if (((bool)this->node)) {
       return;
     }
@@ -27911,7 +28879,7 @@ void std_map_Map__6_resize(std_map_Map__6 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__57(this->num_buckets);
+  this->buckets=std_mem_alloc__58(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__6 *node = old_buckets[i];
     while (((bool)node)) {
@@ -27940,9 +28908,9 @@ u32 std_map_Map__6_hash(std_map_Map__6 *this, char *key) {
 }
 
 std_map_Map__6 *std_map_Map__6_new(u32 capacity) {
-  std_map_Map__6 *map = std_mem_alloc__58(1);
+  std_map_Map__6 *map = std_mem_alloc__59(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__57(map->num_buckets);
+  map->buckets=std_mem_alloc__58(map->num_buckets);
   return map;
 }
 
@@ -27963,7 +28931,7 @@ std_map_Iterator__6 std_map_Map__6_iter(std_map_Map__6 *this) {
 }
 
 std_map_Item__7 *std_map_Item__7_new(char *key, bool value, std_map_Item__7 *next) {
-  std_map_Item__7 *node = std_mem_alloc__59(1);
+  std_map_Item__7 *node = std_mem_alloc__60(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -28016,7 +28984,7 @@ void std_map_Map__7_resize(std_map_Map__7 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__60(this->num_buckets);
+  this->buckets=std_mem_alloc__61(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__7 *node = old_buckets[i];
     while (((bool)node)) {
@@ -28045,9 +29013,9 @@ u32 std_map_Map__7_hash(std_map_Map__7 *this, char *key) {
 }
 
 std_map_Map__7 *std_map_Map__7_new(u32 capacity) {
-  std_map_Map__7 *map = std_mem_alloc__61(1);
+  std_map_Map__7 *map = std_mem_alloc__62(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__60(map->num_buckets);
+  map->buckets=std_mem_alloc__61(map->num_buckets);
   return map;
 }
 
@@ -28064,7 +29032,7 @@ std_map_Item__7 *std_map_Map__7_get_item(std_map_Map__7 *this, char *key) {
 }
 
 std_map_Item__8 *std_map_Item__8_new(char *key, compiler_ast_nodes_Function *value, std_map_Item__8 *next) {
-  std_map_Item__8 *node = std_mem_alloc__62(1);
+  std_map_Item__8 *node = std_mem_alloc__63(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -28124,17 +29092,17 @@ void std_map_Iterator__8_next(std_map_Iterator__8 *this) {
       }
     }
     this->idx+=1;
-    this->node=({std_map_Item__8 *__yv_724;
+    this->node=({std_map_Item__8 *__yv_740;
       if (this->idx < ((i32)this->map->num_buckets)) {
-        __yv_724 = this->map->buckets[this->idx];
-        goto _l___yv_724;
+        __yv_740 = this->map->buckets[this->idx];
+        goto _l___yv_740;
       } else {
-        __yv_724 = NULL;
-        goto _l___yv_724;
+        __yv_740 = NULL;
+        goto _l___yv_740;
       }
 
-_l___yv_724:
-    __yv_724;});
+_l___yv_740:
+    __yv_740;});
     if (((bool)this->node)) {
       return;
     }
@@ -28157,7 +29125,7 @@ void std_map_Map__8_resize(std_map_Map__8 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__63(this->num_buckets);
+  this->buckets=std_mem_alloc__64(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__8 *node = old_buckets[i];
     while (((bool)node)) {
@@ -28199,9 +29167,9 @@ bool std_map_ValueIterator__8_has_value(std_map_ValueIterator__8 *this) {
   return std_map_Iterator__8_has_value(&this->map_iter);}
 
 std_map_Map__8 *std_map_Map__8_new(u32 capacity) {
-  std_map_Map__8 *map = std_mem_alloc__64(1);
+  std_map_Map__8 *map = std_mem_alloc__65(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__63(map->num_buckets);
+  map->buckets=std_mem_alloc__64(map->num_buckets);
   return map;
 }
 
@@ -28222,7 +29190,7 @@ std_map_Iterator__8 std_map_Map__8_iter(std_map_Map__8 *this) {
 }
 
 std_map_Item__9 *std_map_Item__9_new(std_span_Span key, bool value, std_map_Item__9 *next) {
-  std_map_Item__9 *node = std_mem_alloc__65(1);
+  std_map_Item__9 *node = std_mem_alloc__66(1);
   node->key=key;
   node->value=value;
   node->next=next;
@@ -28276,17 +29244,17 @@ void std_map_Iterator__9_next(std_map_Iterator__9 *this) {
       }
     }
     this->idx+=1;
-    this->node=({std_map_Item__9 *__yv_725;
+    this->node=({std_map_Item__9 *__yv_741;
       if (this->idx < ((i32)this->map->num_buckets)) {
-        __yv_725 = this->map->buckets[this->idx];
-        goto _l___yv_725;
+        __yv_741 = this->map->buckets[this->idx];
+        goto _l___yv_741;
       } else {
-        __yv_725 = NULL;
-        goto _l___yv_725;
+        __yv_741 = NULL;
+        goto _l___yv_741;
       }
 
-_l___yv_725:
-    __yv_725;});
+_l___yv_741:
+    __yv_741;});
     if (((bool)this->node)) {
       return;
     }
@@ -28309,7 +29277,7 @@ void std_map_Map__9_resize(std_map_Map__9 *this) {
   this->num_collisions=0;
   this->num_buckets*=2;
   this->num_buckets=u32_max(this->num_buckets, 16);
-  this->buckets=std_mem_alloc__66(this->num_buckets);
+  this->buckets=std_mem_alloc__67(this->num_buckets);
   for (u32 i = 0; i < old_num_buckets; i+=1) {
     std_map_Item__9 *node = old_buckets[i];
     while (((bool)node)) {
@@ -28338,9 +29306,9 @@ u32 std_map_Map__9_hash(std_map_Map__9 *this, std_span_Span key) {
 }
 
 std_map_Map__9 *std_map_Map__9_new(u32 capacity) {
-  std_map_Map__9 *map = std_mem_alloc__67(1);
+  std_map_Map__9 *map = std_mem_alloc__68(1);
   map->num_buckets=capacity;
-  map->buckets=std_mem_alloc__66(map->num_buckets);
+  map->buckets=std_mem_alloc__67(map->num_buckets);
   return map;
 }
 
@@ -28398,9 +29366,9 @@ void std_vector_Vector__0_resize(std_vector_Vector__0 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__0 *std_vector_Vector__0_new(u32 capacity) {
-  std_vector_Vector__0 *list = std_mem_alloc__68(1);
+  std_vector_Vector__0 *list = std_mem_alloc__69(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__69(capacity);
+  list->data=std_mem_alloc__70(capacity);
   list->size=0;
   return list;
 }
@@ -28439,9 +29407,9 @@ void std_vector_Vector__1_resize(std_vector_Vector__1 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__1 *std_vector_Vector__1_new(u32 capacity) {
-  std_vector_Vector__1 *list = std_mem_alloc__70(1);
+  std_vector_Vector__1 *list = std_mem_alloc__71(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__71(capacity);
+  list->data=std_mem_alloc__72(capacity);
   list->size=0;
   return list;
 }
@@ -28482,9 +29450,9 @@ void std_vector_Vector__2_resize(std_vector_Vector__2 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__2 *std_vector_Vector__2_new(u32 capacity) {
-  std_vector_Vector__2 *list = std_mem_alloc__72(1);
+  std_vector_Vector__2 *list = std_mem_alloc__73(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__73(capacity);
+  list->data=std_mem_alloc__74(capacity);
   list->size=0;
   return list;
 }
@@ -28549,9 +29517,9 @@ void std_vector_Vector__3_resize(std_vector_Vector__3 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__3 *std_vector_Vector__3_new(u32 capacity) {
-  std_vector_Vector__3 *list = std_mem_alloc__74(1);
+  std_vector_Vector__3 *list = std_mem_alloc__75(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__75(capacity);
+  list->data=std_mem_alloc__76(capacity);
   list->size=0;
   return list;
 }
@@ -28597,9 +29565,9 @@ void std_vector_Vector__4_resize(std_vector_Vector__4 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__4 *std_vector_Vector__4_new(u32 capacity) {
-  std_vector_Vector__4 *list = std_mem_alloc__76(1);
+  std_vector_Vector__4 *list = std_mem_alloc__77(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__77(capacity);
+  list->data=std_mem_alloc__78(capacity);
   list->size=0;
   return list;
 }
@@ -28645,9 +29613,9 @@ void std_vector_Vector__5_resize(std_vector_Vector__5 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__5 *std_vector_Vector__5_new(u32 capacity) {
-  std_vector_Vector__5 *list = std_mem_alloc__78(1);
+  std_vector_Vector__5 *list = std_mem_alloc__79(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__79(capacity);
+  list->data=std_mem_alloc__80(capacity);
   list->size=0;
   return list;
 }
@@ -28679,9 +29647,9 @@ void std_vector_Vector__6_resize(std_vector_Vector__6 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__6 *std_vector_Vector__6_new(u32 capacity) {
-  std_vector_Vector__6 *list = std_mem_alloc__80(1);
+  std_vector_Vector__6 *list = std_mem_alloc__81(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__81(capacity);
+  list->data=std_mem_alloc__82(capacity);
   list->size=0;
   return list;
 }
@@ -28737,9 +29705,9 @@ void std_vector_Vector__7_resize(std_vector_Vector__7 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__7 *std_vector_Vector__7_new(u32 capacity) {
-  std_vector_Vector__7 *list = std_mem_alloc__82(1);
+  std_vector_Vector__7 *list = std_mem_alloc__83(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__83(capacity);
+  list->data=std_mem_alloc__84(capacity);
   list->size=0;
   return list;
 }
@@ -28790,9 +29758,9 @@ void std_vector_Vector__8_resize(std_vector_Vector__8 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__8 *std_vector_Vector__8_new(u32 capacity) {
-  std_vector_Vector__8 *list = std_mem_alloc__84(1);
+  std_vector_Vector__8 *list = std_mem_alloc__85(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__85(capacity);
+  list->data=std_mem_alloc__86(capacity);
   list->size=0;
   return list;
 }
@@ -28842,9 +29810,9 @@ void std_vector_Vector__9_resize(std_vector_Vector__9 *this, u32 new_capacity) {
 }
 
 std_vector_Vector__9 *std_vector_Vector__9_new(u32 capacity) {
-  std_vector_Vector__9 *list = std_mem_alloc__86(1);
+  std_vector_Vector__9 *list = std_mem_alloc__87(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__87(capacity);
+  list->data=std_mem_alloc__88(capacity);
   list->size=0;
   return list;
 }
@@ -28906,9 +29874,9 @@ void std_vector_Vector__10_resize(std_vector_Vector__10 *this, u32 new_capacity)
 }
 
 std_vector_Vector__10 *std_vector_Vector__10_new(u32 capacity) {
-  std_vector_Vector__10 *list = std_mem_alloc__88(1);
+  std_vector_Vector__10 *list = std_mem_alloc__89(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__89(capacity);
+  list->data=std_mem_alloc__90(capacity);
   list->size=0;
   return list;
 }
@@ -28971,9 +29939,9 @@ void std_vector_Vector__11_resize(std_vector_Vector__11 *this, u32 new_capacity)
 }
 
 std_vector_Vector__11 *std_vector_Vector__11_new(u32 capacity) {
-  std_vector_Vector__11 *list = std_mem_alloc__90(1);
+  std_vector_Vector__11 *list = std_mem_alloc__91(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__91(capacity);
+  list->data=std_mem_alloc__92(capacity);
   list->size=0;
   return list;
 }
@@ -29027,9 +29995,9 @@ void std_vector_Vector__12_resize(std_vector_Vector__12 *this, u32 new_capacity)
 }
 
 std_vector_Vector__12 *std_vector_Vector__12_new(u32 capacity) {
-  std_vector_Vector__12 *list = std_mem_alloc__92(1);
+  std_vector_Vector__12 *list = std_mem_alloc__93(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__93(capacity);
+  list->data=std_mem_alloc__94(capacity);
   list->size=0;
   return list;
 }
@@ -29064,9 +30032,9 @@ void std_vector_Vector__13_resize(std_vector_Vector__13 *this, u32 new_capacity)
 }
 
 std_vector_Vector__13 *std_vector_Vector__13_new(u32 capacity) {
-  std_vector_Vector__13 *list = std_mem_alloc__94(1);
+  std_vector_Vector__13 *list = std_mem_alloc__95(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__95(capacity);
+  list->data=std_mem_alloc__96(capacity);
   list->size=0;
   return list;
 }
@@ -29117,9 +30085,9 @@ void std_vector_Vector__14_resize(std_vector_Vector__14 *this, u32 new_capacity)
 }
 
 std_vector_Vector__14 *std_vector_Vector__14_new(u32 capacity) {
-  std_vector_Vector__14 *list = std_mem_alloc__96(1);
+  std_vector_Vector__14 *list = std_mem_alloc__97(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__97(capacity);
+  list->data=std_mem_alloc__98(capacity);
   list->size=0;
   return list;
 }
@@ -29173,9 +30141,9 @@ void std_vector_Vector__15_resize(std_vector_Vector__15 *this, u32 new_capacity)
 }
 
 std_vector_Vector__15 *std_vector_Vector__15_new(u32 capacity) {
-  std_vector_Vector__15 *list = std_mem_alloc__98(1);
+  std_vector_Vector__15 *list = std_mem_alloc__99(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__99(capacity);
+  list->data=std_mem_alloc__100(capacity);
   list->size=0;
   return list;
 }
@@ -29221,9 +30189,9 @@ void std_vector_Vector__16_resize(std_vector_Vector__16 *this, u32 new_capacity)
 }
 
 std_vector_Vector__16 *std_vector_Vector__16_new(u32 capacity) {
-  std_vector_Vector__16 *list = std_mem_alloc__100(1);
+  std_vector_Vector__16 *list = std_mem_alloc__101(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__101(capacity);
+  list->data=std_mem_alloc__102(capacity);
   list->size=0;
   return list;
 }
@@ -29267,9 +30235,9 @@ void std_vector_Vector__17_resize(std_vector_Vector__17 *this, u32 new_capacity)
 }
 
 std_vector_Vector__17 *std_vector_Vector__17_new(u32 capacity) {
-  std_vector_Vector__17 *list = std_mem_alloc__102(1);
+  std_vector_Vector__17 *list = std_mem_alloc__103(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__103(capacity);
+  list->data=std_mem_alloc__104(capacity);
   list->size=0;
   return list;
 }
@@ -29313,9 +30281,9 @@ void std_vector_Vector__18_resize(std_vector_Vector__18 *this, u32 new_capacity)
 }
 
 std_vector_Vector__18 *std_vector_Vector__18_new(u32 capacity) {
-  std_vector_Vector__18 *list = std_mem_alloc__104(1);
+  std_vector_Vector__18 *list = std_mem_alloc__105(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__105(capacity);
+  list->data=std_mem_alloc__106(capacity);
   list->size=0;
   return list;
 }
@@ -29375,9 +30343,9 @@ void std_vector_Vector__19_resize(std_vector_Vector__19 *this, u32 new_capacity)
 }
 
 std_vector_Vector__19 *std_vector_Vector__19_new(u32 capacity) {
-  std_vector_Vector__19 *list = std_mem_alloc__106(1);
+  std_vector_Vector__19 *list = std_mem_alloc__107(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__107(capacity);
+  list->data=std_mem_alloc__108(capacity);
   list->size=0;
   return list;
 }
@@ -29405,9 +30373,9 @@ void std_vector_Vector__20_resize(std_vector_Vector__20 *this, u32 new_capacity)
 }
 
 std_vector_Vector__20 *std_vector_Vector__20_new(u32 capacity) {
-  std_vector_Vector__20 *list = std_mem_alloc__108(1);
+  std_vector_Vector__20 *list = std_mem_alloc__109(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__109(capacity);
+  list->data=std_mem_alloc__110(capacity);
   list->size=0;
   return list;
 }
@@ -29440,9 +30408,9 @@ void std_vector_Vector__21_resize(std_vector_Vector__21 *this, u32 new_capacity)
 }
 
 std_vector_Vector__21 *std_vector_Vector__21_new(u32 capacity) {
-  std_vector_Vector__21 *list = std_mem_alloc__110(1);
+  std_vector_Vector__21 *list = std_mem_alloc__111(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__111(capacity);
+  list->data=std_mem_alloc__112(capacity);
   list->size=0;
   return list;
 }
@@ -29488,9 +30456,9 @@ void std_vector_Vector__22_resize(std_vector_Vector__22 *this, u32 new_capacity)
 }
 
 std_vector_Vector__22 *std_vector_Vector__22_new(u32 capacity) {
-  std_vector_Vector__22 *list = std_mem_alloc__112(1);
+  std_vector_Vector__22 *list = std_mem_alloc__113(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__113(capacity);
+  list->data=std_mem_alloc__114(capacity);
   list->size=0;
   return list;
 }
@@ -29536,9 +30504,9 @@ void std_vector_Vector__23_resize(std_vector_Vector__23 *this, u32 new_capacity)
 }
 
 std_vector_Vector__23 *std_vector_Vector__23_new(u32 capacity) {
-  std_vector_Vector__23 *list = std_mem_alloc__114(1);
+  std_vector_Vector__23 *list = std_mem_alloc__115(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__115(capacity);
+  list->data=std_mem_alloc__116(capacity);
   list->size=0;
   return list;
 }
@@ -29584,9 +30552,9 @@ void std_vector_Vector__24_resize(std_vector_Vector__24 *this, u32 new_capacity)
 }
 
 std_vector_Vector__24 *std_vector_Vector__24_new(u32 capacity) {
-  std_vector_Vector__24 *list = std_mem_alloc__116(1);
+  std_vector_Vector__24 *list = std_mem_alloc__117(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__117(capacity);
+  list->data=std_mem_alloc__118(capacity);
   list->size=0;
   return list;
 }
@@ -29627,9 +30595,9 @@ void std_vector_Vector__25_resize(std_vector_Vector__25 *this, u32 new_capacity)
 }
 
 std_vector_Vector__25 *std_vector_Vector__25_new(u32 capacity) {
-  std_vector_Vector__25 *list = std_mem_alloc__118(1);
+  std_vector_Vector__25 *list = std_mem_alloc__119(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__119(capacity);
+  list->data=std_mem_alloc__120(capacity);
   list->size=0;
   return list;
 }
@@ -29675,9 +30643,9 @@ void std_vector_Vector__26_resize(std_vector_Vector__26 *this, u32 new_capacity)
 }
 
 std_vector_Vector__26 *std_vector_Vector__26_new(u32 capacity) {
-  std_vector_Vector__26 *list = std_mem_alloc__120(1);
+  std_vector_Vector__26 *list = std_mem_alloc__121(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__121(capacity);
+  list->data=std_mem_alloc__122(capacity);
   list->size=0;
   return list;
 }
@@ -29723,9 +30691,9 @@ void std_vector_Vector__27_resize(std_vector_Vector__27 *this, u32 new_capacity)
 }
 
 std_vector_Vector__27 *std_vector_Vector__27_new(u32 capacity) {
-  std_vector_Vector__27 *list = std_mem_alloc__122(1);
+  std_vector_Vector__27 *list = std_mem_alloc__123(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__123(capacity);
+  list->data=std_mem_alloc__124(capacity);
   list->size=0;
   return list;
 }
@@ -29771,9 +30739,9 @@ void std_vector_Vector__28_resize(std_vector_Vector__28 *this, u32 new_capacity)
 }
 
 std_vector_Vector__28 *std_vector_Vector__28_new(u32 capacity) {
-  std_vector_Vector__28 *list = std_mem_alloc__124(1);
+  std_vector_Vector__28 *list = std_mem_alloc__125(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__125(capacity);
+  list->data=std_mem_alloc__126(capacity);
   list->size=0;
   return list;
 }
@@ -29819,9 +30787,9 @@ void std_vector_Vector__29_resize(std_vector_Vector__29 *this, u32 new_capacity)
 }
 
 std_vector_Vector__29 *std_vector_Vector__29_new(u32 capacity) {
-  std_vector_Vector__29 *list = std_mem_alloc__126(1);
+  std_vector_Vector__29 *list = std_mem_alloc__127(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__127(capacity);
+  list->data=std_mem_alloc__128(capacity);
   list->size=0;
   return list;
 }
@@ -29834,38 +30802,14 @@ void std_vector_Vector__29_push(std_vector_Vector__29 *this, compiler_ast_nodes_
   this->size+=1;
 }
 
-compiler_formatter_Decl std_vector_Vector__30_at(std_vector_Vector__30 *this, u32 i) {
+u32 std_vector_Vector__31_at(std_vector_Vector__31 *this, u32 i) {
   if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
   return this->data[i];
 }
 
-void std_vector_Vector__30_resize(std_vector_Vector__30 *this, u32 new_capacity) {
-  if (this->capacity >= new_capacity) {
-    return;
-  }
-  this->data=std_mem_realloc__31(this->data, this->capacity, new_capacity);
-  this->capacity=new_capacity;
-}
-
-std_vector_Vector__30 *std_vector_Vector__30_new(u32 capacity) {
-  std_vector_Vector__30 *list = std_mem_alloc__128(1);
-  list->capacity=capacity;
-  list->data=std_mem_alloc__129(capacity);
-  list->size=0;
-  return list;
-}
-
-void std_vector_Vector__30_push(std_vector_Vector__30 *this, compiler_formatter_Decl value) {
-  if (this->size==this->capacity) {
-    std_vector_Vector__30_resize(this, (this->capacity * 2));
-  }
-  this->data[this->size]=value;
-  this->size+=1;
-}
-
-std_sv_SV std_vector_Vector__31_at(std_vector_Vector__31 *this, u32 i) {
-  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
-  return this->data[i];
+void std_vector_Vector__31_free(std_vector_Vector__31 *this) {
+  std_mem_free(this->data);
+  std_mem_free(this);
 }
 
 void std_vector_Vector__31_resize(std_vector_Vector__31 *this, u32 new_capacity) {
@@ -29877,14 +30821,14 @@ void std_vector_Vector__31_resize(std_vector_Vector__31 *this, u32 new_capacity)
 }
 
 std_vector_Vector__31 *std_vector_Vector__31_new(u32 capacity) {
-  std_vector_Vector__31 *list = std_mem_alloc__130(1);
+  std_vector_Vector__31 *list = std_mem_alloc__131(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__131(capacity);
+  list->data=std_mem_alloc__132(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__31_push(std_vector_Vector__31 *this, std_sv_SV value) {
+void std_vector_Vector__31_push(std_vector_Vector__31 *this, u32 value) {
   if (this->size==this->capacity) {
     std_vector_Vector__31_resize(this, (this->capacity * 2));
   }
@@ -29892,7 +30836,7 @@ void std_vector_Vector__31_push(std_vector_Vector__31 *this, std_sv_SV value) {
   this->size+=1;
 }
 
-compiler_formatter_DeclMapping std_vector_Vector__32_at(std_vector_Vector__32 *this, u32 i) {
+compiler_formatter_Decl std_vector_Vector__32_at(std_vector_Vector__32 *this, u32 i) {
   if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
   return this->data[i];
 }
@@ -29906,14 +30850,14 @@ void std_vector_Vector__32_resize(std_vector_Vector__32 *this, u32 new_capacity)
 }
 
 std_vector_Vector__32 *std_vector_Vector__32_new(u32 capacity) {
-  std_vector_Vector__32 *list = std_mem_alloc__132(1);
+  std_vector_Vector__32 *list = std_mem_alloc__133(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__133(capacity);
+  list->data=std_mem_alloc__134(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__32_push(std_vector_Vector__32 *this, compiler_formatter_DeclMapping value) {
+void std_vector_Vector__32_push(std_vector_Vector__32 *this, compiler_formatter_Decl value) {
   if (this->size==this->capacity) {
     std_vector_Vector__32_resize(this, (this->capacity * 2));
   }
@@ -29921,18 +30865,7 @@ void std_vector_Vector__32_push(std_vector_Vector__32 *this, compiler_formatter_
   this->size+=1;
 }
 
-void std_vector_Vector__33_zero_unused(std_vector_Vector__33 *this) {
-  std_compact_map_Item__3 *start = (this->data + this->size);
-  memset(start, ((u8)0), ((this->capacity - this->size) * ((u32)sizeof(std_compact_map_Item__3))));
-}
-
-std_compact_map_Item__3 std_vector_Vector__33_pop(std_vector_Vector__33 *this) {
-  if(!(this->size > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:61:12: Assertion failed: `.size > 0`", "Empty vector in Vector::pop"); }
-  this->size-=1;
-  return this->data[this->size];
-}
-
-std_compact_map_Item__3 std_vector_Vector__33_at(std_vector_Vector__33 *this, u32 i) {
+std_sv_SV std_vector_Vector__33_at(std_vector_Vector__33 *this, u32 i) {
   if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
   return this->data[i];
 }
@@ -29946,14 +30879,14 @@ void std_vector_Vector__33_resize(std_vector_Vector__33 *this, u32 new_capacity)
 }
 
 std_vector_Vector__33 *std_vector_Vector__33_new(u32 capacity) {
-  std_vector_Vector__33 *list = std_mem_alloc__134(1);
+  std_vector_Vector__33 *list = std_mem_alloc__135(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__135(capacity);
+  list->data=std_mem_alloc__136(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__33_push(std_vector_Vector__33 *this, std_compact_map_Item__3 value) {
+void std_vector_Vector__33_push(std_vector_Vector__33 *this, std_sv_SV value) {
   if (this->size==this->capacity) {
     std_vector_Vector__33_resize(this, (this->capacity * 2));
   }
@@ -29961,28 +30894,9 @@ void std_vector_Vector__33_push(std_vector_Vector__33 *this, std_compact_map_Ite
   this->size+=1;
 }
 
-std_vector_Iterator__34 std_vector_Vector__34_iter(std_vector_Vector__34 *this) {
-  return std_vector_Iterator__34_make(this);}
-
-std_span_Span std_vector_Iterator__34_cur(std_vector_Iterator__34 *this) {
-  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:168:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::current"); }
-  return this->vec->data[this->index];
-}
-
-void std_vector_Iterator__34_next(std_vector_Iterator__34 *this) {
-  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:163:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::next"); }
-  this->index+=1;
-}
-
-bool std_vector_Iterator__34_has_value(std_vector_Iterator__34 *this) {
-  return (this->index < this->vec->size);}
-
-std_vector_Iterator__34 std_vector_Iterator__34_make(std_vector_Vector__34 *vec) {
-  return (std_vector_Iterator__34){.vec=vec, .index=0};}
-
-void std_vector_Vector__34_free(std_vector_Vector__34 *this) {
-  std_mem_free(this->data);
-  std_mem_free(this);
+compiler_formatter_DeclMapping std_vector_Vector__34_at(std_vector_Vector__34 *this, u32 i) {
+  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
+  return this->data[i];
 }
 
 void std_vector_Vector__34_resize(std_vector_Vector__34 *this, u32 new_capacity) {
@@ -29994,14 +30908,19 @@ void std_vector_Vector__34_resize(std_vector_Vector__34 *this, u32 new_capacity)
 }
 
 std_vector_Vector__34 *std_vector_Vector__34_new(u32 capacity) {
-  std_vector_Vector__34 *list = std_mem_alloc__136(1);
+  std_vector_Vector__34 *list = std_mem_alloc__137(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__137(capacity);
+  list->data=std_mem_alloc__138(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__34_push(std_vector_Vector__34 *this, std_span_Span value) {
+compiler_formatter_DeclMapping *std_vector_Vector__34_at_ptr(std_vector_Vector__34 *this, u32 i) {
+  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:115:12: Assertion failed: `i < .size`", "Out of bounds in Vector::at"); }
+  return &this->data[i];
+}
+
+void std_vector_Vector__34_push(std_vector_Vector__34 *this, compiler_formatter_DeclMapping value) {
   if (this->size==this->capacity) {
     std_vector_Vector__34_resize(this, (this->capacity * 2));
   }
@@ -30009,26 +30928,7 @@ void std_vector_Vector__34_push(std_vector_Vector__34 *this, std_span_Span value
   this->size+=1;
 }
 
-std_vector_Iterator__35 std_vector_Vector__35_iter(std_vector_Vector__35 *this) {
-  return std_vector_Iterator__35_make(this);}
-
-std_value_Value *std_vector_Iterator__35_cur(std_vector_Iterator__35 *this) {
-  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:168:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::current"); }
-  return this->vec->data[this->index];
-}
-
-void std_vector_Iterator__35_next(std_vector_Iterator__35 *this) {
-  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:163:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::next"); }
-  this->index+=1;
-}
-
-bool std_vector_Iterator__35_has_value(std_vector_Iterator__35 *this) {
-  return (this->index < this->vec->size);}
-
-std_vector_Iterator__35 std_vector_Iterator__35_make(std_vector_Vector__35 *vec) {
-  return (std_vector_Iterator__35){.vec=vec, .index=0};}
-
-std_value_Value *std_vector_Vector__35_at(std_vector_Vector__35 *this, u32 i) {
+std_vector_Vector__31 *std_vector_Vector__35_at(std_vector_Vector__35 *this, u32 i) {
   if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
   return this->data[i];
 }
@@ -30042,14 +30942,14 @@ void std_vector_Vector__35_resize(std_vector_Vector__35 *this, u32 new_capacity)
 }
 
 std_vector_Vector__35 *std_vector_Vector__35_new(u32 capacity) {
-  std_vector_Vector__35 *list = std_mem_alloc__138(1);
+  std_vector_Vector__35 *list = std_mem_alloc__139(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__139(capacity);
+  list->data=std_mem_alloc__140(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__35_push(std_vector_Vector__35 *this, std_value_Value *value) {
+void std_vector_Vector__35_push(std_vector_Vector__35 *this, std_vector_Vector__31 *value) {
   if (this->size==this->capacity) {
     std_vector_Vector__35_resize(this, (this->capacity * 2));
   }
@@ -30057,26 +30957,7 @@ void std_vector_Vector__35_push(std_vector_Vector__35 *this, std_value_Value *va
   this->size+=1;
 }
 
-std_vector_Iterator__36 std_vector_Vector__36_iter(std_vector_Vector__36 *this) {
-  return std_vector_Iterator__36_make(this);}
-
-std_compact_map_Item__4 std_vector_Iterator__36_cur(std_vector_Iterator__36 *this) {
-  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:168:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::current"); }
-  return this->vec->data[this->index];
-}
-
-void std_vector_Iterator__36_next(std_vector_Iterator__36 *this) {
-  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:163:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::next"); }
-  this->index+=1;
-}
-
-bool std_vector_Iterator__36_has_value(std_vector_Iterator__36 *this) {
-  return (this->index < this->vec->size);}
-
-std_vector_Iterator__36 std_vector_Iterator__36_make(std_vector_Vector__36 *vec) {
-  return (std_vector_Iterator__36){.vec=vec, .index=0};}
-
-std_compact_map_Item__4 std_vector_Vector__36_at(std_vector_Vector__36 *this, u32 i) {
+bool std_vector_Vector__36_at(std_vector_Vector__36 *this, u32 i) {
   if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
   return this->data[i];
 }
@@ -30090,14 +30971,14 @@ void std_vector_Vector__36_resize(std_vector_Vector__36 *this, u32 new_capacity)
 }
 
 std_vector_Vector__36 *std_vector_Vector__36_new(u32 capacity) {
-  std_vector_Vector__36 *list = std_mem_alloc__140(1);
+  std_vector_Vector__36 *list = std_mem_alloc__141(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__141(capacity);
+  list->data=std_mem_alloc__142(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__36_push(std_vector_Vector__36 *this, std_compact_map_Item__4 value) {
+void std_vector_Vector__36_push(std_vector_Vector__36 *this, bool value) {
   if (this->size==this->capacity) {
     std_vector_Vector__36_resize(this, (this->capacity * 2));
   }
@@ -30105,14 +30986,20 @@ void std_vector_Vector__36_push(std_vector_Vector__36 *this, std_compact_map_Ite
   this->size+=1;
 }
 
-std_compact_map_Item__5 std_vector_Vector__37_at(std_vector_Vector__37 *this, u32 i) {
-  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
-  return this->data[i];
+void std_vector_Vector__37_zero_unused(std_vector_Vector__37 *this) {
+  std_compact_map_Item__3 *start = (this->data + this->size);
+  memset(start, ((u8)0), ((this->capacity - this->size) * ((u32)sizeof(std_compact_map_Item__3))));
 }
 
-void std_vector_Vector__37_free(std_vector_Vector__37 *this) {
-  std_mem_free(this->data);
-  std_mem_free(this);
+std_compact_map_Item__3 std_vector_Vector__37_pop(std_vector_Vector__37 *this) {
+  if(!(this->size > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:61:12: Assertion failed: `.size > 0`", "Empty vector in Vector::pop"); }
+  this->size-=1;
+  return this->data[this->size];
+}
+
+std_compact_map_Item__3 std_vector_Vector__37_at(std_vector_Vector__37 *this, u32 i) {
+  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
+  return this->data[i];
 }
 
 void std_vector_Vector__37_resize(std_vector_Vector__37 *this, u32 new_capacity) {
@@ -30124,14 +31011,14 @@ void std_vector_Vector__37_resize(std_vector_Vector__37 *this, u32 new_capacity)
 }
 
 std_vector_Vector__37 *std_vector_Vector__37_new(u32 capacity) {
-  std_vector_Vector__37 *list = std_mem_alloc__142(1);
+  std_vector_Vector__37 *list = std_mem_alloc__143(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__143(capacity);
+  list->data=std_mem_alloc__144(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__37_push(std_vector_Vector__37 *this, std_compact_map_Item__5 value) {
+void std_vector_Vector__37_push(std_vector_Vector__37 *this, std_compact_map_Item__3 value) {
   if (this->size==this->capacity) {
     std_vector_Vector__37_resize(this, (this->capacity * 2));
   }
@@ -30139,10 +31026,24 @@ void std_vector_Vector__37_push(std_vector_Vector__37 *this, std_compact_map_Ite
   this->size+=1;
 }
 
-std_compact_map_Item__6 std_vector_Vector__38_at(std_vector_Vector__38 *this, u32 i) {
-  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
-  return this->data[i];
+std_vector_Iterator__38 std_vector_Vector__38_iter(std_vector_Vector__38 *this) {
+  return std_vector_Iterator__38_make(this);}
+
+std_span_Span std_vector_Iterator__38_cur(std_vector_Iterator__38 *this) {
+  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:168:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::current"); }
+  return this->vec->data[this->index];
 }
+
+void std_vector_Iterator__38_next(std_vector_Iterator__38 *this) {
+  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:163:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::next"); }
+  this->index+=1;
+}
+
+bool std_vector_Iterator__38_has_value(std_vector_Iterator__38 *this) {
+  return (this->index < this->vec->size);}
+
+std_vector_Iterator__38 std_vector_Iterator__38_make(std_vector_Vector__38 *vec) {
+  return (std_vector_Iterator__38){.vec=vec, .index=0};}
 
 void std_vector_Vector__38_free(std_vector_Vector__38 *this) {
   std_mem_free(this->data);
@@ -30158,14 +31059,14 @@ void std_vector_Vector__38_resize(std_vector_Vector__38 *this, u32 new_capacity)
 }
 
 std_vector_Vector__38 *std_vector_Vector__38_new(u32 capacity) {
-  std_vector_Vector__38 *list = std_mem_alloc__144(1);
+  std_vector_Vector__38 *list = std_mem_alloc__145(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__145(capacity);
+  list->data=std_mem_alloc__146(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__38_push(std_vector_Vector__38 *this, std_compact_map_Item__6 value) {
+void std_vector_Vector__38_push(std_vector_Vector__38 *this, std_span_Span value) {
   if (this->size==this->capacity) {
     std_vector_Vector__38_resize(this, (this->capacity * 2));
   }
@@ -30173,14 +31074,28 @@ void std_vector_Vector__38_push(std_vector_Vector__38 *this, std_compact_map_Ite
   this->size+=1;
 }
 
-std_compact_map_Item__7 std_vector_Vector__39_at(std_vector_Vector__39 *this, u32 i) {
-  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
-  return this->data[i];
+std_vector_Iterator__39 std_vector_Vector__39_iter(std_vector_Vector__39 *this) {
+  return std_vector_Iterator__39_make(this);}
+
+std_value_Value *std_vector_Iterator__39_cur(std_vector_Iterator__39 *this) {
+  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:168:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::current"); }
+  return this->vec->data[this->index];
 }
 
-void std_vector_Vector__39_free(std_vector_Vector__39 *this) {
-  std_mem_free(this->data);
-  std_mem_free(this);
+void std_vector_Iterator__39_next(std_vector_Iterator__39 *this) {
+  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:163:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::next"); }
+  this->index+=1;
+}
+
+bool std_vector_Iterator__39_has_value(std_vector_Iterator__39 *this) {
+  return (this->index < this->vec->size);}
+
+std_vector_Iterator__39 std_vector_Iterator__39_make(std_vector_Vector__39 *vec) {
+  return (std_vector_Iterator__39){.vec=vec, .index=0};}
+
+std_value_Value *std_vector_Vector__39_at(std_vector_Vector__39 *this, u32 i) {
+  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
+  return this->data[i];
 }
 
 void std_vector_Vector__39_resize(std_vector_Vector__39 *this, u32 new_capacity) {
@@ -30192,14 +31107,14 @@ void std_vector_Vector__39_resize(std_vector_Vector__39 *this, u32 new_capacity)
 }
 
 std_vector_Vector__39 *std_vector_Vector__39_new(u32 capacity) {
-  std_vector_Vector__39 *list = std_mem_alloc__146(1);
+  std_vector_Vector__39 *list = std_mem_alloc__147(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__147(capacity);
+  list->data=std_mem_alloc__148(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__39_push(std_vector_Vector__39 *this, std_compact_map_Item__7 value) {
+void std_vector_Vector__39_push(std_vector_Vector__39 *this, std_value_Value *value) {
   if (this->size==this->capacity) {
     std_vector_Vector__39_resize(this, (this->capacity * 2));
   }
@@ -30207,14 +31122,28 @@ void std_vector_Vector__39_push(std_vector_Vector__39 *this, std_compact_map_Ite
   this->size+=1;
 }
 
-u32 std_vector_Vector__40_at(std_vector_Vector__40 *this, u32 i) {
-  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
-  return this->data[i];
+std_vector_Iterator__40 std_vector_Vector__40_iter(std_vector_Vector__40 *this) {
+  return std_vector_Iterator__40_make(this);}
+
+std_compact_map_Item__4 std_vector_Iterator__40_cur(std_vector_Iterator__40 *this) {
+  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:168:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::current"); }
+  return this->vec->data[this->index];
 }
 
-void std_vector_Vector__40_free(std_vector_Vector__40 *this) {
-  std_mem_free(this->data);
-  std_mem_free(this);
+void std_vector_Iterator__40_next(std_vector_Iterator__40 *this) {
+  if(!(this->index < this->vec->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:163:12: Assertion failed: `.index < .vec.size`", "Out of bounds in Iterator::next"); }
+  this->index+=1;
+}
+
+bool std_vector_Iterator__40_has_value(std_vector_Iterator__40 *this) {
+  return (this->index < this->vec->size);}
+
+std_vector_Iterator__40 std_vector_Iterator__40_make(std_vector_Vector__40 *vec) {
+  return (std_vector_Iterator__40){.vec=vec, .index=0};}
+
+std_compact_map_Item__4 std_vector_Vector__40_at(std_vector_Vector__40 *this, u32 i) {
+  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
+  return this->data[i];
 }
 
 void std_vector_Vector__40_resize(std_vector_Vector__40 *this, u32 new_capacity) {
@@ -30226,16 +31155,118 @@ void std_vector_Vector__40_resize(std_vector_Vector__40 *this, u32 new_capacity)
 }
 
 std_vector_Vector__40 *std_vector_Vector__40_new(u32 capacity) {
-  std_vector_Vector__40 *list = std_mem_alloc__148(1);
+  std_vector_Vector__40 *list = std_mem_alloc__149(1);
   list->capacity=capacity;
-  list->data=std_mem_alloc__149(capacity);
+  list->data=std_mem_alloc__150(capacity);
   list->size=0;
   return list;
 }
 
-void std_vector_Vector__40_push(std_vector_Vector__40 *this, u32 value) {
+void std_vector_Vector__40_push(std_vector_Vector__40 *this, std_compact_map_Item__4 value) {
   if (this->size==this->capacity) {
     std_vector_Vector__40_resize(this, (this->capacity * 2));
+  }
+  this->data[this->size]=value;
+  this->size+=1;
+}
+
+std_compact_map_Item__5 std_vector_Vector__41_at(std_vector_Vector__41 *this, u32 i) {
+  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
+  return this->data[i];
+}
+
+void std_vector_Vector__41_free(std_vector_Vector__41 *this) {
+  std_mem_free(this->data);
+  std_mem_free(this);
+}
+
+void std_vector_Vector__41_resize(std_vector_Vector__41 *this, u32 new_capacity) {
+  if (this->capacity >= new_capacity) {
+    return;
+  }
+  this->data=std_mem_realloc__42(this->data, this->capacity, new_capacity);
+  this->capacity=new_capacity;
+}
+
+std_vector_Vector__41 *std_vector_Vector__41_new(u32 capacity) {
+  std_vector_Vector__41 *list = std_mem_alloc__151(1);
+  list->capacity=capacity;
+  list->data=std_mem_alloc__152(capacity);
+  list->size=0;
+  return list;
+}
+
+void std_vector_Vector__41_push(std_vector_Vector__41 *this, std_compact_map_Item__5 value) {
+  if (this->size==this->capacity) {
+    std_vector_Vector__41_resize(this, (this->capacity * 2));
+  }
+  this->data[this->size]=value;
+  this->size+=1;
+}
+
+std_compact_map_Item__6 std_vector_Vector__42_at(std_vector_Vector__42 *this, u32 i) {
+  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
+  return this->data[i];
+}
+
+void std_vector_Vector__42_free(std_vector_Vector__42 *this) {
+  std_mem_free(this->data);
+  std_mem_free(this);
+}
+
+void std_vector_Vector__42_resize(std_vector_Vector__42 *this, u32 new_capacity) {
+  if (this->capacity >= new_capacity) {
+    return;
+  }
+  this->data=std_mem_realloc__43(this->data, this->capacity, new_capacity);
+  this->capacity=new_capacity;
+}
+
+std_vector_Vector__42 *std_vector_Vector__42_new(u32 capacity) {
+  std_vector_Vector__42 *list = std_mem_alloc__153(1);
+  list->capacity=capacity;
+  list->data=std_mem_alloc__154(capacity);
+  list->size=0;
+  return list;
+}
+
+void std_vector_Vector__42_push(std_vector_Vector__42 *this, std_compact_map_Item__6 value) {
+  if (this->size==this->capacity) {
+    std_vector_Vector__42_resize(this, (this->capacity * 2));
+  }
+  this->data[this->size]=value;
+  this->size+=1;
+}
+
+std_compact_map_Item__7 std_vector_Vector__43_at(std_vector_Vector__43 *this, u32 i) {
+  if(!(i < this->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/std/vector.oc:122:12: Assertion failed: `i < .size`", std_format("Out of bounds in Vector::at, %u >= %u", i, this->size)); }
+  return this->data[i];
+}
+
+void std_vector_Vector__43_free(std_vector_Vector__43 *this) {
+  std_mem_free(this->data);
+  std_mem_free(this);
+}
+
+void std_vector_Vector__43_resize(std_vector_Vector__43 *this, u32 new_capacity) {
+  if (this->capacity >= new_capacity) {
+    return;
+  }
+  this->data=std_mem_realloc__44(this->data, this->capacity, new_capacity);
+  this->capacity=new_capacity;
+}
+
+std_vector_Vector__43 *std_vector_Vector__43_new(u32 capacity) {
+  std_vector_Vector__43 *list = std_mem_alloc__155(1);
+  list->capacity=capacity;
+  list->data=std_mem_alloc__156(capacity);
+  list->size=0;
+  return list;
+}
+
+void std_vector_Vector__43_push(std_vector_Vector__43 *this, std_compact_map_Item__7 value) {
+  if (this->size==this->capacity) {
+    std_vector_Vector__43_resize(this, (this->capacity * 2));
   }
   this->data[this->size]=value;
   this->size+=1;
@@ -30283,7 +31314,7 @@ std_value_Value *std_json_Parser_parse_array(std_json_Parser *this) {
   std_value_Value *json = std_value_Value_new(std_value_ValueType_List);
   while (std_json_Parser_token(this)->type != compiler_tokens_TokenType_CloseSquare) {
     std_value_Value *value = std_json_Parser_parse_value(this);
-    std_vector_Vector__35_push(json->u.as_list, value);
+    std_vector_Vector__39_push(json->u.as_list, value);
     if (std_json_Parser_token(this)->type==compiler_tokens_TokenType_Comma) {
       std_json_Parser_consume(this, compiler_tokens_TokenType_Comma);
     }
@@ -30294,84 +31325,84 @@ std_value_Value *std_json_Parser_parse_array(std_json_Parser *this) {
 }
 
 std_value_Value *std_json_Parser_parse_value(std_json_Parser *this) {
-  return ({std_value_Value *__yv_726;
+  return ({std_value_Value *__yv_742;
 switch ((std_json_Parser_token(this)->type)) {
       case compiler_tokens_TokenType_Null:
-      m_727_0:
+      m_743_0:
         {
           compiler_tokens_Token *tok = std_json_Parser_consume(this, compiler_tokens_TokenType_Null);
           std_value_Value *val = std_value_Value_new(std_value_ValueType_Null);
           val->span=tok->span;
-          __yv_726 = val;
-          goto _l___yv_726;
+          __yv_742 = val;
+          goto _l___yv_742;
         } break;
       case compiler_tokens_TokenType_True:
       case compiler_tokens_TokenType_False:
-      m_727_1:
+      m_743_1:
         {
           std_value_Value *json = std_value_Value_new(std_value_ValueType_Bool);
           compiler_tokens_Token *tok = std_json_Parser_token(this);
           json->u.as_bool=str_eq(tok->text, "true");
           json->span=tok->span;
           this->curr+=1;
-          __yv_726 = json;
-          goto _l___yv_726;
+          __yv_742 = json;
+          goto _l___yv_742;
         } break;
       case compiler_tokens_TokenType_IntLiteral:
-      m_727_2:
+      m_743_2:
         {
           std_value_Value *json = std_value_Value_new(std_value_ValueType_Integer);
           compiler_tokens_Token *tok = std_json_Parser_consume(this, compiler_tokens_TokenType_IntLiteral);
           json->u.as_int=((i64)atoi(tok->text));
           json->span=tok->span;
-          __yv_726 = json;
-          goto _l___yv_726;
+          __yv_742 = json;
+          goto _l___yv_742;
         } break;
       case compiler_tokens_TokenType_FloatLiteral:
-      m_727_3:
+      m_743_3:
         {
           std_value_Value *json = std_value_Value_new(std_value_ValueType_Float);
           compiler_tokens_Token *tok = std_json_Parser_consume(this, compiler_tokens_TokenType_FloatLiteral);
           json->u.as_float=strtod(tok->text, NULL);
           json->span=tok->span;
-          __yv_726 = json;
-          goto _l___yv_726;
+          __yv_742 = json;
+          goto _l___yv_742;
         } break;
       case compiler_tokens_TokenType_StringLiteral:
-      m_727_4:
+      m_743_4:
         {
           std_value_Value *json = std_value_Value_new(std_value_ValueType_String);
           compiler_tokens_Token *tok = std_json_Parser_consume(this, compiler_tokens_TokenType_StringLiteral);
           json->u.as_str=std_buffer_Buffer_from_str(tok->text);
           json->span=tok->span;
-          __yv_726 = json;
-          goto _l___yv_726;
+          __yv_742 = json;
+          goto _l___yv_742;
         } break;
       case compiler_tokens_TokenType_OpenCurly:
-      m_727_5:
+      m_743_5:
         {
-          __yv_726 = std_json_Parser_parse_object(this);
-          goto _l___yv_726;
+          __yv_742 = std_json_Parser_parse_object(this);
+          goto _l___yv_742;
         } break;
       case compiler_tokens_TokenType_OpenSquare:
-      m_727_6:
+      m_743_6:
         {
-          __yv_726 = std_json_Parser_parse_array(this);
-          goto _l___yv_726;
+          __yv_742 = std_json_Parser_parse_array(this);
+          goto _l___yv_742;
         } break;
       case compiler_tokens_TokenType_Minus:
-      m_727_7:
+      m_743_7:
         {
           compiler_tokens_Token *start = std_json_Parser_consume(this, compiler_tokens_TokenType_Minus);
           std_value_Value *next = std_json_Parser_parse_value(this);
 switch ((next->type)) {
             case std_value_ValueType_Integer:
-            m_728_0:
+            m_744_0:
               {
                 next->u.as_int=-next->u.as_int;
               } break;
             case std_value_ValueType_Float:
-            m_728_1:
+            m_744_1:
               {
                 next->u.as_float=-next->u.as_float;
               } break;
@@ -30381,8 +31412,8 @@ switch ((next->type)) {
                 exit(1);
               } break;
           }          next->span=std_span_Span_join(start->span, next->span);
-          __yv_726 = next;
-          goto _l___yv_726;
+          __yv_742 = next;
+          goto _l___yv_742;
         } break;
       default:
         {
@@ -30390,23 +31421,23 @@ switch ((next->type)) {
           exit(1);
         } break;
     }
-_l___yv_726:
-  __yv_726;});}
+_l___yv_742:
+  __yv_742;});}
 
 std_value_Value *std_json_Parser_parse(std_json_Parser *this) {
-  return ({std_value_Value *__yv_729;
+  return ({std_value_Value *__yv_745;
 switch ((std_json_Parser_token(this)->type)) {
       case compiler_tokens_TokenType_OpenCurly:
-      m_730_0:
+      m_746_0:
         {
-          __yv_729 = std_json_Parser_parse_object(this);
-          goto _l___yv_729;
+          __yv_745 = std_json_Parser_parse_object(this);
+          goto _l___yv_745;
         } break;
       case compiler_tokens_TokenType_OpenSquare:
-      m_730_1:
+      m_746_1:
         {
-          __yv_729 = std_json_Parser_parse_array(this);
-          goto _l___yv_729;
+          __yv_745 = std_json_Parser_parse_array(this);
+          goto _l___yv_745;
         } break;
       default:
         {
@@ -30414,8 +31445,8 @@ switch ((std_json_Parser_token(this)->type)) {
           exit(1);
         } break;
     }
-_l___yv_729:
-  __yv_729;});}
+_l___yv_745:
+  __yv_745;});}
 
 std_value_Value *std_json_parse(char *source, char *filename) {
   compiler_lexer_Lexer lexer = compiler_lexer_Lexer_make(source, filename, NULL);
@@ -30434,27 +31465,27 @@ std_value_Value *std_json_parse_sv(std_sv_SV source, char *filename) {
 void std_json_serialize_into(std_value_Value *val, std_buffer_Buffer *sb) {
 switch ((val->type)) {
     case std_value_ValueType_Null:
-    m_731_0:
+    m_747_0:
       {
         std_buffer_Buffer_write_str(sb, "null");
       } break;
     case std_value_ValueType_Bool:
-    m_731_1:
+    m_747_1:
       {
         std_buffer_Buffer_write_str(sb, (val->u.as_bool ? "true" : "false"));
       } break;
     case std_value_ValueType_Integer:
-    m_731_2:
+    m_747_2:
       {
         std_buffer_Buffer_write_str_f(sb, std_format("%" PRId64 "", val->u.as_int));
       } break;
     case std_value_ValueType_Float:
-    m_731_3:
+    m_747_3:
       {
         std_buffer_Buffer_write_str_f(sb, std_format("%f", val->u.as_float));
       } break;
     case std_value_ValueType_String:
-    m_731_4:
+    m_747_4:
       {
         std_buffer_Buffer_write_str(sb, "\"");
         std_buffer_Buffer buf = val->u.as_str;
@@ -30494,12 +31525,12 @@ switch ((val->type)) {
         std_buffer_Buffer_write_str(sb, "\"");
       } break;
     case std_value_ValueType_List:
-    m_731_5:
+    m_747_5:
       {
         std_buffer_Buffer_write_str(sb, "[");
-        std_vector_Vector__35 *lst = val->u.as_list;
+        std_vector_Vector__39 *lst = val->u.as_list;
         for (u32 i = 0; i < lst->size; i+=1) {
-          std_value_Value *value = std_vector_Vector__35_at(lst, i);
+          std_value_Value *value = std_vector_Vector__39_at(lst, i);
           if (i > 0) {
             std_buffer_Buffer_write_str(sb, ",");
           }
@@ -30508,7 +31539,7 @@ switch ((val->type)) {
         std_buffer_Buffer_write_str(sb, "]");
       } break;
     case std_value_ValueType_Dictionary:
-    m_731_6:
+    m_747_6:
       {
         std_buffer_Buffer_write_str(sb, "{");
         bool first = true;
@@ -30542,7 +31573,7 @@ void std_json_write_to_file(std_value_Value *val, char *filename) {
   std_buffer_Buffer_free(&sb);
 }
 
-void std_sort_sort_by__0(compiler_formatter_Decl *data, u32 size, _ClosureTy_48 cmp) {
+void std_sort_sort_by__0(compiler_formatter_Decl *data, u32 size, _ClosureTy_52 cmp) {
   if (size <= 1) {
     return;
   }
@@ -30575,6 +31606,12 @@ i8 compiler_formatter_collect_decls__Closure_0(void *__C, compiler_formatter_Dec
     return -((i8)1);
   }
   if (a.line > b.line) {
+    return ((i8)1);
+  }
+  if (a.col < b.col) {
+    return -((i8)1);
+  }
+  if (a.col > b.col) {
     return ((i8)1);
   }
   return ((i8)0);
@@ -30612,7 +31649,7 @@ void compiler_lsp_cli_handle_validate__Closure_7(void *__C, compiler_ast_nodes_A
 {
   switch ((node->type)) {
     case compiler_ast_nodes_ASTType_VarDeclaration:
-    m_732_0:
+    m_748_0:
       {
         std_value_Value *msg = compiler_lsp_cli_utils_gen_inlay_hint(node->u.var_decl, (*_C->path));
         if (((bool)msg)) {
@@ -30620,7 +31657,7 @@ void compiler_lsp_cli_handle_validate__Closure_7(void *__C, compiler_ast_nodes_A
         }
       } break;
     case compiler_ast_nodes_ASTType_CreateClosure:
-    m_732_1:
+    m_748_1:
       {
         for (std_vector_Iterator__3 _i217 = std_vector_Vector__3_iter(node->u.closure->params); std_vector_Iterator__3_has_value(&_i217); std_vector_Iterator__3_next(&_i217)) {
           compiler_ast_nodes_Variable *param = std_vector_Iterator__3_cur(&_i217);

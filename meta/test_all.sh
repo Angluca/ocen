@@ -19,7 +19,8 @@ cd "$ROOT_DIR"
 if [ -n "$1" ]; then
     COMPILER="$1"
 else
-    COMPILER="./build/ocen"
+    COMPILER=$(which ocen)
+    echo "Using default compiler from PATH: $COMPILER"
 fi
 
 if [ ! -f "$COMPILER" ]; then
@@ -70,6 +71,17 @@ if python3 meta/test_lsp_server.py -c "$COMPILER" --parallel; then
     echo ""
 else
     echo "LSP server tests FAILED"
+    FAILED=1
+fi
+
+echo ""
+echo "=========================================="
+echo " Running DocGen test"
+echo "=========================================="
+if OCEN="$COMPILER" ./meta/gen_docs.sh /tmp/docs.json; then
+    echo ""
+else
+    echo "DocGen test failed"
     FAILED=1
 fi
 
