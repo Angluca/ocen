@@ -11,5 +11,6 @@ def  bar(  a : str  ) {
 }
 
 def   baz(  ) : bool {
-    return    true
+    if true return    true
+    return false
 }

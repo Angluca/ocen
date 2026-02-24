@@ -1,0 +1,19 @@
+/// skip
+
+struct Point {
+    x: f32
+    y: f32
+}
+
+def add(a: Point, b: Point): Point {
+    return Point(a.x + b.x, a.y + b.y)
+}
+
+const MAX: i32 = 100
+
+def main() {
+    let p = Point(1.0, 2.0)
+    let q = Point(3.0, 4.0)
+    let r = add(p, q)
+    let m = MAX
+}

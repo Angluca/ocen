@@ -1,0 +1,11 @@
+/// skip
+
+struct Foo {
+    x: i32
+    y: i32
+}
+
+def main() {
+    let a = 1
+    let b = 2
+}

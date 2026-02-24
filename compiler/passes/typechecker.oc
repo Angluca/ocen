@@ -258,7 +258,8 @@ def TypeChecker::resolve_type(
         }
         MapShorthand => {
             if not (.o.program.did_cache_symbols and .o.program.cached_symbols.std_map?) {
-                .error(Error::new(old.span, "Map shorthand not available"))
+                .error(Error::new(old.span, "Map shorthand not available"
+                ))
                 resolved = null
             } else {
                 let std_map = .o.program.cached_symbols.std_map

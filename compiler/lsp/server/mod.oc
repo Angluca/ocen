@@ -204,6 +204,16 @@ def get_range(val: &Value): &Value {
     let end_line = val["end_line"].as_int() - 1
     let end_col = val["end_col"].as_int() - 1
 
+    // A CLI-side span uses 1-indexed lines; a value of 0 means "no span".
+    // Guard against underflow to avoid returning negative line numbers, which
+    // violates the LSP spec and confuses clients.
+    if start_line < 0 or start_col < 0 {
+        start_line = 0
+        start_col = 0
+        end_line = 0
+        end_col = 0
+    }
+
     let range = Value::new_dict(${
         "start": Value::new_dict(${
             "line": Value::new_int(start_line),
@@ -531,9 +541,10 @@ def LSPServer::symbol_def_obj(&this, obj: &Value): &Value {
             children += .symbol_def_obj(child)
         }
     }
+    let detail = if obj.contains("detail") then obj["detail"] else Value::new_str("")
     return Value::new_dict(${
         "name": obj["name"],
-        "detail": obj["detail"],
+        "detail": detail,
         "kind": Value::new_int(kind as i64),
         "range": get_range(obj["range"]),
         "selectionRange": get_range(obj["selection_range"]),
@@ -744,32 +755,79 @@ def LSPServer::handle_formatting(&this, req: &Value, is_range: bool = false) {
         return
     }
 
-    // Count lines in the original content to know the full document range
-    let original: str = null
-    if contents? {
-        original = contents
-    } else {
-        original = fs::read_file(path).str()
-    }
-    let line_count = 0
-    for let i = 0; original[i] != '\0'; i++ {
-        if original[i] == '\n' then line_count++
+    // Get original content for diffing
+    let original: str = if contents? then contents else fs::read_file(path).str()
+    let formatted = proc_out.output.str()
+
+    // Compute minimal TextEdit: find the first and last line that actually changed.
+    // This avoids returning a whole-document replacement which causes VS Code to
+    // mark the entire file as modified.
+    let orig_len = 0u32
+    while original[orig_len] != '\0' { orig_len++ }
+    let fmt_len = 0u32
+    while formatted[fmt_len] != '\0' { fmt_len++ }
+
+    // Find first differing byte
+    let fd = 0u32  // first_diff_byte
+    while fd < orig_len and fd < fmt_len and original[fd] == formatted[fd] { fd++ }
+
+    // Identical: nothing to do
+    if fd == orig_len and fd == fmt_len {
+        send_response(req, Value::new(List))
+        return
     }
 
-    // Return a single TextEdit replacing the entire document
+    // Retract to the start of the line containing the first diff
+    let line_start = fd
+    while line_start > 0 and original[line_start - 1] != '\n' { line_start-- }
+
+    // Count lines before line_start to get first_line (0-indexed)
+    let first_line = 0u32
+    for let i = 0u32; i < line_start; i++ {
+        if original[i] == '\n' then first_line++
+    }
+
+    // Find last differing byte (scan backward)
+    let orig_end = orig_len  // exclusive
+    let fmt_end = fmt_len    // exclusive
+    while orig_end > fd and fmt_end > fd and original[orig_end - 1] == formatted[fmt_end - 1] {
+        orig_end--
+        fmt_end--
+    }
+
+    // Extend orig_end to the end of its line (so the TextEdit end is at start of next line)
+    while orig_end < orig_len and original[orig_end - 1] != '\n' { orig_end++ }
+    // Extend fmt_end similarly
+    while fmt_end < fmt_len and formatted[fmt_end - 1] != '\n' { fmt_end++ }
+
+    // Count old_end_line (exclusive, 0-indexed) = lines before orig_end
+    let old_end_line = 0u32
+    for let i = 0u32; i < orig_end; i++ {
+        if original[i] == '\n' then old_end_line++
+    }
+
+    // newText = formatted[line_start .. fmt_end]
+    let new_text_len = fmt_end - line_start
+    let buf = Buffer::make()
+    buf.resize_if_necessary(new_text_len + 1)
+    libc::memcpy(buf.data, formatted + line_start, new_text_len)
+    buf.size = new_text_len
+    let buf_str = buf.str()
+    buf_str[new_text_len] = '\0'
+
     let result = Value::new_list($[
         Value::new_dict(${
             "range": Value::new_dict(${
                 "start": Value::new_dict(${
-                    "line": Value::new_int(0),
+                    "line": Value::new_int(first_line as i64),
                     "character": Value::new_int(0),
                 }),
                 "end": Value::new_dict(${
-                    "line": Value::new_int(line_count as i64 + 1),
+                    "line": Value::new_int(old_end_line as i64),
                     "character": Value::new_int(0),
                 }),
             }),
-            "newText": Value::new_str(proc_out.output.str()),
+            "newText": Value::new_str(buf.str()),
         }),
     ])
     send_response(req, result)
@@ -835,6 +893,19 @@ def LSPServer::handle_request(&this, ): bool {
             lsp_log(f"-----------------------------------------");
             lsp_log(f"[SERVER] Unknown method: {method}");
             lsp_log(f"-----------------------------------------");
+            // If this is a request (has an "id"), we must send an error response.
+            // Silently ignoring requests causes the client to hang waiting for a reply.
+            if data.as_dict().contains("id") {
+                let error_response = Value::new_dict(${
+                    "jsonrpc": Value::new_str("2.0"),
+                    "id": data["id"],
+                    "error": Value::new_dict(${
+                        "code": Value::new_int(-32601),
+                        "message": Value::new_str(f"Method not found: {method}"),
+                    }),
+                })
+                send_message(error_response)
+            }
         }
     }
 

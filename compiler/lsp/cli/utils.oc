@@ -333,6 +333,7 @@ def gen_enum_json(enom: &Enum): &Value {
     for variant in enom.variants.iter() {
         let member_obj = Value::new(Dictionary)
         member_obj["name"] = variant.sym.name
+        member_obj["detail"] = gen_hover_string(variant.sym)
         member_obj["kind"] = "enum-member"
         member_obj["range"] = gen_span_json(variant.sym.span)
         member_obj["selection_range"] = gen_span_json(variant.sym.span)

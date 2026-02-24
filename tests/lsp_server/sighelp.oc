@@ -1,0 +1,10 @@
+/// skip
+
+def greet(name: str, count: i32): str {
+    return name
+}
+
+def main() {
+    greet()
+    greet("hi", 5)
+}

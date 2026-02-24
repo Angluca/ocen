@@ -30,8 +30,6 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # Directories to skip entirely
 SKIP_DIRS = {"bootstrap", "build", "tmp", "out.dSYM", ".git", "node_modules"}
-# File path patterns to skip
-SKIP_PATTERNS = {"tests/bad/", "tests/format/"}
 
 # Known pre-existing formatter issues (files with known comment or unicode bugs).
 # These are reported as warnings, not failures. Remove entries as bugs are fixed.
@@ -48,15 +46,7 @@ def find_oc_files(directories):
             continue
         for f in sorted(dirpath.rglob("*.oc")):
             rel = f.relative_to(ROOT)
-            skip = False
-            for pat in SKIP_PATTERNS:
-                if str(rel).startswith(pat):
-                    skip = True
-                    break
-            for sd in SKIP_DIRS:
-                if sd in rel.parts:
-                    skip = True
-                    break
+            skip = any(sd in rel.parts for sd in SKIP_DIRS)
             if not skip:
                 files.append(f)
     return files
@@ -241,6 +231,64 @@ def test_range_on_formatted(compiler, formatted_bytes, start, end):
     return len(errors) == 0, errors
 
 
+def test_range_preserves_outside(compiler, filepath, start, end):
+    """Test that range formatting only modifies lines within [start, end].
+    Lines before `start` and after `end` in the original must appear as an
+    exact prefix and suffix (respectively) of the formatted output.
+    Returns (ok: bool, errors: list[str])."""
+    errors = []
+    original_bytes = filepath.read_bytes()
+    original_text = original_bytes.decode('utf-8', errors='replace')
+    original_lines = original_text.split('\n')
+    # Remove trailing empty element from trailing newline for comparison
+    if original_lines and original_lines[-1] == '':
+        original_lines = original_lines[:-1]
+
+    range_spec = f"{start}:{end}"
+    range_bytes, rc = run_format(compiler, filepath, range_spec=range_spec)
+    if rc != 0:
+        return True, []  # skip files that don't format
+
+    range_text = range_bytes.decode('utf-8', errors='replace')
+    range_lines = range_text.split('\n')
+    # Remove trailing empty element from trailing newline for comparison
+    if range_lines and range_lines[-1] == '':
+        range_lines = range_lines[:-1]
+
+    # Check prefix: lines 1..start-1 must be identical
+    prefix_count = start - 1
+    for i in range(min(prefix_count, len(original_lines), len(range_lines))):
+        if original_lines[i] != range_lines[i]:
+            errors.append(
+                f"Range {range_spec}: prefix differs at line {i+1}: "
+                f"'{original_lines[i][:60]}' -> '{range_lines[i][:60]}'"
+            )
+            break
+
+    if prefix_count > len(range_lines):
+        errors.append(
+            f"Range {range_spec}: output too short for prefix "
+            f"({len(range_lines)} < {prefix_count})"
+        )
+
+    # Check suffix: lines end+1..EOF must appear as the last lines of output.
+    # The number of suffix lines from the original is (total_original - end).
+    suffix_count = len(original_lines) - end
+    if suffix_count > 0 and suffix_count <= len(range_lines):
+        orig_suffix = original_lines[end:]
+        range_suffix = range_lines[len(range_lines) - suffix_count:]
+        for i, (o, r) in enumerate(zip(orig_suffix, range_suffix)):
+            if o != r:
+                orig_line = end + 1 + i
+                errors.append(
+                    f"Range {range_spec}: suffix differs at original line {orig_line}: "
+                    f"'{o[:60]}' -> '{r[:60]}'"
+                )
+                break
+
+    return len(errors) == 0, errors
+
+
 def progress(i, total, msg):
     if sys.stdout.isatty():
         sys.stdout.write(f"\r\033[2K[{i}/{total}] {msg[:70]:<70}")
@@ -311,8 +359,8 @@ def main():
         for rel, errs in known_warnings:
             print(f"    {rel}: {errs[0].split(chr(10))[0]}")
 
-    # ── Phase 2: Range format spot-checks ──
-    print(f"\nPhase 2: Range format spot-checks")
+    # ── Phase 2: Range format spot-checks (idempotency on formatted files) ──
+    print(f"\nPhase 2: Range format spot-checks (idempotency)")
 
     # Select files for range testing from successfully-formatted files
     rng = random.Random(args.seed)
@@ -349,14 +397,48 @@ def main():
     else:
         print(f"  All {total_checks} range checks OK (excl. {len(range_known)} known issues)")
 
+    # ── Phase 3: Range format diff-based checks (only range lines change) ──
+    print(f"\nPhase 3: Range format diff-based checks (only range lines change)")
+
+    # For each file, range-format the ORIGINAL content and verify that lines
+    # outside [start, end] are preserved exactly (prefix and suffix match).
+    diff_failures = []
+    diff_known = []
+    diff_checks = 0
+    for i, f in enumerate(range_files):
+        rel = f.relative_to(ROOT)
+        original_bytes = f.read_bytes()
+        total_lines = original_bytes.decode('utf-8', errors='replace').count('\n')
+        ranges = pick_ranges(total_lines)
+        for start, end in ranges:
+            diff_checks += 1
+            progress(diff_checks, len(range_files) * 3, f"{rel} [{start}:{end}]")
+            ok, errs = test_range_preserves_outside(compiler, f, start, end)
+            if not ok:
+                if str(rel) in KNOWN_COMMENT_ISSUES:
+                    diff_known.append((rel, start, end, errs))
+                else:
+                    diff_failures.append((rel, start, end, errs))
+
+    if sys.stdout.isatty():
+        sys.stdout.write("\r\033[2K")
+
+    if diff_failures:
+        print(f"  FAILED: {len(diff_failures)} diff checks")
+        for rel, start, end, errs in diff_failures:
+            for e in errs:
+                print(f"    {rel}: {e}")
+    else:
+        print(f"  All {diff_checks} diff checks OK (excl. {len(diff_known)} known issues)")
+
     # ── Summary ──
     print()
-    total_fail = len(full_failures) + len(range_failures)
+    total_fail = len(full_failures) + len(range_failures) + len(diff_failures)
     if total_fail > 0:
         print(f"FAILED: {total_fail} issues found")
         sys.exit(1)
     else:
-        print(f"All codebase format tests passed ({len(files)} full + {total_checks} range checks)")
+        print(f"All codebase format tests passed ({len(files)} full + {total_checks} range + {diff_checks} diff checks)")
         sys.exit(0)
 
 

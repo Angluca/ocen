@@ -64,6 +64,18 @@ fi
 
 echo ""
 echo "=========================================="
+echo " Running LSP server tests"
+echo "=========================================="
+if python3 meta/test_lsp_server.py -c "$COMPILER" --parallel; then
+    echo ""
+else
+    echo "LSP server tests FAILED"
+    FAILED=1
+fi
+
+
+echo ""
+echo "=========================================="
 if [ $FAILED -eq 0 ]; then
     echo " All tests PASSED"
 else

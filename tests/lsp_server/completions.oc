@@ -1,0 +1,10 @@
+/// skip
+struct Bar {
+    x: i32
+    msg: str
+}
+
+def main() {
+    let b = Bar(1, "hi")
+    b.
+}

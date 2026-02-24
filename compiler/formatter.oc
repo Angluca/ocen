@@ -664,9 +664,23 @@ def Formatter::format_expr(&this, node: &AST) {
     // Preserve parentheses from the source
     if node.paren {
         .write("(")
-        // Temporarily clear paren flag to avoid double-wrapping
+        // Temporarily clear paren flag to avoid double-wrapping, and strip the
+        // outer parens from the span. The span was set to include the enclosing
+        // `(` and `)` characters when the node was parsed; if we don't strip
+        // them, `source_text(node.span)` for leaf nodes (e.g. IntLiteral)
+        // would re-emit the `(...)` and the explicit write above would produce
+        // double parens on every format pass.
         node.paren = false
+        let old_span = node.span
+        let inner_start = old_span.start
+        let inner_end = old_span.end
+        inner_start.index += 1u32
+        inner_start.col += 1u32
+        inner_end.index -= 1u32
+        inner_end.col -= 1u32
+        node.span = Span(inner_start, inner_end)
         .format_expr(node)
+        node.span = old_span
         node.paren = true
         .write(")")
         return
@@ -1948,6 +1962,133 @@ def Formatter::align_inline_comments(&this) {
     .output = new_output
 }
 
+//* Apply formatting changes only within [range_start, range_end] for a
+//* single declaration, using LCS-based diffing to identify individual
+//* change hunks and apply only those touching the requested range.
+def apply_range_diff(
+    source_lines: &Vector<SV>,     src_start: u32, src_end: u32,
+    formatted_lines: &Vector<SV>,  fmt_start: u32, fmt_end: u32,
+    range_start: u32, range_end: u32,
+    result: &Buffer
+) {
+    let n = src_end - src_start + 1
+    let m = fmt_end - fmt_start + 1
+    let w = m + 1   // row width for flat DP table
+
+    // Build LCS DP table: dp[i * w + j] = LCS length for src[0..i), fmt[0..j)
+    // calloc zeros memory, so dp is initialized to 0
+    let dp = mem::alloc<u32>(((n + 1) * w) as u32)
+
+    for let i = 0u32; i < n; i++ {
+        for let j = 0u32; j < m; j++ {
+            if source_lines.at(src_start - 1 + i).eq(formatted_lines.at(fmt_start - 1 + j)) {
+                dp[(i + 1) * w + (j + 1)] = dp[i * w + j] + 1
+            } else {
+                let a = dp[i * w + (j + 1)]
+                let b = dp[(i + 1) * w + j]
+                dp[(i + 1) * w + (j + 1)] = if a > b then a else b
+            }
+        }
+    }
+
+    // Backtrack to find LCS positions
+    let lcs_len = dp[n * w + m]
+    let alloc_len = if lcs_len > 0 then lcs_len else 1u32
+    let lcs_si = mem::alloc<u32>(alloc_len) // source indices (0-based within decl)
+    let lcs_fi = mem::alloc<u32>(alloc_len) // formatted indices (0-based within decl)
+    {
+        let i = n
+        let j = m
+        let k = lcs_len
+        while k > 0 {
+            if source_lines.at(src_start - 1 + i - 1).eq(formatted_lines.at(fmt_start - 1 + j - 1)) {
+                k--
+                i--
+                j--
+                lcs_si[k] = i
+                lcs_fi[k] = j
+            } else if dp[(i - 1) * w + j] >= dp[i * w + (j - 1)] {
+                i--
+            } else {
+                j--
+            }
+        }
+    }
+
+    // Walk through the diff using LCS anchors.
+    // Between consecutive anchors we have a "hunk" of differing lines.
+    // For each hunk: if any of its source lines fall within the requested
+    // range, emit the formatted replacement.  Otherwise emit source lines.
+    let si = 0u32  // current source index (0-based within decl)
+    let fi = 0u32  // current formatted index (0-based within decl)
+
+    for let lk = 0u32; lk <= lcs_len; lk++ {
+        let next_si = if lk < lcs_len then lcs_si[lk] else n
+        let next_fi = if lk < lcs_len then lcs_fi[lk] else m
+
+        // Hunk: source [si, next_si) ↔ formatted [fi, next_fi)
+        if si < next_si or fi < next_fi {
+            let src_count = next_si - si
+            let fmt_count = next_fi - fi
+
+            // Equal-sized hunks (e.g. indentation-only changes): apply per-line,
+            // so that changes outside the range are not dragged in.
+            if src_count == fmt_count and src_count > 0 {
+                for let h = 0u32; h < src_count; h++ {
+                    let abs_line = src_start + si + h
+                    if abs_line >= range_start and abs_line <= range_end {
+                        result.write_sv(formatted_lines.at(fmt_start - 1 + fi + h))
+                    } else {
+                        result.write_sv(source_lines.at(src_start - 1 + si + h))
+                    }
+                    result += '\n'
+                }
+            } else {
+                // Unequal sizes (line joining/splitting/deletion): only apply if
+                // ALL source lines in the hunk are within the range, to avoid
+                // dragging in changes outside the requested range.
+                let all_in_range = true
+                for let h = si; h < next_si; h++ {
+                    let abs_line = src_start + h
+                    if abs_line < range_start or abs_line > range_end {
+                        all_in_range = false
+                        break
+                    }
+                }
+                // Pure insertion with no source lines: check insertion point
+                if si == next_si and fi < next_fi {
+                    let abs_line = src_start + si
+                    all_in_range = abs_line >= range_start and abs_line <= range_end + 1
+                }
+
+                if all_in_range {
+                    for let h = fi; h < next_fi; h++ {
+                        result.write_sv(formatted_lines.at(fmt_start - 1 + h))
+                        result += '\n'
+                    }
+                } else {
+                    for let h = si; h < next_si; h++ {
+                        result.write_sv(source_lines.at(src_start - 1 + h))
+                        result += '\n'
+                    }
+                }
+            }
+        }
+
+        // Emit the LCS anchor line (identical in both)
+        if lk < lcs_len {
+            result.write_sv(source_lines.at(src_start - 1 + next_si))
+            result += '\n'
+            si = next_si + 1
+            fi = next_fi + 1
+        }
+    }
+
+    mem::free(dp)
+    mem::free(lcs_si)
+    mem::free(lcs_fi)
+}
+
 //* Run the formatter and return the formatted string
 def Formatter::run(&this): str {
     let track = .range_start > 0
@@ -1970,6 +2111,9 @@ def Formatter::run(&this): str {
 
     // Range mode: reconstruct output, using original text for out-of-range
     // declarations and formatted text for in-range declarations.
+    // For declarations that partially overlap the range, match unchanged
+    // leading/trailing lines within the declaration to confine the edit to
+    // only the lines that actually differ.
     let source_lines = split_lines(.source)
     let formatted_lines = split_lines(.output.str())
 
@@ -1979,19 +2123,23 @@ def Formatter::run(&this): str {
 
         // Check if this declaration overlaps with the requested range
         let overlaps = m.source_start <= .range_end and m.source_end >= .range_start
-        if overlaps {
-            // Use formatted lines
-            for let j = m.output_start; j <= m.output_end and j <= formatted_lines.size as u32; j++ {
-                result.write_sv(formatted_lines.at(j - 1))
-                result += '\n'
-            }
-        } else {
+        if not overlaps {
             // Use original source lines
             for let j = m.source_start; j <= m.source_end and j <= source_lines.size as u32; j++ {
                 result.write_sv(source_lines.at(j - 1))
                 result += '\n'
             }
+            continue
         }
+
+        // Declaration overlaps the range. Use LCS-based diffing to apply
+        // only the formatting changes whose source lines fall within range.
+        apply_range_diff(
+            source_lines,    m.source_start, m.source_end,
+            formatted_lines, m.output_start, m.output_end,
+            .range_start, .range_end,
+            &result,
+        )
     }
 
     return result.str()

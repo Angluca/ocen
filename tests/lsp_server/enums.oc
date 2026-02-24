@@ -1,0 +1,18 @@
+/// skip
+
+enum Color {
+    Red
+    Green
+    Blue
+}
+
+def to_str(c: Color): str => match c {
+    Red => "red"
+    Green => "green"
+    Blue => "blue"
+}
+
+def main() {
+    let c = Color::Red
+    let s = to_str(c)
+}
