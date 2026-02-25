@@ -1,0 +1,11 @@
+/// format: --line-width 45
+
+def foo(x: u32) {
+    assert true, "ok"
+
+    assert some_long_condition_here, "this message is way too long for the line"
+
+    assert a and b and c, "multi condition fail msg"
+
+    assert x == 1, "short"
+}

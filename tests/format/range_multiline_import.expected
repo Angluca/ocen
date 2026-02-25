@@ -1,0 +1,9 @@
+/// format-range: 4:7
+
+import std::vector::{ Vector }
+import @ast::nodes::{ ImportPart, Import, Argument, MatchCond, Enum, EnumVariant }
+import @ast::program::{ Program }
+
+def foo() {
+    println("hello")
+}

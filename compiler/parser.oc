@@ -8,7 +8,7 @@ import std::mem
 import std::fs
 
 import @ast::nodes::{ * }
-import @ast::program::{ Namespace, Program }
+import @ast::program::{ Namespace, Program, CompilerOption }
 import @ast::operators::{ Operator }
 import @ast::scopes::{ Symbol, SymbolType, Template, EnumField }
 import @attributes::{ Attribute, AttributeType }
@@ -1925,7 +1925,10 @@ def Parser::parse_function(&this): &Function {
                 }
                 func.operator_overloads.push(op)
             }
-            Alive => .program.explicit_alive_symbols.push(func.sym)
+            Alive => {
+                .program.explicit_alive_symbols.push(func.sym)
+                func.is_alive = true
+            }
             Test => func.is_test_function = true
             Flatten => func.flatten_attr = true
             else => .error(Error::new(attr.span, f"Invalid attribute for function: {attr.type}"))
@@ -2086,6 +2089,10 @@ def Parser::parse_import(&this): &AST {
         return null
     }
 
+    // Extend span to cover entire import including closing delimiters
+    let last_part = parts.back()
+    span = span.join(last_part.span)
+
     let node = AST::new(Import, span)
     node.u.import_path = Import(
         parts,
@@ -2223,6 +2230,8 @@ def Parser::parse_struct(&this): &Structure {
         }
         let end = .consume(TokenType::CloseCurly)
         struc.span = start.span.join(end.span)
+    } else {
+        struc.span = start.span.join(name.span)
     }
 
     return struc
@@ -2501,6 +2510,7 @@ def Parser::parse_compiler_option(&this) {
         .error(Error::new(.token().span, "Attributes are not allowed on compiler options"))
     }
 
+    let start_span = .token().span
     .consume(TokenType::AtSign)
     let compiler = .consume(TokenType::Identifier)
     if not compiler.text.eq("compiler") {
@@ -2512,13 +2522,21 @@ def Parser::parse_compiler_option(&this) {
         "c_include" => {
             let filename = .consume(TokenType::StringLiteral)
             .program.c_includes.push(filename.text)
+            let opt_span = start_span.join(filename.span)
+            .ns.compiler_options.push(CompilerOption(span: opt_span, type_name: "c_include", arg: filename.text))
         }
         "c_flag" => {
             let flag = .consume(TokenType::StringLiteral)
             .program.c_flags.push(flag.text)
+            let opt_span = start_span.join(flag.span)
+            .ns.compiler_options.push(CompilerOption(span: opt_span, type_name: "c_flag", arg: flag.text))
         }
         "c_embed" => {
             let path = .consume(TokenType::StringLiteral)
+
+            // Store for formatting before we potentially skip
+            let opt_span = start_span.join(path.span)
+            .ns.compiler_options.push(CompilerOption(span: opt_span, type_name: "c_embed", arg: path.text))
 
             // In format mode, skip c_embed resolution entirely
             if .program.format_mode return

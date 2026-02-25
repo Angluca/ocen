@@ -1,0 +1,18 @@
+/// format: --line-width 40
+
+import std::vector::{ Vector }
+import std::map::{ Map }
+import std::buffer::{ Buffer }
+import std::traits::hash::{ pair_hash }
+import some::long_module::{
+    Alpha,
+    Beta,
+    Gamma,
+    Delta,
+    Epsilon,
+}
+import another::module::{ X }
+
+def foo() {
+    println("hello")
+}

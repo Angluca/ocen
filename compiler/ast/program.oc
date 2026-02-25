@@ -17,6 +17,13 @@ import @tokens::{ Comment }
 import @errors::{ display_error_messages }
 import @passes
 
+//* Stores a @compiler directive for formatting purposes
+struct CompilerOption {
+    span: Span
+    type_name: str   // "c_include", "c_flag", "c_embed"
+    arg: str         // the string argument e.g. "stdio.h", "-lm"
+}
+
 struct Namespace {
     parent: &Namespace
 
@@ -52,6 +59,9 @@ struct Namespace {
 
     //! For use during parsing, we only resolve imports after parsing the namespace
     unhandled_imports: &Vector<&AST>
+
+    //! Compiler options (@compiler c_include, etc.) stored for formatting
+    compiler_options: &Vector<CompilerOption>
 }
 
 def Namespace::new(parent: &Namespace, path: str): &Namespace {
@@ -71,6 +81,7 @@ def Namespace::new(parent: &Namespace, path: str): &Namespace {
     ns.imports = Vector<&AST>::new()
     ns.exported_symbols = Map<str, &Symbol>::new()
     ns.unhandled_imports = Vector<&AST>::new()
+    ns.compiler_options = Vector<CompilerOption>::new()
     ns.path = path
     ns.is_a_file = false
     ns.internal_project_root = parent_root

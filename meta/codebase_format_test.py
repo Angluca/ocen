@@ -83,10 +83,12 @@ def extract_comment_texts(text):
     return comments
 
 
-def run_format(compiler, filepath, range_spec=None):
+def run_format(compiler, filepath, range_spec=None, line_width=None):
     """Run the formatter. Returns (stdout_bytes, returncode).
     Uses bytes to avoid unicode encoding issues."""
     cmd = [compiler, "format"]
+    if line_width is not None:
+        cmd += ["--line-width", str(line_width)]
     if range_spec:
         cmd += ["--range", range_spec]
     cmd.append(str(filepath))
@@ -154,6 +156,54 @@ def test_file(compiler, filepath):
                 errors.append(f"Not idempotent: line count {len(lines1)} vs {len(lines2)}")
 
     return len(errors) == 0, errors, formatted_bytes
+
+
+def test_file_with_width(compiler, filepath, line_width):
+    """Test a single file for comment preservation and idempotency with --line-width.
+    Returns (ok: bool, errors: list[str])."""
+    errors = []
+
+    original_bytes = filepath.read_bytes()
+    original_text = original_bytes.decode('utf-8', errors='replace')
+
+    # First format with line-width
+    formatted_bytes, rc = run_format(compiler, filepath, line_width=line_width)
+    if rc != 0:
+        # File doesn't format successfully — skip
+        return True, []
+
+    formatted_text = formatted_bytes.decode('utf-8', errors='replace')
+
+    # Comment preservation check
+    comments_ok, missing = check_comments(original_text, formatted_text)
+    if not comments_ok:
+        msgs = [f"  missing: {c}" for c in missing[:5]]
+        errors.append(f"[width={line_width}] Comments lost:\n" + "\n".join(msgs))
+
+    # Idempotency check: format the output again with same width
+    with tempfile.NamedTemporaryFile(suffix='.oc', delete=False) as tmp:
+        tmp.write(formatted_bytes)
+        tmp_path = tmp.name
+
+    try:
+        formatted2_bytes, rc2 = run_format(compiler, tmp_path, line_width=line_width)
+    finally:
+        os.unlink(tmp_path)
+
+    if rc2 != 0:
+        errors.append(f"[width={line_width}] Second format crashed (exit {rc2})")
+    elif formatted2_bytes != formatted_bytes:
+        lines1 = formatted_text.split('\n')
+        lines2 = formatted2_bytes.decode('utf-8', errors='replace').split('\n')
+        for i, (l1, l2) in enumerate(zip(lines1, lines2)):
+            if l1 != l2:
+                errors.append(f"[width={line_width}] Not idempotent at line {i+1}: '{l1[:80]}' -> '{l2[:80]}'")
+                break
+        else:
+            if len(lines1) != len(lines2):
+                errors.append(f"[width={line_width}] Not idempotent: line count {len(lines1)} vs {len(lines2)}")
+
+    return len(errors) == 0, errors
 
 
 def pick_ranges(total_lines):
@@ -431,14 +481,44 @@ def main():
     else:
         print(f"  All {diff_checks} diff checks OK (excl. {len(diff_known)} known issues)")
 
+    # ── Phase 4: Line-width tests (comment preservation + idempotency) ──
+    LINE_WIDTHS = [80, 120]
+    print(f"\nPhase 4: Line-width tests (widths: {LINE_WIDTHS})")
+
+    width_failures = []
+    width_known = []
+    width_checks = 0
+    for i, f in enumerate(files):
+        rel = f.relative_to(ROOT)
+        for lw in LINE_WIDTHS:
+            width_checks += 1
+            progress(width_checks, len(files) * len(LINE_WIDTHS), f"{rel} [width={lw}]")
+            ok, errs = test_file_with_width(compiler, f, lw)
+            if not ok:
+                if str(rel) in KNOWN_COMMENT_ISSUES:
+                    width_known.append((rel, errs))
+                else:
+                    width_failures.append((rel, errs))
+
+    if sys.stdout.isatty():
+        sys.stdout.write("\r\033[2K")
+
+    if width_failures:
+        print(f"  FAILED: {len(width_failures)} width checks")
+        for rel, errs in width_failures:
+            for e in errs:
+                print(f"    {rel}: {e}")
+    else:
+        print(f"  All {width_checks} width checks OK (excl. {len(width_known)} known issues)")
+
     # ── Summary ──
     print()
-    total_fail = len(full_failures) + len(range_failures) + len(diff_failures)
+    total_fail = len(full_failures) + len(range_failures) + len(diff_failures) + len(width_failures)
     if total_fail > 0:
         print(f"FAILED: {total_fail} issues found")
         sys.exit(1)
     else:
-        print(f"All codebase format tests passed ({len(files)} full + {total_checks} range + {diff_checks} diff checks)")
+        print(f"All codebase format tests passed ({len(files)} full + {total_checks} range + {diff_checks} diff + {width_checks} width checks)")
         sys.exit(0)
 
 

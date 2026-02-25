@@ -1,0 +1,26 @@
+/// format
+
+struct Foo { // opening struct comment
+    x: i32
+    y: i32
+} // closing struct comment
+
+enum Color { // opening enum comment
+    Red
+    Green
+    Blue
+} // closing enum comment
+
+namespace Utils { // opening namespace comment
+    def helper(): i32 => 42
+} // closing namespace comment
+
+def main() {
+    let x = 5
+    if x > 3 { // opening if comment
+        println("big")
+    } // closing if comment
+    for let i = 0; i < 10; i++ { // opening for comment
+        println("%d", i)
+    } // closing for comment
+}

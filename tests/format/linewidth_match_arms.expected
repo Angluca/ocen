@@ -1,0 +1,28 @@
+/// format: --line-width 45
+
+def foo(x: u32): u32 => match x {
+    1 => 10
+    2 | 3 => 20
+    4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 => 30
+    12 => some_very_long_function_call(x, 42)
+    else => 0
+}
+
+enum Color {
+    Red
+    Green
+    Blue
+    Yellow
+    Cyan
+    Magenta
+}
+
+def bar(c: Color): str => match c {
+    Red
+    | Green
+    | Blue
+    | Yellow
+    | Cyan
+    | Magenta => "color"
+    else => "unknown"
+}

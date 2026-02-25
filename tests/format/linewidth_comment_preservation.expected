@@ -1,0 +1,33 @@
+/// format: --line-width 80
+
+def foo(x: u32): u32 => match x {
+    1 => {
+        // Comment inside match arm block
+        return 1
+    }
+    // Comment before match arm
+    2 => x + 1
+    3 => {
+        // First comment
+        let y = x + 1
+        // Second comment
+        return y
+    }
+    else => x
+}
+
+def bar(x: u32): u32 {
+    let result = match x {
+        1 => {
+            // This comment must be preserved
+            yield 10
+        }
+        // Between arms comment
+        2 => {
+            // Another important comment
+            yield 20
+        }
+        else => 0
+    }
+    return result
+}

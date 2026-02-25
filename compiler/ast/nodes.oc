@@ -281,6 +281,7 @@ struct Function {
     is_static: bool
     parent_type: &Type
     flatten_attr: bool
+    is_alive: bool
 }
 
 def Function::new(): &Function {
