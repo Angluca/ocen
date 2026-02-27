@@ -17870,6 +17870,9 @@ std_vector_Vector__32 *compiler_formatter_CommentIndex_comments_on_line(compiler
 }
 
 compiler_formatter_CommentState compiler_formatter_Formatter_save_comment_state(compiler_formatter_Formatter *this) {
+  if (this->in_format_str) {
+    return (compiler_formatter_CommentState){.comment_index=this->comment_index, .last_comment_request_line=this->last_comment_request_line, .cursor_regressions=this->cursor_regressions, .emitted_snapshot=NULL};
+  }
   std_vector_Vector__37 *snapshot = std_vector_Vector__37_new(16);
   for (u32 i = 0; i < this->comment_emitted->size; i++) {
     std_vector_Vector__37_push(snapshot, std_vector_Vector__37_at(this->comment_emitted, i));
@@ -17881,8 +17884,10 @@ void compiler_formatter_Formatter_restore_comment_state(compiler_formatter_Forma
   this->comment_index=state->comment_index;
   this->last_comment_request_line=state->last_comment_request_line;
   this->cursor_regressions=state->cursor_regressions;
-  for (u32 i = 0; i < state->emitted_snapshot->size; i++) {
-    this->comment_emitted->data[i]=std_vector_Vector__37_at(state->emitted_snapshot, i);
+  if (((bool)state->emitted_snapshot)) {
+    for (u32 i = 0; i < state->emitted_snapshot->size; i++) {
+      this->comment_emitted->data[i]=std_vector_Vector__37_at(state->emitted_snapshot, i);
+    }
   }
 }
 
@@ -17928,13 +17933,18 @@ void compiler_formatter_Formatter_note_cursor_regression(compiler_formatter_Form
 
 void compiler_formatter_Formatter_write(compiler_formatter_Formatter *this, char *s) {
   std_buffer_Buffer_write_str(&this->output, s);
-  for (u32 i = 0; i < strlen(s); i++) {
+  u32 len = ((u32)strlen(s));
+  i32 last_nl = -1;
+  for (u32 i = 0; i < len; i++) {
     if (s[i]=='\n') {
       this->output_line++;
-      this->output_col=0;
-    } else {
-      this->output_col++;
+      last_nl=((i32)i);
     }
+  }
+  if (last_nl < 0) {
+    this->output_col+=len;
+  } else {
+    this->output_col=((len - ((u32)last_nl)) - 1);
   }
 }
 
@@ -17949,14 +17959,16 @@ void compiler_formatter_Formatter_push_indent(compiler_formatter_Formatter *this
 }
 
 void compiler_formatter_Formatter_pop_indent(compiler_formatter_Formatter *this) {
-  if(!(this->indent > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:559:12: Assertion failed: `.indent > 0`", "Formatter indent underflow"); }
+  if(!(this->indent > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:584:12: Assertion failed: `.indent > 0`", "Formatter indent underflow"); }
   this->indent--;
 }
 
 void compiler_formatter_Formatter_write_indent(compiler_formatter_Formatter *this) {
   u32 spaces = (this->indent * this->options.indent_size);
-  for (u32 i = 0; i < spaces; i++) {
-    std_buffer_Buffer_write_char(&this->output, ' ');
+  if (spaces > 0) {
+    std_buffer_Buffer_resize_if_necessary(&this->output, (this->output.size + spaces));
+    memset((this->output.data + this->output.size), ((u8)' '), spaces);
+    this->output.size+=spaces;
   }
   this->output_col=spaces;
 }
@@ -17994,12 +18006,12 @@ u32 compiler_formatter_Formatter_measure_expr(compiler_formatter_Formatter *this
   u32 saved_line = this->output_line;
   u32 saved_col = this->output_col;
   bool saved_in_fmt = this->in_format_str;
+  this->in_format_str=true;
   compiler_formatter_CommentState saved_comments = compiler_formatter_Formatter_save_comment_state(this);
   u32 saved_ic_size = this->ic_lines->size;
   this->output=std_buffer_Buffer_make(16);
   this->output_line=1;
   this->output_col=0;
-  this->in_format_str=true;
   compiler_formatter_Formatter_format_expr(this, node);
   u32 width = this->output_col;
   if (this->output_line > 1) {
@@ -18025,12 +18037,12 @@ u32 compiler_formatter_Formatter_measure_statement(compiler_formatter_Formatter 
   u32 saved_line = this->output_line;
   u32 saved_col = this->output_col;
   bool saved_in_fmt = this->in_format_str;
+  this->in_format_str=true;
   compiler_formatter_CommentState saved_comments = compiler_formatter_Formatter_save_comment_state(this);
   u32 saved_ic_size = this->ic_lines->size;
   this->output=std_buffer_Buffer_make(16);
   this->output_line=1;
   this->output_col=0;
-  this->in_format_str=true;
   compiler_formatter_Formatter_format_statement(this, node);
   u32 width = this->output_col;
   if (this->output_line > 1) {
@@ -18111,6 +18123,10 @@ bool compiler_formatter_Formatter_would_exceed_width(compiler_formatter_Formatte
 u32 compiler_formatter_Formatter_measure_collection(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, char *open, char *close) {
   u32 size = compiler_formatter_Formatter_collection_size(this, node);
   u32 width = (strlen(open) + strlen(close));
+  bool saved_in_fmt = this->in_format_str;
+  this->in_format_str=true;
+  compiler_formatter_CommentState saved_comments = compiler_formatter_Formatter_save_comment_state(this);
+  u32 saved_ic_size = this->ic_lines->size;
   for (u32 i = 0; i < size; i++) {
     if (i > 0) {
       width+=2;
@@ -18118,27 +18134,27 @@ u32 compiler_formatter_Formatter_measure_collection(compiler_formatter_Formatter
     std_buffer_Buffer saved_output = this->output;
     u32 saved_line = this->output_line;
     u32 saved_col = this->output_col;
-    bool saved_in_fmt = this->in_format_str;
-    compiler_formatter_CommentState saved_comments = compiler_formatter_Formatter_save_comment_state(this);
-    u32 saved_ic_size = this->ic_lines->size;
     this->output=std_buffer_Buffer_make(16);
     this->output_line=1;
     this->output_col=0;
-    this->in_format_str=true;
     compiler_formatter_Formatter_format_collection_item(this, node, i);
     width+=this->output_col;
     this->output=saved_output;
     this->output_line=saved_line;
     this->output_col=saved_col;
-    this->in_format_str=saved_in_fmt;
-    compiler_formatter_Formatter_restore_comment_state(this, &saved_comments);
-    this->ic_lines->size=saved_ic_size;
   }
+  this->in_format_str=saved_in_fmt;
+  compiler_formatter_Formatter_restore_comment_state(this, &saved_comments);
+  this->ic_lines->size=saved_ic_size;
   return width;
 }
 
 u32 compiler_formatter_Formatter_measure_params(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func) {
   u32 width = 2;
+  bool saved_in_fmt = this->in_format_str;
+  this->in_format_str=true;
+  compiler_formatter_CommentState saved_comments = compiler_formatter_Formatter_save_comment_state(this);
+  u32 saved_ic_size = this->ic_lines->size;
   for (u32 i = 0; i < func->params->size; i++) {
     if (i > 0) {
       width+=2;
@@ -18146,8 +18162,6 @@ u32 compiler_formatter_Formatter_measure_params(compiler_formatter_Formatter *th
     std_buffer_Buffer saved_output = this->output;
     u32 saved_line = this->output_line;
     u32 saved_col = this->output_col;
-    compiler_formatter_CommentState saved_comments = compiler_formatter_Formatter_save_comment_state(this);
-    u32 saved_ic_size = this->ic_lines->size;
     this->output=std_buffer_Buffer_make(16);
     this->output_line=1;
     this->output_col=0;
@@ -18156,8 +18170,6 @@ u32 compiler_formatter_Formatter_measure_params(compiler_formatter_Formatter *th
     this->output=saved_output;
     this->output_line=saved_line;
     this->output_col=saved_col;
-    compiler_formatter_Formatter_restore_comment_state(this, &saved_comments);
-    this->ic_lines->size=saved_ic_size;
   }
   if (func->is_variadic) {
     if (func->params->size > 0) {
@@ -18165,6 +18177,9 @@ u32 compiler_formatter_Formatter_measure_params(compiler_formatter_Formatter *th
     }
     width+=3;
   }
+  this->in_format_str=saved_in_fmt;
+  compiler_formatter_Formatter_restore_comment_state(this, &saved_comments);
+  this->ic_lines->size=saved_ic_size;
   return width;
 }
 
@@ -18209,6 +18224,9 @@ bool compiler_formatter_Formatter_is_implicit_void_function_type(compiler_format
 }
 
 u32 compiler_formatter_Formatter_emit_comments_before(compiler_formatter_Formatter *this, u32 line, bool preserve_blanks, u32 prev_end_line) {
+  if (this->in_format_str) {
+    return prev_end_line;
+  }
   if (line < this->last_comment_request_line) {
     compiler_formatter_Formatter_note_cursor_regression(this, "before", line);
   }
@@ -18239,6 +18257,9 @@ u32 compiler_formatter_Formatter_emit_comments_before(compiler_formatter_Formatt
 }
 
 void compiler_formatter_Formatter_emit_inline_comment(compiler_formatter_Formatter *this, u32 line) {
+  if (this->in_format_str) {
+    return;
+  }
   if (line < this->last_comment_request_line) {
     compiler_formatter_Formatter_note_cursor_regression(this, "inline", line);
     compiler_formatter_Formatter_emit_inline_comment_backward(this, line);
@@ -21052,7 +21073,7 @@ char *compiler_formatter_Formatter_run(compiler_formatter_Formatter *this) {
   if (this->debug_cursor && (this->cursor_regressions > 0)) {
     fprintf(stderr, "[formatter] detected %u comment cursor regressions while formatting %s""\n", this->cursor_regressions, this->filename);
   }
-  if(!(this->comment_index==this->comments->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:3445:12: Assertion failed: `.comment_index == .comments.size`", "Formatter ended with un-emitted comments"); }
+  if(!(this->comment_index==this->comments->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:3489:12: Assertion failed: `.comment_index == .comments.size`", "Formatter ended with un-emitted comments"); }
   for (u32 i = 0; i < this->comment_emitted->size; i++) {
     if (!(std_vector_Vector__37_at(this->comment_emitted, i))) {
       compiler_tokens_Comment c = std_vector_Vector__16_at(this->comments, i);

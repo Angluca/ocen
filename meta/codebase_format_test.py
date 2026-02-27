@@ -26,8 +26,22 @@ import subprocess
 import tempfile
 import random
 import argparse
+import time
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
 from collections import Counter
 from pathlib import Path
+
+# Global list of (elapsed_ms, file_str, config_str) for every run_format call.
+_timings: list[tuple[float, str, str]] = []
+# Global list of (elapsed_ms, show_path_str) for every run_validate call.
+_validate_timings: list[tuple[float, str]] = []
+# When True, record and later print timing breakdowns. Set from CLI.
+SHOW_TIMINGS = False
+# Thread-safe progress counter
+_progress_lock = threading.Lock()
+_progress_count = 0
+_progress_total = 0
 
 ROOT = Path(__file__).resolve().parent.parent
 
@@ -82,19 +96,40 @@ def extract_comment_texts(text):
     return comments
 
 
-def run_format(compiler, filepath, range_spec=None, line_width=None):
+def run_format(compiler, filepath, range_spec=None, line_width=None,
+               logical_path=None, run_label=None):
     """Run the formatter. Returns (stdout_bytes, returncode).
-    Uses bytes to avoid unicode encoding issues."""
+    Uses bytes to avoid unicode encoding issues.  Also records timing.
+
+    logical_path: path recorded in _timings (defaults to filepath).
+    run_label:    short suffix appended to config_label, e.g. "idem".
+    """
     cmd = [compiler, "format"]
     if line_width is not None:
         cmd += ["--line-width", str(line_width)]
     if range_spec:
         cmd += ["--range", range_spec]
     cmd.append(str(filepath))
+    # Build a human-readable config label for benchmarking
+    config_parts = []
+    if line_width is not None:
+        config_parts.append(f"width={line_width}")
+    if range_spec:
+        config_parts.append(f"range={range_spec}")
+    config_label = ", ".join(config_parts) if config_parts else "default"
+    if run_label:
+        config_label = f"{config_label} [{run_label}]"
+    record_path = str(logical_path) if logical_path is not None else str(filepath)
     try:
+        t0 = time.perf_counter()
         result = subprocess.run(cmd, capture_output=True, timeout=30)
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        if SHOW_TIMINGS:
+            _timings.append((elapsed_ms, record_path, config_label))
         return result.stdout, result.returncode
     except subprocess.TimeoutExpired:
+        if SHOW_TIMINGS:
+            _timings.append((30_000.0, record_path, config_label + " [TIMEOUT]"))
         return None, -1
     except Exception:
         return None, -2
@@ -112,7 +147,11 @@ def run_validate(compiler, formatted_bytes, show_path):
 
     try:
         cmd = [compiler, "lsp", "--validate", tmp_path, "--show-path", str(show_path)]
+        t0 = time.perf_counter()
         result = subprocess.run(cmd, capture_output=True, timeout=60)
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
+        if SHOW_TIMINGS:
+            _validate_timings.append((elapsed_ms, str(show_path)))
         output = result.stdout.decode('utf-8', errors='replace').strip()
         if output:
             import json
@@ -195,9 +234,10 @@ def check_blank_line_preservation(original_text, formatted_text):
     return True, 0, orig_gaps, fmt_gaps
 
 
-def test_file(compiler, filepath):
+def test_file(compiler, filepath, check_idem=True):
     """Test a single file for idempotency and comment preservation.
-    Returns (ok: bool, errors: list[str], formatted_bytes: bytes or None)."""
+    Returns (ok: bool, errors: list[str], formatted_bytes: bytes or None).
+    If check_idem is False, skip the idempotency check (format-twice)."""
     errors = []
 
     original_bytes = filepath.read_bytes()
@@ -223,32 +263,35 @@ def test_file(compiler, filepath):
         errors.append(f"Blank line separators lost: {blank_lost} (original: {orig_gaps}, formatted: {fmt_gaps})")
 
     # Idempotency check: format the output again
-    with tempfile.NamedTemporaryFile(suffix='.oc', delete=False) as tmp:
-        tmp.write(formatted_bytes)
-        tmp_path = tmp.name
+    # If output == input, idempotency is trivially satisfied — skip the subprocess call
+    if check_idem and formatted_bytes != original_bytes:
+        with tempfile.NamedTemporaryFile(suffix='.oc', delete=False) as tmp:
+            tmp.write(formatted_bytes)
+            tmp_path = tmp.name
 
-    try:
-        formatted2_bytes, rc2 = run_format(compiler, tmp_path)
-    finally:
-        os.unlink(tmp_path)
+        try:
+            formatted2_bytes, rc2 = run_format(compiler, tmp_path,
+                                               logical_path=filepath, run_label="idem")
+        finally:
+            os.unlink(tmp_path)
 
-    if rc2 != 0:
-        errors.append(f"Second format crashed (exit {rc2})")
-    elif formatted2_bytes != formatted_bytes:
-        lines1 = formatted_text.split('\n')
-        lines2 = formatted2_bytes.decode('utf-8', errors='replace').split('\n')
-        for i, (l1, l2) in enumerate(zip(lines1, lines2)):
-            if l1 != l2:
-                errors.append(f"Not idempotent at line {i+1}: '{l1[:80]}' -> '{l2[:80]}'")
-                break
-        else:
-            if len(lines1) != len(lines2):
-                errors.append(f"Not idempotent: line count {len(lines1)} vs {len(lines2)}")
+        if rc2 != 0:
+            errors.append(f"Second format crashed (exit {rc2})")
+        elif formatted2_bytes != formatted_bytes:
+            lines1 = formatted_text.split('\n')
+            lines2 = formatted2_bytes.decode('utf-8', errors='replace').split('\n')
+            for i, (l1, l2) in enumerate(zip(lines1, lines2)):
+                if l1 != l2:
+                    errors.append(f"Not idempotent at line {i+1}: '{l1[:80]}' -> '{l2[:80]}'")
+                    break
+            else:
+                if len(lines1) != len(lines2):
+                    errors.append(f"Not idempotent: line count {len(lines1)} vs {len(lines2)}")
 
     return len(errors) == 0, errors, formatted_bytes
 
 
-def test_file_with_width(compiler, filepath, line_width, validate=False):
+def test_file_with_width(compiler, filepath, line_width, validate=False, check_idem=True):
     """Test a single file for comment preservation and idempotency with --line-width.
     Optionally validates syntax of formatted output using LSP.
     Returns (ok: bool, errors: list[str])."""
@@ -276,31 +319,33 @@ def test_file_with_width(compiler, filepath, line_width, validate=False):
     if not blank_ok:
         errors.append(f"[width={line_width}] Blank line separators lost: {blank_lost} (original: {orig_gaps}, formatted: {fmt_gaps})")
 
-    # Idempotency check: format the output again with same width
-    with tempfile.NamedTemporaryFile(suffix='.oc', delete=False) as tmp:
-        tmp.write(formatted_bytes)
-        tmp_path = tmp.name
+    # Idempotency check: skip if output is identical to input (trivially idempotent)
+    if check_idem and formatted_bytes != original_bytes:
+        with tempfile.NamedTemporaryFile(suffix='.oc', delete=False) as tmp:
+            tmp.write(formatted_bytes)
+            tmp_path = tmp.name
 
-    try:
-        formatted2_bytes, rc2 = run_format(compiler, tmp_path, line_width=line_width)
-    finally:
-        os.unlink(tmp_path)
+        try:
+            formatted2_bytes, rc2 = run_format(compiler, tmp_path, line_width=line_width,
+                                               logical_path=filepath, run_label="idem")
+        finally:
+            os.unlink(tmp_path)
 
-    if rc2 != 0:
-        errors.append(f"[width={line_width}] Second format crashed (exit {rc2})")
-    elif formatted2_bytes != formatted_bytes:
-        lines1 = formatted_text.split('\n')
-        lines2 = formatted2_bytes.decode('utf-8', errors='replace').split('\n')
-        for i, (l1, l2) in enumerate(zip(lines1, lines2)):
-            if l1 != l2:
-                errors.append(f"[width={line_width}] Not idempotent at line {i+1}: '{l1[:80]}' -> '{l2[:80]}'")
-                break
-        else:
-            if len(lines1) != len(lines2):
-                errors.append(f"[width={line_width}] Not idempotent: line count {len(lines1)} vs {len(lines2)}")
+        if rc2 != 0:
+            errors.append(f"[width={line_width}] Second format crashed (exit {rc2})")
+        elif formatted2_bytes != formatted_bytes:
+            lines1 = formatted_text.split('\n')
+            lines2 = formatted2_bytes.decode('utf-8', errors='replace').split('\n')
+            for i, (l1, l2) in enumerate(zip(lines1, lines2)):
+                if l1 != l2:
+                    errors.append(f"[width={line_width}] Not idempotent at line {i+1}: '{l1[:80]}' -> '{l2[:80]}'")
+                    break
+            else:
+                if len(lines1) != len(lines2):
+                    errors.append(f"[width={line_width}] Not idempotent: line count {len(lines1)} vs {len(lines2)}")
 
-    # Syntax validation: check the formatted output for compilation issues
-    if validate and len(errors) == 0:
+    # Syntax validation: skip if output matches input (original is known-valid)
+    if validate and len(errors) == 0 and formatted_bytes != original_bytes:
         # Use the original filepath as --show-path so the LSP resolves imports correctly
         rel = filepath.relative_to(ROOT)
         val_ok, val_errs = run_validate(compiler, formatted_bytes, f"./{rel}")
@@ -334,7 +379,7 @@ def pick_ranges(total_lines):
     return ranges
 
 
-def test_range_on_formatted(compiler, formatted_bytes, start, end):
+def test_range_on_formatted(compiler, formatted_bytes, start, end, logical_path=None):
     """Test range formatting on an already-formatted file.
     Since the file is already formatted, range-formatting any region should
     produce identical output (idempotency). Also checks comment preservation.
@@ -348,7 +393,8 @@ def test_range_on_formatted(compiler, formatted_bytes, start, end):
 
     try:
         range_spec = f"{start}:{end}"
-        range_bytes, rc = run_format(compiler, tmp_path, range_spec=range_spec)
+        range_bytes, rc = run_format(compiler, tmp_path, range_spec=range_spec,
+                                     logical_path=logical_path)
     finally:
         os.unlink(tmp_path)
 
@@ -450,7 +496,21 @@ def progress(i, total, msg):
         sys.stdout.flush()
 
 
+def tick_progress(msg=""):
+    """Thread-safe progress update."""
+    global _progress_count
+    with _progress_lock:
+        _progress_count += 1
+        count = _progress_count
+        total = _progress_total
+    if sys.stdout.isatty():
+        sys.stdout.write(f"\r\033[2K[{count}/{total}] {msg[:70]:<70}")
+        sys.stdout.flush()
+
+
 def main():
+    global _progress_count, _progress_total
+
     parser = argparse.ArgumentParser(
         description="Codebase format tests: idempotency, comment preservation, and range formatting"
     )
@@ -467,10 +527,22 @@ def main():
         help="Number of files to spot-check with range formatting (default: 30)"
     )
     parser.add_argument(
+        "-j", "--jobs", type=int, default=0,
+        help="Number of parallel workers (default: cpu_count)"
+    )
+    parser.add_argument(
+        "--timings", action="store_true",
+        help="Show benchmark timing breakdown (format/validate)"
+    )
+    parser.add_argument(
         "dirs", nargs="*", default=["tests", "std", "compiler"],
         help="Directories to test (default: tests std compiler)"
     )
     args = parser.parse_args()
+
+    # control whether we record/print timing breakdowns
+    global SHOW_TIMINGS
+    SHOW_TIMINGS = args.timings
 
     compiler = args.compiler
     if not Path(compiler).exists():
@@ -478,113 +550,193 @@ def main():
         print("Build it first: ocen compiler/main.oc -o ./build/ocen", file=sys.stderr)
         sys.exit(1)
 
+    max_workers = args.jobs if args.jobs > 0 else max((os.cpu_count() or 4) * 3 // 2, 4)
+
     print(f"Finding .oc files in: {', '.join(args.dirs)}")
     files = find_oc_files(args.dirs)
-    print(f"Found {len(files)} files to test\n")
 
-    # ── Phase 1: Full-format tests (idempotency + comment preservation + blank lines) ──
+    # Pre-compute Phase 3 file list (independent of Phase 1)
+    LINE_WIDTHS = [40, 80]
+    WIDTH_DIRS = ["compiler", "std"]
+    width_files = find_oc_files(WIDTH_DIRS)
+    width_tasks = [(f, lw) for f in width_files for lw in LINE_WIDTHS]
+
+    print(f"Found {len(files)} files to test (workers: {max_workers})\n")
+
+    # ── Phase 1+2: Run full-format and line-width tests concurrently ──
     print("Phase 1: Full-format tests (idempotency + comment preservation + blank lines)")
+    print(f"Phase 2: Line-width tests (widths: {LINE_WIDTHS}, dirs: {WIDTH_DIRS})")
+    phase13_t0 = time.perf_counter()
+
     full_failures = []
     formatted_cache = {}  # filepath -> formatted_bytes (for Phase 2)
-    for i, f in enumerate(files):
+    width_failures = []
+    width_checks = len(width_tasks)
+
+    _progress_count = 0
+    _progress_total = len(files) + len(width_tasks)
+
+    # Skip idempotency for tests/ files — their purpose here is crash/comment testing.
+    # Idempotency is thoroughly tested via tests/format/ in the unit test suite.
+    tests_dir = ROOT / 'tests'
+
+    def _phase1_task(f):
         rel = f.relative_to(ROOT)
-        progress(i + 1, len(files), str(rel))
+        idem = not f.is_relative_to(tests_dir)
         ok, errs, formatted_bytes = test_file(compiler, f)
-        if formatted_bytes is not None:
-            formatted_cache[f] = formatted_bytes
-        if not ok:
-            full_failures.append((rel, errs))
+        tick_progress(str(rel))
+        return ('p1', f, rel, ok, errs, formatted_bytes)
+
+    # Only validate compiler/ and std/ files
+    compiler_dir = ROOT / 'compiler'
+    std_dir = ROOT / 'std'
+
+    def _phase2_task(task):
+        f, lw = task
+        rel = f.relative_to(ROOT)
+        is_compiler = f.is_relative_to(compiler_dir)
+        is_std = f.is_relative_to(std_dir)
+        ok, errs = test_file_with_width(compiler, f, lw,
+                                        validate=is_compiler or is_std)
+        tick_progress(f"{rel} [width={lw}]")
+        return ('p2', None, rel, ok, errs, None)
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = []
+        for f in files:
+            futures.append(executor.submit(_phase1_task, f))
+        for t in width_tasks:
+            futures.append(executor.submit(_phase2_task, t))
+        for future in as_completed(futures):
+            tag, f, rel, ok, errs, formatted_bytes = future.result()
+            if tag == 'p1':
+                if formatted_bytes is not None:
+                    formatted_cache[f] = formatted_bytes
+                if not ok:
+                    full_failures.append((rel, errs))
+            else:  # p2
+                if not ok:
+                    width_failures.append((rel, errs))
 
     if sys.stdout.isatty():
         sys.stdout.write("\r\033[2K")
 
+    phase12_elapsed = time.perf_counter() - phase13_t0
     if full_failures:
-        print(f"  FAILED: {len(full_failures)} files")
+        print(f"  Phase 1 FAILED: {len(full_failures)} files  ({phase12_elapsed:.1f}s)")
         for rel, errs in full_failures:
             for e in errs:
                 print(f"    {rel}: {e}")
     else:
-        print(f"  All {len(files)} files OK")
+        print(f"  Phase 1: All {len(files)} files OK  ({phase12_elapsed:.1f}s)")
 
-    # ── Phase 2: Range format spot-checks (idempotency + diff) ──
-    print(f"\nPhase 2: Range format spot-checks (idempotency + diff)")
+    if width_failures:
+        print(f"  Phase 2 FAILED: {len(width_failures)} width checks  ({phase12_elapsed:.1f}s)")
+        for rel, errs in width_failures:
+            for e in errs:
+                print(f"    {rel}: {e}")
+    else:
+        print(f"  Phase 2: All {width_checks} width checks OK  ({phase12_elapsed:.1f}s)")
+
+    # ── Phase 3: Range format spot-checks (idempotency + diff) ──
+    print(f"\nPhase 3: Range format spot-checks (idempotency + diff)")
+    phase2_t0 = time.perf_counter()
 
     # Select files for range testing from successfully-formatted files
     rng = random.Random(args.seed)
-    candidates = [f for f in formatted_cache if f.stat().st_size > 200]
+    candidates = sorted([f for f in formatted_cache if f.stat().st_size > 200])
     rng.shuffle(candidates)
     range_files = candidates[:args.num_range_files]
 
-    range_failures = []
-    total_range_checks = 0
-    total_diff_checks = 0
-    for i, f in enumerate(range_files):
+    # Build all range tasks upfront
+    range_tasks = []   # (f, rel, start, end, 'range'|'diff')
+    for f in range_files:
         rel = f.relative_to(ROOT)
         formatted_bytes = formatted_cache[f]
         total_lines = formatted_bytes.decode('utf-8', errors='replace').count('\n')
         ranges = pick_ranges(total_lines)
         for start, end in ranges:
-            total_range_checks += 1
-            progress(total_range_checks, len(range_files) * 3, f"{rel} [{start}:{end}]")
+            range_tasks.append((f, rel, start, end, 'range'))
 
-            # Check 1: range-format the already-formatted file → should be no-op
-            ok, errs = test_range_on_formatted(compiler, formatted_bytes, start, end)
-            if not ok:
-                range_failures.append((rel, start, end, errs))
-
-        # Check 2: range-format the original → lines outside range must be preserved
-        # Use ranges computed from the original file's line count (may differ from formatted)
         original_bytes = f.read_bytes()
         orig_total_lines = original_bytes.decode('utf-8', errors='replace').count('\n')
         orig_ranges = pick_ranges(orig_total_lines)
         for start, end in orig_ranges:
-            total_diff_checks += 1
-            progress(total_diff_checks, len(range_files) * 3, f"{rel} [{start}:{end}] diff")
+            range_tasks.append((f, rel, start, end, 'diff'))
 
-            ok2, errs2 = test_range_preserves_outside(compiler, f, start, end)
-            if not ok2:
-                range_failures.append((rel, start, end, errs2))
+    _progress_count = 0
+    _progress_total = len(range_tasks)
+
+    range_failures = []
+    total_range_checks = 0
+    total_diff_checks = 0
+
+    def _phase3_task(task):
+        f, rel, start, end, kind = task
+        if kind == 'range':
+            ok, errs = test_range_on_formatted(compiler, formatted_cache[f], start, end,
+                                               logical_path=f)
+        else:
+            ok, errs = test_range_preserves_outside(compiler, f, start, end)
+        tick_progress(f"{rel} [{start}:{end}] {kind}")
+        return rel, start, end, kind, ok, errs
+
+    with ThreadPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(_phase3_task, t) for t in range_tasks]
+        for future in as_completed(futures):
+            rel, start, end, kind, ok, errs = future.result()
+            if kind == 'range':
+                total_range_checks += 1
+            else:
+                total_diff_checks += 1
+            if not ok:
+                range_failures.append((rel, start, end, errs))
 
     if sys.stdout.isatty():
         sys.stdout.write("\r\033[2K")
 
+    phase2_elapsed = time.perf_counter() - phase2_t0
     if range_failures:
-        print(f"  FAILED: {len(range_failures)} range/diff checks")
+        print(f"  FAILED: {len(range_failures)} range/diff checks  ({phase2_elapsed:.1f}s)")
         for rel, start, end, errs in range_failures:
             for e in errs:
                 print(f"    {rel}: {e}")
     else:
-        print(f"  All {total_range_checks} range + {total_diff_checks} diff checks OK")
+        print(f"  All {total_range_checks} range + {total_diff_checks} diff checks OK  ({phase2_elapsed:.1f}s)")
 
-    # ── Phase 3: Line-width tests (comment preservation + idempotency + validation) ──
-    # Only run on compiler/ and std/ dirs (skip tests/ — too many small files)
-    LINE_WIDTHS = [40, 80]
-    WIDTH_DIRS = ["compiler", "std"]
-    print(f"\nPhase 3: Line-width tests (widths: {LINE_WIDTHS}, dirs: {WIDTH_DIRS})")
+    # ── Benchmark report: top 20 slowest configs ──
+    if args.timings and (_timings or _validate_timings):
+        print()
+        print("Benchmark: top 20 slowest format invocations")
+        sorted_timings = sorted(_timings, key=lambda t: t[0], reverse=True)
+        top20 = sorted_timings[:20]
+        if top20:
+            max_file_len = max(len(Path(f).name) for _, f, _ in top20)
+            max_cfg_len  = max(len(c) for _, _, c in top20)
+            print(f"  {'#':>3}  {'ms':>8}  {'config':<{max_cfg_len}}  file")
+            print(f"  {'-'*3}  {'-'*8}  {'-'*max_cfg_len}  {'-'*40}")
+            for rank, (ms, fpath, cfg) in enumerate(top20, 1):
+                rel = str(Path(fpath).relative_to(ROOT)) if fpath.startswith(str(ROOT)) else fpath
+                print(f"  {rank:>3}  {ms:>8.1f}  {cfg:<{max_cfg_len}}  {rel}")
+        print()
+        total_ms = sum(t[0] for t in _timings)
+        print(f"  Format: {total_ms/1000:.2f}s across {len(_timings)} invocations (mean {total_ms/len(_timings):.1f}ms)")
 
-    width_files = find_oc_files(WIDTH_DIRS)
-
-    width_failures = []
-    width_checks = 0
-    for i, f in enumerate(width_files):
-        rel = f.relative_to(ROOT)
-        for lw in LINE_WIDTHS:
-            width_checks += 1
-            progress(width_checks, len(width_files) * len(LINE_WIDTHS), f"{rel} [width={lw}]")
-            ok, errs = test_file_with_width(compiler, f, lw, validate=True)
-            if not ok:
-                width_failures.append((rel, errs))
-
-    if sys.stdout.isatty():
-        sys.stdout.write("\r\033[2K")
-
-    if width_failures:
-        print(f"  FAILED: {len(width_failures)} width checks")
-        for rel, errs in width_failures:
-            for e in errs:
-                print(f"    {rel}: {e}")
-    else:
-        print(f"  All {width_checks} width checks OK")
+        if _validate_timings:
+            print()
+            print("Benchmark: top 20 slowest validate invocations")
+            sorted_vtimings = sorted(_validate_timings, key=lambda t: t[0], reverse=True)
+            top20v = sorted_vtimings[:20]
+            max_vfile_len = max(len(Path(f).name) for _, f in top20v)
+            print(f"  {'#':>3}  {'ms':>8}  file")
+            print(f"  {'-'*3}  {'-'*8}  {'-'*60}")
+            for rank, (ms, fpath) in enumerate(top20v, 1):
+                rel = str(Path(fpath).relative_to(ROOT)) if fpath.startswith(str(ROOT)) else fpath
+                print(f"  {rank:>3}  {ms:>8.1f}  {rel}")
+            print()
+            vtotal_ms = sum(t[0] for t in _validate_timings)
+            print(f"  Validate: {vtotal_ms/1000:.2f}s across {len(_validate_timings)} invocations (mean {vtotal_ms/len(_validate_timings):.1f}ms)")
+            print(f"  Total measured (format+validate): {(total_ms+vtotal_ms)/1000:.2f}s")
 
     # ── Summary ──
     print()

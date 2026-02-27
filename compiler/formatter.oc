@@ -34,6 +34,7 @@ import std::mem
 import std::fs
 import std::{ shift_args }
 import std::sort::{ sort_by }
+import std::libc::{ memset }
 import @ast::nodes::{ * }
 import @ast::program::{ Namespace, Program, CompilerOption }
 import @ast::operators::{ Operator }
@@ -468,8 +469,23 @@ struct CommentState {
 
 //* Save the current comment-tracking state so it can be restored after
 //* a dry-run measurement pass.
+//*
+//* When in_format_str=true (measurement mode), emit_inline_comment and
+//* emit_comments_before are no-ops, so comment_emitted is never modified.
+//* In that case we skip the expensive deep-copy and store null for
+//* emitted_snapshot as a sentinel. restore_comment_state checks for null
+//* and skips the restore loop accordingly.
 def Formatter::save_comment_state(&this): CommentState {
-    // Deep-copy the emitted flags so measurement writes don't corrupt them
+    if .in_format_str {
+        // Fast path: comment state cannot be modified during measurement.
+        return CommentState(
+            comment_index: .comment_index,
+            last_comment_request_line: .last_comment_request_line,
+            cursor_regressions: .cursor_regressions,
+            emitted_snapshot: null,
+        )
+    }
+    // Slow path: deep-copy for non-measurement callers (e.g. capture_collection_item).
     let snapshot = Vector<bool>::new()
     for let i = 0u32; i < .comment_emitted.size; i++ {
         snapshot.push(.comment_emitted.at(i))
@@ -487,8 +503,10 @@ def Formatter::restore_comment_state(&this, state: &CommentState) {
     .comment_index = state.comment_index
     .last_comment_request_line = state.last_comment_request_line
     .cursor_regressions = state.cursor_regressions
-    for let i = 0u32; i < state.emitted_snapshot.size; i++ {
-        .comment_emitted.data[i] = state.emitted_snapshot.at(i)
+    if state.emitted_snapshot? {
+        for let i = 0u32; i < state.emitted_snapshot.size; i++ {
+            .comment_emitted.data[i] = state.emitted_snapshot.at(i)
+        }
     }
 }
 
@@ -533,14 +551,21 @@ def Formatter::note_cursor_regression(&this, kind: str, requested: u32) {
 //* Write raw string to output
 def Formatter::write(&this, s: str) {
     .output += s
-    // Track output lines and columns
-    for let i = 0u32; i < s.len(); i++ {
+    // Optimised column/line tracking: find the last newline (if any) in a
+    // single pass instead of doing a branch + output_col++ on every char.
+    // Common case (no newlines): just add string length to output_col.
+    let len = s.len() as u32
+    let last_nl = -1i32
+    for let i = 0u32; i < len; i++ {
         if s[i] == '\n' {
             .output_line++
-            .output_col = 0
-        } else {
-            .output_col++
+            last_nl = i as i32
         }
+    }
+    if last_nl < 0 {
+        .output_col += len
+    } else {
+        .output_col = len - (last_nl as u32) - 1
     }
 }
 
@@ -563,8 +588,11 @@ def Formatter::pop_indent(&this) {
 //* Write indentation at current level
 def Formatter::write_indent(&this) {
     let spaces = .indent * .options.indent_size
-    for let i = 0u32; i < spaces; i++ {
-        .output += ' '
+    if spaces > 0 {
+        // Use memset for fast space-filling instead of per-char appends.
+        .output.resize_if_necessary(.output.size + spaces)
+        memset(.output.data + .output.size, ' ' as u8, spaces)
+        .output.size += spaces
     }
     .output_col = spaces
 }
@@ -618,12 +646,14 @@ def Formatter::measure_expr(&this, node: &AST): u32 {
     let saved_line = .output_line
     let saved_col = .output_col
     let saved_in_fmt = .in_format_str
+    // Set in_format_str=true BEFORE save_comment_state so it can skip the
+    // expensive deep-copy (emit_* functions are no-ops when in_format_str).
+    .in_format_str = true
     let saved_comments = .save_comment_state()
     let saved_ic_size = .ic_lines.size
     .output = Buffer::make()
     .output_line = 1
     .output_col = 0
-    .in_format_str = true // suppress multi-line inside measurement
     .format_expr(node)
     let width = .output_col
     // For multi-line expressions (e.g. if-then-else with block body),
@@ -655,12 +685,13 @@ def Formatter::measure_statement(&this, node: &AST): u32 {
     let saved_line = .output_line
     let saved_col = .output_col
     let saved_in_fmt = .in_format_str
+    // Set in_format_str=true BEFORE save so the save skips the expensive deep-copy.
+    .in_format_str = true
     let saved_comments = .save_comment_state()
     let saved_ic_size = .ic_lines.size
     .output = Buffer::make()
     .output_line = 1
     .output_col = 0
-    .in_format_str = true
     .format_statement(node)
     let width = .output_col
     // For multi-line statements, use the first line's width.
@@ -684,6 +715,7 @@ def Formatter::measure_statement(&this, node: &AST): u32 {
 }
 
 //* Measure the width of import parts as if formatted on a single line.
+
 def Formatter::measure_import_parts(&this, parts: &Vector<&ImportPart>): u32 {
     let w = 0u32
     for let i = 0u32; i < parts.size; i++ {
@@ -744,27 +776,31 @@ def Formatter::remaining_width(&this): u32 {
 def Formatter::measure_collection(&this, node: &AST, open: str, close: str): u32 {
     let size = .collection_size(node)
     let width = open.len() + close.len()
+    // Set in_format_str=true once before the loop so that:
+    //  (a) save_comment_state uses the fast shallow path (no deep-copy), and
+    //  (b) emit_* are no-ops, meaning comment state never changes between items.
+    // We therefore need only ONE save/restore wrapping the whole loop.
+    let saved_in_fmt = .in_format_str
+    .in_format_str = true
+    let saved_comments = .save_comment_state()
+    let saved_ic_size = .ic_lines.size
     for let i = 0u32; i < size; i++ {
         if i > 0 then width += 2 // ", "
         let saved_output = .output
         let saved_line = .output_line
         let saved_col = .output_col
-        let saved_in_fmt = .in_format_str
-        let saved_comments = .save_comment_state()
-        let saved_ic_size = .ic_lines.size
         .output = Buffer::make()
         .output_line = 1
         .output_col = 0
-        .in_format_str = true
         .format_collection_item(node, i)
         width += .output_col
         .output = saved_output
         .output_line = saved_line
         .output_col = saved_col
-        .in_format_str = saved_in_fmt
-        .restore_comment_state(&saved_comments)
-        .ic_lines.size = saved_ic_size
     }
+    .in_format_str = saved_in_fmt
+    .restore_comment_state(&saved_comments)
+    .ic_lines.size = saved_ic_size
     return width
 }
 
@@ -772,13 +808,16 @@ def Formatter::measure_collection(&this, node: &AST, open: str, close: str): u32
 //* e.g.: (a: u32, b: str, c: bool)
 def Formatter::measure_params(&this, func: &Function): u32 {
     let width = 2u32 // "(" + ")"
+    // Set in_format_str=true once before the loop (same rationale as measure_collection).
+    let saved_in_fmt = .in_format_str
+    .in_format_str = true
+    let saved_comments = .save_comment_state()
+    let saved_ic_size = .ic_lines.size
     for let i = 0u32; i < func.params.size; i++ {
         if i > 0 then width += 2 // ", "
         let saved_output = .output
         let saved_line = .output_line
         let saved_col = .output_col
-        let saved_comments = .save_comment_state()
-        let saved_ic_size = .ic_lines.size
         .output = Buffer::make()
         .output_line = 1
         .output_col = 0
@@ -787,13 +826,14 @@ def Formatter::measure_params(&this, func: &Function): u32 {
         .output = saved_output
         .output_line = saved_line
         .output_col = saved_col
-        .restore_comment_state(&saved_comments)
-        .ic_lines.size = saved_ic_size
     }
     if func.is_variadic {
         if func.params.size > 0 then width += 2 // ", "
         width += 3 // "..."
     }
+    .in_format_str = saved_in_fmt
+    .restore_comment_state(&saved_comments)
+    .ic_lines.size = saved_ic_size
     return width
 }
 
@@ -832,6 +872,8 @@ def Formatter::is_implicit_void_function_type(&this, type: &Type): bool {
 //* When preserve_blanks is true, preserve source blank lines between emitted comments.
 //* Returns end line of the last emitted non-inline comment, or prev_end_line when none.
 def Formatter::emit_comments_before(&this, line: u32, preserve_blanks: bool = false, prev_end_line: u32 = 0): u32 {
+    // During dry-run measurement (in_format_str), don't modify comment state.
+    if .in_format_str then return prev_end_line
     if line < .last_comment_request_line {
         .note_cursor_regression("before", line)
     }
@@ -861,6 +903,8 @@ def Formatter::emit_comments_before(&this, line: u32, preserve_blanks: bool = fa
 
 //* Emit any inline comment on the given line
 def Formatter::emit_inline_comment(&this, line: u32) {
+    // During dry-run measurement (in_format_str), don't modify comment state.
+    if .in_format_str then return
     if line < .last_comment_request_line {
         .note_cursor_regression("inline", line)
         // Backward scan: search for un-emitted inline comments on this line
