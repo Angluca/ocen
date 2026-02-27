@@ -9,6 +9,9 @@ Runs the formatter on all .oc files in the given directories and checks:
      various regions and verify:
      a. All comments are still preserved
      b. The output is unchanged (range-formatting an already-formatted file is a no-op)
+     c. Lines outside the range are preserved exactly (prefix/suffix match)
+  4. Line-width tests (compiler/ and std/ only): format with widths [40, 80] and check
+     idempotency, comment preservation, and validate syntax via LSP
 
 Usage:
     python3 meta/codebase_format_test.py [-c COMPILER] [DIRS...]
@@ -30,10 +33,6 @@ ROOT = Path(__file__).resolve().parent.parent
 
 # Directories to skip entirely
 SKIP_DIRS = {"bootstrap", "build", "tmp", "out.dSYM", ".git", "node_modules"}
-
-# Known pre-existing formatter issues (files with known comment or unicode bugs).
-# These are reported as warnings, not failures. Remove entries as bugs are fixed.
-KNOWN_COMMENT_ISSUES = set()
 
 
 def find_oc_files(directories):
@@ -101,6 +100,48 @@ def run_format(compiler, filepath, range_spec=None, line_width=None):
         return None, -2
 
 
+def run_validate(compiler, formatted_bytes, show_path):
+    """Validate formatted output using LSP --validate.
+    Writes formatted_bytes to a temp file, then runs:
+      compiler lsp --validate <tmpfile> --show-path <show_path>
+    Returns (ok: bool, errors: list[str])."""
+    errors = []
+    with tempfile.NamedTemporaryFile(suffix='.oc', delete=False) as tmp:
+        tmp.write(formatted_bytes)
+        tmp_path = tmp.name
+
+    try:
+        cmd = [compiler, "lsp", "--validate", tmp_path, "--show-path", str(show_path)]
+        result = subprocess.run(cmd, capture_output=True, timeout=60)
+        output = result.stdout.decode('utf-8', errors='replace').strip()
+        if output:
+            import json
+            for line in output.split('\n'):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    diag = json.loads(line)
+                    if diag.get("severity") == "Error":
+                        msg = diag.get("message", "")
+                        # "Must yield a value in this branch, body type is Block"
+                        # indicates the formatter produced invalid expression blocks
+                        if "Must yield a value" in msg and "Block" in msg:
+                            span = diag.get("span", {})
+                            loc = f"line {span.get('start_line', '?')}"
+                            errors.append(f"Validation error at {loc}: {msg}")
+                except json.JSONDecodeError:
+                    pass
+    except subprocess.TimeoutExpired:
+        pass  # Skip validation on timeout
+    except Exception:
+        pass  # Skip validation on error
+    finally:
+        os.unlink(tmp_path)
+
+    return len(errors) == 0, errors
+
+
 def check_comments(original_text, formatted_text):
     """Check that all comments from original are present in formatted output.
     Returns (ok, missing_comments)."""
@@ -108,6 +149,50 @@ def check_comments(original_text, formatted_text):
     fmt = Counter(extract_comment_texts(formatted_text))
     missing = orig - fmt
     return len(missing) == 0, list(missing.elements())
+
+
+def count_blank_line_gaps(text):
+    """Count the number of blank line separator groups in the text.
+
+    A gap is one or more consecutive blank lines between non-blank content.
+    Leading/trailing blank lines are ignored.
+
+    Returns the count of gap groups."""
+    lines = text.split('\n')
+    # Strip leading blank lines
+    while lines and lines[0].strip() == '':
+        lines.pop(0)
+    # Strip trailing blank lines
+    while lines and lines[-1].strip() == '':
+        lines.pop()
+
+    gaps = 0
+    in_gap = False
+    for line in lines:
+        if line.strip() == '':
+            if not in_gap:
+                gaps += 1
+                in_gap = True
+        else:
+            in_gap = False
+    return gaps
+
+
+def check_blank_line_preservation(original_text, formatted_text):
+    """Check that blank line separators from the original are preserved.
+
+    If there was a blank line (or multiple) between two sections of code
+    in the original, there should still be at least one blank line between
+    them in the formatted output.
+
+    Returns (ok, lost_count, orig_gaps, fmt_gaps)."""
+    orig_gaps = count_blank_line_gaps(original_text)
+    fmt_gaps = count_blank_line_gaps(formatted_text)
+
+    lost = orig_gaps - fmt_gaps
+    if lost > 0:
+        return False, lost, orig_gaps, fmt_gaps
+    return True, 0, orig_gaps, fmt_gaps
 
 
 def test_file(compiler, filepath):
@@ -131,6 +216,11 @@ def test_file(compiler, filepath):
     if not comments_ok:
         msgs = [f"  missing: {c}" for c in missing[:5]]
         errors.append("Comments lost:\n" + "\n".join(msgs))
+
+    # Blank line preservation check
+    blank_ok, blank_lost, orig_gaps, fmt_gaps = check_blank_line_preservation(original_text, formatted_text)
+    if not blank_ok:
+        errors.append(f"Blank line separators lost: {blank_lost} (original: {orig_gaps}, formatted: {fmt_gaps})")
 
     # Idempotency check: format the output again
     with tempfile.NamedTemporaryFile(suffix='.oc', delete=False) as tmp:
@@ -158,8 +248,9 @@ def test_file(compiler, filepath):
     return len(errors) == 0, errors, formatted_bytes
 
 
-def test_file_with_width(compiler, filepath, line_width):
+def test_file_with_width(compiler, filepath, line_width, validate=False):
     """Test a single file for comment preservation and idempotency with --line-width.
+    Optionally validates syntax of formatted output using LSP.
     Returns (ok: bool, errors: list[str])."""
     errors = []
 
@@ -179,6 +270,11 @@ def test_file_with_width(compiler, filepath, line_width):
     if not comments_ok:
         msgs = [f"  missing: {c}" for c in missing[:5]]
         errors.append(f"[width={line_width}] Comments lost:\n" + "\n".join(msgs))
+
+    # Blank line preservation check
+    blank_ok, blank_lost, orig_gaps, fmt_gaps = check_blank_line_preservation(original_text, formatted_text)
+    if not blank_ok:
+        errors.append(f"[width={line_width}] Blank line separators lost: {blank_lost} (original: {orig_gaps}, formatted: {fmt_gaps})")
 
     # Idempotency check: format the output again with same width
     with tempfile.NamedTemporaryFile(suffix='.oc', delete=False) as tmp:
@@ -202,6 +298,15 @@ def test_file_with_width(compiler, filepath, line_width):
         else:
             if len(lines1) != len(lines2):
                 errors.append(f"[width={line_width}] Not idempotent: line count {len(lines1)} vs {len(lines2)}")
+
+    # Syntax validation: check the formatted output for compilation issues
+    if validate and len(errors) == 0:
+        # Use the original filepath as --show-path so the LSP resolves imports correctly
+        rel = filepath.relative_to(ROOT)
+        val_ok, val_errs = run_validate(compiler, formatted_bytes, f"./{rel}")
+        if not val_ok:
+            for e in val_errs:
+                errors.append(f"[width={line_width}] {e}")
 
     return len(errors) == 0, errors
 
@@ -377,10 +482,9 @@ def main():
     files = find_oc_files(args.dirs)
     print(f"Found {len(files)} files to test\n")
 
-    # ── Phase 1: Full-format tests (idempotency + comment preservation) ──
-    print("Phase 1: Full-format tests (idempotency + comment preservation)")
+    # ── Phase 1: Full-format tests (idempotency + comment preservation + blank lines) ──
+    print("Phase 1: Full-format tests (idempotency + comment preservation + blank lines)")
     full_failures = []
-    known_warnings = []
     formatted_cache = {}  # filepath -> formatted_bytes (for Phase 2)
     for i, f in enumerate(files):
         rel = f.relative_to(ROOT)
@@ -389,10 +493,7 @@ def main():
         if formatted_bytes is not None:
             formatted_cache[f] = formatted_bytes
         if not ok:
-            if str(rel) in KNOWN_COMMENT_ISSUES:
-                known_warnings.append((rel, errs))
-            else:
-                full_failures.append((rel, errs))
+            full_failures.append((rel, errs))
 
     if sys.stdout.isatty():
         sys.stdout.write("\r\033[2K")
@@ -403,14 +504,10 @@ def main():
             for e in errs:
                 print(f"    {rel}: {e}")
     else:
-        print(f"  All {len(files)} files OK (excl. {len(known_warnings)} known issues)")
-    if known_warnings:
-        print(f"  Known issues ({len(known_warnings)} files):")
-        for rel, errs in known_warnings:
-            print(f"    {rel}: {errs[0].split(chr(10))[0]}")
+        print(f"  All {len(files)} files OK")
 
-    # ── Phase 2: Range format spot-checks (idempotency on formatted files) ──
-    print(f"\nPhase 2: Range format spot-checks (idempotency)")
+    # ── Phase 2: Range format spot-checks (idempotency + diff) ──
+    print(f"\nPhase 2: Range format spot-checks (idempotency + diff)")
 
     # Select files for range testing from successfully-formatted files
     rng = random.Random(args.seed)
@@ -419,86 +516,64 @@ def main():
     range_files = candidates[:args.num_range_files]
 
     range_failures = []
-    range_known = []
-    total_checks = 0
+    total_range_checks = 0
+    total_diff_checks = 0
     for i, f in enumerate(range_files):
         rel = f.relative_to(ROOT)
         formatted_bytes = formatted_cache[f]
         total_lines = formatted_bytes.decode('utf-8', errors='replace').count('\n')
         ranges = pick_ranges(total_lines)
         for start, end in ranges:
-            total_checks += 1
-            progress(total_checks, len(range_files) * 3, f"{rel} [{start}:{end}]")
+            total_range_checks += 1
+            progress(total_range_checks, len(range_files) * 3, f"{rel} [{start}:{end}]")
+
+            # Check 1: range-format the already-formatted file → should be no-op
             ok, errs = test_range_on_formatted(compiler, formatted_bytes, start, end)
             if not ok:
-                if str(rel) in KNOWN_COMMENT_ISSUES:
-                    range_known.append((rel, start, end, errs))
-                else:
-                    range_failures.append((rel, start, end, errs))
+                range_failures.append((rel, start, end, errs))
+
+        # Check 2: range-format the original → lines outside range must be preserved
+        # Use ranges computed from the original file's line count (may differ from formatted)
+        original_bytes = f.read_bytes()
+        orig_total_lines = original_bytes.decode('utf-8', errors='replace').count('\n')
+        orig_ranges = pick_ranges(orig_total_lines)
+        for start, end in orig_ranges:
+            total_diff_checks += 1
+            progress(total_diff_checks, len(range_files) * 3, f"{rel} [{start}:{end}] diff")
+
+            ok2, errs2 = test_range_preserves_outside(compiler, f, start, end)
+            if not ok2:
+                range_failures.append((rel, start, end, errs2))
 
     if sys.stdout.isatty():
         sys.stdout.write("\r\033[2K")
 
     if range_failures:
-        print(f"  FAILED: {len(range_failures)} range checks")
+        print(f"  FAILED: {len(range_failures)} range/diff checks")
         for rel, start, end, errs in range_failures:
             for e in errs:
                 print(f"    {rel}: {e}")
     else:
-        print(f"  All {total_checks} range checks OK (excl. {len(range_known)} known issues)")
+        print(f"  All {total_range_checks} range + {total_diff_checks} diff checks OK")
 
-    # ── Phase 3: Range format diff-based checks (only range lines change) ──
-    print(f"\nPhase 3: Range format diff-based checks (only range lines change)")
+    # ── Phase 3: Line-width tests (comment preservation + idempotency + validation) ──
+    # Only run on compiler/ and std/ dirs (skip tests/ — too many small files)
+    LINE_WIDTHS = [40, 80]
+    WIDTH_DIRS = ["compiler", "std"]
+    print(f"\nPhase 3: Line-width tests (widths: {LINE_WIDTHS}, dirs: {WIDTH_DIRS})")
 
-    # For each file, range-format the ORIGINAL content and verify that lines
-    # outside [start, end] are preserved exactly (prefix and suffix match).
-    diff_failures = []
-    diff_known = []
-    diff_checks = 0
-    for i, f in enumerate(range_files):
-        rel = f.relative_to(ROOT)
-        original_bytes = f.read_bytes()
-        total_lines = original_bytes.decode('utf-8', errors='replace').count('\n')
-        ranges = pick_ranges(total_lines)
-        for start, end in ranges:
-            diff_checks += 1
-            progress(diff_checks, len(range_files) * 3, f"{rel} [{start}:{end}]")
-            ok, errs = test_range_preserves_outside(compiler, f, start, end)
-            if not ok:
-                if str(rel) in KNOWN_COMMENT_ISSUES:
-                    diff_known.append((rel, start, end, errs))
-                else:
-                    diff_failures.append((rel, start, end, errs))
-
-    if sys.stdout.isatty():
-        sys.stdout.write("\r\033[2K")
-
-    if diff_failures:
-        print(f"  FAILED: {len(diff_failures)} diff checks")
-        for rel, start, end, errs in diff_failures:
-            for e in errs:
-                print(f"    {rel}: {e}")
-    else:
-        print(f"  All {diff_checks} diff checks OK (excl. {len(diff_known)} known issues)")
-
-    # ── Phase 4: Line-width tests (comment preservation + idempotency) ──
-    LINE_WIDTHS = [80, 120]
-    print(f"\nPhase 4: Line-width tests (widths: {LINE_WIDTHS})")
+    width_files = find_oc_files(WIDTH_DIRS)
 
     width_failures = []
-    width_known = []
     width_checks = 0
-    for i, f in enumerate(files):
+    for i, f in enumerate(width_files):
         rel = f.relative_to(ROOT)
         for lw in LINE_WIDTHS:
             width_checks += 1
-            progress(width_checks, len(files) * len(LINE_WIDTHS), f"{rel} [width={lw}]")
-            ok, errs = test_file_with_width(compiler, f, lw)
+            progress(width_checks, len(width_files) * len(LINE_WIDTHS), f"{rel} [width={lw}]")
+            ok, errs = test_file_with_width(compiler, f, lw, validate=True)
             if not ok:
-                if str(rel) in KNOWN_COMMENT_ISSUES:
-                    width_known.append((rel, errs))
-                else:
-                    width_failures.append((rel, errs))
+                width_failures.append((rel, errs))
 
     if sys.stdout.isatty():
         sys.stdout.write("\r\033[2K")
@@ -509,16 +584,16 @@ def main():
             for e in errs:
                 print(f"    {rel}: {e}")
     else:
-        print(f"  All {width_checks} width checks OK (excl. {len(width_known)} known issues)")
+        print(f"  All {width_checks} width checks OK")
 
     # ── Summary ──
     print()
-    total_fail = len(full_failures) + len(range_failures) + len(diff_failures) + len(width_failures)
+    total_fail = len(full_failures) + len(range_failures) + len(width_failures)
     if total_fail > 0:
         print(f"FAILED: {total_fail} issues found")
         sys.exit(1)
     else:
-        print(f"All codebase format tests passed ({len(files)} full + {total_checks} range + {diff_checks} diff + {width_checks} width checks)")
+        print(f"All codebase format tests passed ({len(files)} full + {total_range_checks} range + {total_diff_checks} diff + {width_checks} width checks)")
         sys.exit(0)
 
 

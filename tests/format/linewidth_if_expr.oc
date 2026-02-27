@@ -1,0 +1,9 @@
+/// format: --line-width 40
+
+// If-then-else used as expression should never be converted to block form
+def foo(): i32 {
+    let x = if true then 1 else 2
+    let samples_per_pixel = if (100 + 100 + 100 > 2) then 1 else 2
+    let y = if some_long_cond then some_long_val else other_long_val
+    return x + y + samples_per_pixel
+}

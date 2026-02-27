@@ -1,0 +1,11 @@
+/// format: --line-width 30
+
+// Match case body reflow: when a non-breakable body doesn't fit on the
+// same line as '=>', it should break to the next line with continuation indent
+def foo(x: u32): str {
+    return match x {
+        1 => "very long string value"
+        2 => "short"
+        else => "default"
+    }
+}

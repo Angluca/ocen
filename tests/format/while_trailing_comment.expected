@@ -5,7 +5,7 @@ def cond2(): bool => false
 
 def foo() {
     while cond1() or // trailing comment
-    cond2() {
+        cond2() {
         break
     }
 }

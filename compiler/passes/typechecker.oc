@@ -13,8 +13,15 @@ import @passes::visitor::{ Visitor }
 import @ast::nodes::{ AST, ASTType, Structure, Function, Variable }
 import @ast::operators::{ Operator, OperatorOverload }
 import @ast::nodes::{
-    ImportPart, Import, Argument, MatchCond, MatchCondArg, MatchCase,
-    Enum, EnumVariant, Specialization
+    ImportPart,
+    Import,
+    Argument,
+    MatchCond,
+    MatchCondArg,
+    MatchCase,
+    Enum,
+    EnumVariant,
+    Specialization,
 }
 import @ast::program::{ Program, Namespace, get_deep_copy }
 import @ast::scopes::{ Scope, Symbol, SymbolType, TemplateInstance, ReferenceType, ClosedVariable }
@@ -106,7 +113,7 @@ def TypeChecker::resolve_type(
     old: &Type,
     allow_incomplete: bool = false, // Allow checking types like `Foo<i32, T>` without T being resolved
     error: bool = true,             // Whether to error if the type cannot be resolved
-    resolve_templates: bool = true  // Don't try to resolve the templates, just resolve the base and params
+    resolve_templates: bool = true, // Don't try to resolve the templates, just resolve the base and params
 ): &Type {
 
     // Shorter names for parameters to make recursive calls easier to read
@@ -132,10 +139,13 @@ def TypeChecker::resolve_type(
         }
         Alias => {
             if not old.u.ptr? {
-                .error(Error::new_note(
-                    old.span, "This type does not point to anything",
-                    "Cannot use a typedef for a type when defining any of it's members.\nUse fully qualified type for all field / method definitions."
-                ))
+                .error(
+                    Error::new_note(
+                        old.span,
+                        "This type does not point to anything",
+                        "Cannot use a typedef for a type when defining any of it's members.\nUse fully qualified type for all field / method definitions."
+                    )
+                )
                 return null
             }
             return .resolve_type(old.u.ptr, p_a, p_e, p_r)
@@ -258,8 +268,7 @@ def TypeChecker::resolve_type(
         }
         MapShorthand => {
             if not (.o.program.did_cache_symbols and .o.program.cached_symbols.std_map?) {
-                .error(Error::new(old.span, "Map shorthand not available"
-                ))
+                .error(Error::new(old.span, "Map shorthand not available"))
                 resolved = null
             } else {
                 let std_map = .o.program.cached_symbols.std_map
@@ -274,9 +283,7 @@ def TypeChecker::resolve_type(
                 resolved.u.ptr = res.u.struc.type
             }
         }
-        Structure | Char | Bool | Void | I8 | I16 |
-        I32 | I64 | U8 | U16 | U32 | U64 | F32 | F64 |
-        Enum => {}
+        Structure | Char | Bool | Void | I8 | I16 | I32 | I64 | U8 | U16 | U32 | U64 | F32 | F64 | Enum => {}
 
         else => {
             if error {
@@ -410,7 +417,6 @@ def TypeChecker::resolve_templated_function(&this, func: &Function, instance: &T
     .unchecked_functions.push(resolved_func)
 }
 
-
 def TypeChecker::find_template_instance(&this, template_instances: &Vector<&TemplateInstance>, args: &Vector<&Type>): &Symbol {
     for instance in template_instances.iter() {
         if instance.matches(args) return instance.resolved
@@ -464,7 +470,7 @@ def TypeChecker::resolve_templated_symbol(&this, sym: &Symbol, template_args: &V
             sym.name, // name
             sym.name, // display
             sym.name, // out_name
-            sym.span,
+            sym.span
         )
         cur_sym.u.type_def = arg
         .o.insert_into_scope_checked(cur_sym)
@@ -494,8 +500,13 @@ def TypeChecker::resolve_templated_symbol(&this, sym: &Symbol, template_args: &V
     return new_sym
 }
 
-
-def TypeChecker::resolve_scoped_identifier(&this, node: &AST, error: bool = true, hint: &Type = null, resolve_templates: bool = true): &Symbol {
+def TypeChecker::resolve_scoped_identifier(
+    &this,
+    node: &AST,
+    error: bool = true,
+    hint: &Type = null,
+    resolve_templates: bool = true,
+): &Symbol {
     match node.type {
         ASTType::NSLookup => {
             let lhs_span = node.u.lookup.lhs.span
@@ -617,10 +628,14 @@ def TypeChecker::check_block(&this, node: &AST, is_expr: bool, hint: &Type = nul
 
         if stmt.type != Yield then continue
         if node.etype? {
-            .error(Error::new_hint(
-                stmt.span, "Cannot yield multiple times in a block",
-                yield_span, "Previously yielded here"
-            ))
+            .error(
+                Error::new_hint(
+                    stmt.span,
+                    "Cannot yield multiple times in a block",
+                    yield_span,
+                    "Previously yielded here"
+                )
+            )
         }
         node.etype = stmt.etype
         yield_span = stmt.span
@@ -688,10 +703,14 @@ def TypeChecker::check_union_constructor(&this, node: &AST, params: &Vector<&Var
 
     let arg_type = .check_expression(arg.expr, hint: param.type)
     if arg_type? and not arg_type.eq(param.type) {
-        .error(Error::new_hint(
-            arg.expr.span, f"Expected `{arg.label}` with type {param.type.str()}, but got {arg_type.str()}",
-            param.sym.span, "Parameter defined here"
-        ))
+        .error(
+            Error::new_hint(
+                arg.expr.span,
+                f"Expected `{arg.label}` with type {param.type.str()}, but got {arg_type.str()}",
+                param.sym.span,
+                "Parameter defined here"
+            )
+        )
     }
 }
 
@@ -709,7 +728,6 @@ def TypeChecker::check_constructor(&this, node: &AST): &Type {
         struc.is_union => .check_union_constructor(node, params)
         else => .check_call_args(node, params)
     }
-
 
     return struc.type
 }
@@ -777,13 +795,15 @@ def TypeChecker::check_call_args_labelled(&this, node: &AST, params: &Vector<&Va
 
         let expected_type: &Type = null
         if {
-            not param_item? => .error(Error::new(
-                arg.label_span, f"Unknown labelled argument `{arg.label}`"
-            ))
-            kwarg_item? => .error(Error::new_hint(
-                arg.label_span, f"Duplicate argument for parameter `{arg.label}`",
-                kwarg_item.value.expr.span, "Previously specified here"
-            ))
+            not param_item? => .error(Error::new(arg.label_span, f"Unknown labelled argument `{arg.label}`"))
+            kwarg_item? => .error(
+                Error::new_hint(
+                    arg.label_span,
+                    f"Duplicate argument for parameter `{arg.label}`",
+                    kwarg_item.value.expr.span,
+                    "Previously specified here"
+                )
+            )
             else => {
                 kwargs[arg.label] = arg
                 expected_type = param_item.value.type
@@ -791,10 +811,14 @@ def TypeChecker::check_call_args_labelled(&this, node: &AST, params: &Vector<&Va
         }
         let arg_type = .check_expression(arg.expr, hint: expected_type)
         if arg_type? and expected_type? and not arg_type.eq(expected_type) {
-            .error(Error::new_hint(
-                arg.expr.span, f"Expected `{arg.label}` with type {expected_type.str()}, but got {arg_type.str()}",
-                param_item.value.sym.span, "Parameter defined here"
-            ))
+            .error(
+                Error::new_hint(
+                    arg.expr.span,
+                    f"Expected `{arg.label}` with type {expected_type.str()}, but got {arg_type.str()}",
+                    param_item.value.sym.span,
+                    "Parameter defined here"
+                )
+            )
         }
     }
 
@@ -815,10 +839,14 @@ def TypeChecker::check_call_args_labelled(&this, node: &AST, params: &Vector<&Va
             // we have seen a default arg. In the future, we might want to allow all arguments to
             // be unordered as long as the positional ones are provided somewhere, and in that case
             // this check would be necessary.
-            .error(Error::new_hint(
-                node.u.call.close_paren_span, f"Missing required argument `{param.sym.name}` of type {param.type.str()}",
-                param.sym.span, "Parameter defined here"
-            ))
+            .error(
+                Error::new_hint(
+                    node.u.call.close_paren_span,
+                    f"Missing required argument `{param.sym.name}` of type {param.type.str()}",
+                    param.sym.span,
+                    "Parameter defined here"
+                )
+            )
         }
     }
 
@@ -827,7 +855,6 @@ def TypeChecker::check_call_args_labelled(&this, node: &AST, params: &Vector<&Va
     expected_params.free()
     node.u.call.args = new_args
 }
-
 
 def TypeChecker::check_call_args(&this, node: &AST, params: &Vector<&Variable>, is_variadic: bool = false) {
     let args = node.u.call.args
@@ -842,12 +869,21 @@ def TypeChecker::check_call_args(&this, node: &AST, params: &Vector<&Variable>, 
                 args.push(new_arg)
             } else {
                 if param.sym? {
-                    .error(Error::new_hint(
-                        node.u.call.close_paren_span, f"Missing required argument `{param.sym.name}` of type {param.type.str()}",
-                        param.sym.span, "Parameter defined here"
-                    ))
+                    .error(
+                        Error::new_hint(
+                            node.u.call.close_paren_span,
+                            f"Missing required argument `{param.sym.name}` of type {param.type.str()}",
+                            param.sym.span,
+                            "Parameter defined here"
+                        )
+                    )
                 } else {
-                    .error(Error::new(node.u.call.close_paren_span, `Missing required field {i} of type {param.type.str()}`))
+                    .error(
+                        Error::new(
+                            node.u.call.close_paren_span,
+                            `Missing required field {i} of type {param.type.str()}`
+                        )
+                    )
                 }
             }
             continue
@@ -856,17 +892,15 @@ def TypeChecker::check_call_args(&this, node: &AST, params: &Vector<&Variable>, 
         let arg = args.at(i)
         if arg.label? {
             if {
-                not param.sym? => .error(Error::new(
-                    arg.label_span, "Cannot use a labelled argument for a non-labeled parameter"
-                ))
-                not arg.label.eq(param.sym.name) =>{
+                not param.sym? => .error(
+                    Error::new(arg.label_span, "Cannot use a labelled argument for a non-labeled parameter")
+                )
+                not arg.label.eq(param.sym.name) => {
                     // If we have started looking at the default arguments, we can start allowing
                     // unordered arguments when they are labelled
                     // param.default_value? => {
                     if is_variadic {
-                        .error(Error::new(
-                            arg.label_span, `Variadic functions not allowed with default arguments`,
-                        ))
+                        .error(Error::new(arg.label_span, `Variadic functions not allowed with default arguments`))
                     }
 
                     .check_call_args_labelled(node, params, i)
@@ -883,12 +917,21 @@ def TypeChecker::check_call_args(&this, node: &AST, params: &Vector<&Variable>, 
         }
         if not param.type.can_assign(arg_type) {
             if param.sym? {
-                .error(Error::new_hint(
-                    arg.expr.span, f"Expected `{param.sym.name}` with type {param.type.str()}, but got {arg_type.str()}",
-                    param.sym.span, "Parameter defined here"
-                ))
+                .error(
+                    Error::new_hint(
+                        arg.expr.span,
+                        f"Expected `{param.sym.name}` with type {param.type.str()}, but got {arg_type.str()}",
+                        param.sym.span,
+                        "Parameter defined here"
+                    )
+                )
             } else {
-                .error(Error::new(arg.expr.span, `Expected field {i} with type {param.type.str()}, but got {arg_type.str()}`))
+                .error(
+                    Error::new(
+                        arg.expr.span,
+                        `Expected field {i} with type {param.type.str()}, but got {arg_type.str()}`
+                    )
+                )
             }
         }
     }
@@ -941,6 +984,7 @@ def TypeChecker::check_call(&this, node: &AST, hint: &Type = null): &Type {
                 }
                 false => .o.error_type
             }
+
         }
         else => .check_expression(callee)
     }
@@ -956,11 +1000,10 @@ def TypeChecker::check_call(&this, node: &AST, hint: &Type = null): &Type {
             res = .o.error_type
         }
 
-    // Don't exit quite yet... we need to check the call args
+        // Don't exit quite yet... we need to check the call args
     } else {
         res = .o.error_type
     }
-
 
     // If we have an error, still type-check the arguments, but don't try to
     // compare them against anything.
@@ -993,9 +1036,12 @@ def TypeChecker::check_call(&this, node: &AST, hint: &Type = null): &Type {
         let arg = args.at(params.size - 1).expr
 
         if not param.type.is_str() {
-            .error(Error::new(
-                func.orig.sym.span, "Variadic-format function must have last positional argument of type 'str'"
-            ))
+            .error(
+                Error::new(
+                    func.orig.sym.span,
+                    "Variadic-format function must have last positional argument of type 'str'"
+                )
+            )
         }
         match arg.type {
             StringLiteral | FormatStringLiteral => {}
@@ -1004,9 +1050,7 @@ def TypeChecker::check_call(&this, node: &AST, hint: &Type = null): &Type {
             // check for this). However, if it IS a string, but not a string literal, then we want to
             // complain since printf-like functions require a string literal.
             else => if arg.etype == .get_type_by_name("str", arg.span) {
-                .error(Error::new(
-                    arg.span, "Expected a string literal for variadic-format function"
-                ))
+                .error(Error::new(arg.span, "Expected a string literal for variadic-format function"))
             }
         }
 
@@ -1044,7 +1088,14 @@ def TypeChecker::check_pointer_arith(&this, node: &AST, lhs: &Type, rhs: &Type):
     return null
 }
 
-def TypeChecker::find_and_replace_overloaded_op(&this, op: Operator, node: &AST, arg1: &AST, arg2: &AST, arg3: &AST = null): &Type {
+def TypeChecker::find_and_replace_overloaded_op(
+    &this,
+    op: Operator,
+    node: &AST,
+    arg1: &AST,
+    arg2: &AST,
+    arg3: &AST = null,
+): &Type {
     if op.needs_lhs_pointer_for_overload() {
         // Auto-address for a value if it's not a pointer
         if arg1.is_lvalue() and arg1.etype.base != Pointer {
@@ -1092,16 +1143,17 @@ def TypeChecker::check_binary_op(&this, node: &AST, lhs: &Type, rhs: &Type): &Ty
                 return .check_pointer_arith(node, lhs, rhs)
 
             } else if not lhs.is_numeric() or not rhs.is_numeric() {
-                .error(Error::new(node.span,
-                    f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                ))
+                .error(Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"))
                 return null
 
             } else if not lhs.eq(rhs) {
-                .error(Error::new_note(
-                    node.span, "Operands must be of the same type",
-                    `Got types '{lhs.str()}' and '{rhs.str()}'`
-                ))
+                .error(
+                    Error::new_note(
+                        node.span,
+                        "Operands must be of the same type",
+                        `Got types '{lhs.str()}' and '{rhs.str()}'`
+                    )
+                )
                 return null
             } else {
                 return lhs
@@ -1114,32 +1166,34 @@ def TypeChecker::check_binary_op(&this, node: &AST, lhs: &Type, rhs: &Type): &Ty
                 return null
             }
             if not lhs.is_numeric() or not rhs.is_numeric() {
-                .error(Error::new(node.span,
-                    f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                ))
+                .error(Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"))
                 return null
             }
             if not lhs.eq(rhs) {
-                .error(Error::new_note(
-                    node.span, "Operands must be of the same type",
-                    `Got types '{lhs.str()}' and '{rhs.str()}'`
-                ))
+                .error(
+                    Error::new_note(
+                        node.span,
+                        "Operands must be of the same type",
+                        `Got types '{lhs.str()}' and '{rhs.str()}'`
+                    )
+                )
                 return null
             }
             return lhs
         }
         LessThan | LessThanEquals | GreaterThan | GreaterThanEquals => {
             if not lhs.eq(rhs) {
-                .error(Error::new_note(
-                    node.span, "Operands must be of the same type",
-                    `Got types '{lhs.str()}' and '{rhs.str()}'`
-                ))
+                .error(
+                    Error::new_note(
+                        node.span,
+                        "Operands must be of the same type",
+                        `Got types '{lhs.str()}' and '{rhs.str()}'`
+                    )
+                )
             }
             lhs = lhs.unaliased()
             if not lhs.is_numeric_or_char() and lhs.base != BaseType::Pointer {
-                .error(Error::new(node.span,
-                    f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                ))
+                .error(Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"))
                 return null
             }
             return .get_base_type(BaseType::Bool, node.span)
@@ -1150,7 +1204,9 @@ def TypeChecker::check_binary_op(&this, node: &AST, lhs: &Type, rhs: &Type): &Ty
                 lhs.base == Structure => true
                 lhs.base == Enum => match lhs.u.enom.has_values {
                     true => {
-                        .error(Error::new(node.span, f"Operator `{op}` does not support non-trivial enum `{lhs.str()}`"))
+                        .error(
+                            Error::new(node.span, f"Operator `{op}` does not support non-trivial enum `{lhs.str()}`")
+                        )
                         return .get_base_type(BaseType::Bool, node.span)
                     }
                     false => false
@@ -1158,9 +1214,7 @@ def TypeChecker::check_binary_op(&this, node: &AST, lhs: &Type, rhs: &Type): &Ty
                 else => false
             }
             if is_invalid {
-                .error(Error::new(node.span,
-                    f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                ))
+                .error(Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"))
             }
             return .get_base_type(BaseType::Bool, node.span)
         }
@@ -1181,30 +1235,26 @@ def TypeChecker::check_binary_op(&this, node: &AST, lhs: &Type, rhs: &Type): &Ty
                         *node = *AST::new_unop(Not, node.span, copy)
                         .check_expression(node)
                     }
-                    lhs.base == Enum => .error(Error::new(
-                        node.span, f"Operator `{op}` does not support non-trivial enum `{lhs.str()}`"
-                    ))
-                    else => .error(Error::new(
-                        node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                    ))
+                    lhs.base == Enum => .error(
+                        Error::new(node.span, f"Operator `{op}` does not support non-trivial enum `{lhs.str()}`")
+                    )
+                    else => .error(
+                        Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`")
+                    )
                 }
             }
             return .get_base_type(BaseType::Bool, node.span)
         }
         And | Or => {
             if not lhs.eq(rhs) or lhs.base != BaseType::Bool {
-                .error(Error::new(node.span,
-                    f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                ))
+                .error(Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"))
                 return null
             }
             return .get_base_type(BaseType::Bool, node.span)
         }
         BitwiseXor => {
             if not lhs.eq(rhs) {
-                .error(Error::new(node.span,
-                    f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                ))
+                .error(Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"))
                 return null
             }
             if lhs.base != BaseType::Bool and not lhs.is_integer() {
@@ -1219,31 +1269,33 @@ def TypeChecker::check_binary_op(&this, node: &AST, lhs: &Type, rhs: &Type): &Ty
                 else => false
             }
             if not valid_type {
-                .error(Error::new(node.span,
-                    f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                ))
+                .error(Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"))
                 return null
             }
             if not lhs.eq(rhs) {
-                .error(Error::new_note(
-                    node.span, "Operands must be of the same type",
-                    `Got types '{lhs.str()}' and '{rhs.str()}'`
-                ))
+                .error(
+                    Error::new_note(
+                        node.span,
+                        "Operands must be of the same type",
+                        `Got types '{lhs.str()}' and '{rhs.str()}'`
+                    )
+                )
             }
             return lhs
         }
         Modulus | LeftShift | RightShift | LeftShiftEquals | RightShiftEquals => {
             if not lhs.is_integer() or not rhs.is_integer() {
-                .error(Error::new(node.span,
-                    f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"
-                ))
+                .error(Error::new(node.span, f"Operator `{op}` does not support `{lhs.str()}` and `{rhs.str()}`"))
                 return null
             }
             if not lhs.eq(rhs) {
-                .error(Error::new_note(
-                    node.span, "Operands must be of the same type",
-                    `Got types '{lhs.str()}' and '{rhs.str()}'`
-                ))
+                .error(
+                    Error::new_note(
+                        node.span,
+                        "Operands must be of the same type",
+                        `Got types '{lhs.str()}' and '{rhs.str()}'`
+                    )
+                )
             }
 
             let lhs_node = node.u.binary.lhs
@@ -1262,19 +1314,18 @@ def TypeChecker::check_binary_op(&this, node: &AST, lhs: &Type, rhs: &Type): &Ty
 }
 
 enum Formattable {
-    No        // Cannot be formatted
-    NotHere   // Only in simple expressions
-    Yes       // Yes
+    No      // Cannot be formatted
+    NotHere // Only in simple expressions
+    Yes     // Yes
 }
 
 def TypeChecker::is_formattable(&this, typ: &Type, expr: &AST): Formattable {
     match typ.base {
-        Bool | Char | I8 | I16 | I32 | I64 | U8 | U16 |
-        U32 | U64 | F32 | F64 | Pointer => {}
+        Bool | Char | I8 | I16 | I32 | I64 | U8 | U16 | U32 | U64 | F32 | F64 | Pointer => {}
         Enum => if {
             typ.u.enom.has_values => return No
             else => return Yes
-        }
+        },
         else => {
             let can_format = false
             if typ.base == Structure {
@@ -1323,13 +1374,15 @@ def TypeChecker::check_format_string(&this, node: &AST): &Type {
         typ = typ.unaliased()
 
         match .is_formattable(typ, expr) {
-            No => .error(Error::new(
-                expr.span, `Type '{typ.str()}' cannot be formatted automatically`
-            ))
-            NotHere => .error(Error::new_note(
-                expr.span, `Can only format {typ.sym.display} in simple expressions`,
-                "Try moving the expression into a variable and formatting that instead"
-            ))
+            No => .error(Error::new(expr.span, `Type '{typ.str()}' cannot be formatted automatically`))
+            NotHere =>
+                .error(
+                    Error::new_note(
+                        expr.span,
+                        `Can only format {typ.sym.display} in simple expressions`,
+                        "Try moving the expression into a variable and formatting that instead"
+                    )
+                )
             else => {}
         }
 
@@ -1338,7 +1391,7 @@ def TypeChecker::check_format_string(&this, node: &AST): &Type {
     return .get_type_by_name("str", node.span)
 }
 
-def TypeChecker::check_member(&this, node: &AST,  is_being_called: bool, is_try: bool, hint: &Type = null): &Type {
+def TypeChecker::check_member(&this, node: &AST, is_being_called: bool, is_try: bool, hint: &Type = null): &Type {
     let lhs = .check_expression(node.u.member.lhs)
     if not lhs? return null
 
@@ -1382,9 +1435,15 @@ def TypeChecker::check_member(&this, node: &AST,  is_being_called: bool, is_try:
     if member_sym? and member_sym.type == Function {
         let func = member_sym.u.func
         if {
-            is_try => .error(Error::new(node.u.member.lhs.span, f"Cannot call method with ?. on it: {func.sym.display}"))
-            not is_being_called => .error(Error::new(node.u.member.lhs.span, f"Cannot access method without calling it"))
-            func.is_static => .error(Error::new(node.u.member.lhs.span, f"Cannot call static method as instance method"))
+            is_try => .error(
+                Error::new(node.u.member.lhs.span, f"Cannot call method with ?. on it: {func.sym.display}")
+            )
+            not is_being_called => .error(
+                Error::new(node.u.member.lhs.span, f"Cannot access method without calling it")
+            )
+            func.is_static => .error(
+                Error::new(node.u.member.lhs.span, f"Cannot call static method as instance method")
+            )
             else => {
                 res = func.type
             }
@@ -1395,14 +1454,11 @@ def TypeChecker::check_member(&this, node: &AST,  is_being_called: bool, is_try:
     if member_sym? {
         .set_resolved_symbol(node, member_sym)
     } else {
-        .error(Error::new(
-            node.span, `Type {lhs.str()} has no member named '{rhs_name}'`
-        ))
+        .error(Error::new(node.span, `Type {lhs.str()} has no member named '{rhs_name}'`))
     }
 
     return res
 }
-
 
 // This is just here so we can use early exits in the actual check_expression
 // function, and still always assign the type to the node's etype field
@@ -1449,9 +1505,12 @@ def TypeChecker::check_assignment(&this, node: &AST, lhs: &Type, rhs: &Type): &T
         .error(Error::new(node.u.binary.lhs.span, "Must be an l-value"))
     }
     if not lhs.can_assign(rhs) {
-        .error(Error::new(
-            node.u.binary.rhs.span, `Variable type does not match assignment type, Expected type '{lhs.str()}', got '{rhs.str()}'`
-        ))
+        .error(
+            Error::new(
+                node.u.binary.rhs.span,
+                `Variable type does not match assignment type, Expected type '{lhs.str()}', got '{rhs.str()}'`
+            )
+        )
     }
     return lhs
 }
@@ -1473,19 +1532,19 @@ def TypeChecker::create_match_for_error_unwrap(&this, node: &AST, expr: &AST, er
                 else => f"Error unwrapping ({expr.span.end})"
             }
 
-            yield f"""
+            yield f"
             match x \{
                 Ok(val) => val,
                 Error(err) => std::panic(`{panic_txt}`)
             \}
-            """
+            "
         }
-        Option => f"""
+        Option => f"
             match x \{
                 Some(val) => val,
                 None => std::panic(`Error unwrapping: None ({expr.span.end})`)
             \}
-            """
+            "
     }
 
     let lexer = Lexer::make(res_text, op_span.start.filename)
@@ -1496,9 +1555,7 @@ def TypeChecker::create_match_for_error_unwrap(&this, node: &AST, expr: &AST, er
     parser.curr = 0
 
     let match_stmt = parser.parse_match()
-    let visitor = Visitor(
-        node_fn: |node: &AST| => node.span = op_span
-    )
+    let visitor = Visitor(node_fn: |node: &AST| => node.span = op_span)
     visitor.visit_po(match_stmt)
 
     match_stmt.u.match_stmt.expr = expr
@@ -1567,9 +1624,7 @@ def TypeChecker::create_match_for_error_prop(&this, node: &AST, expr: &AST, erro
     parser.curr = 0
 
     let match_stmt = parser.parse_match()
-    let visitor = Visitor(
-        node_fn: |node: &AST| => node.span = op_span
-    )
+    let visitor = Visitor(node_fn: |node: &AST| => node.span = op_span)
     visitor.visit_po(match_stmt)
 
     match_stmt.u.match_stmt.expr = expr
@@ -1606,10 +1661,14 @@ def TypeChecker::check_error_prop(&this, node: &AST): &Type {
 
     let ret_type = cur_func.return_type
     if ret_type?.template_instance?.parent != parent {
-        .error(Error::new_hint(
-            node.span, f"Cannot use ! here, expression is {expr_typ.str()} but function returns {ret_type.str()}",
-            cur_func.parsed_return_type.span, f"Function returns {ret_type.str()}"
-        ))
+        .error(
+            Error::new_hint(
+                node.span,
+                f"Cannot use ! here, expression is {expr_typ.str()} but function returns {ret_type.str()}",
+                cur_func.parsed_return_type.span,
+                f"Function returns {ret_type.str()}"
+            )
+        )
         return ok_hint
     }
 
@@ -1618,10 +1677,14 @@ def TypeChecker::check_error_prop(&this, node: &AST): &Type {
             let expr_err_type = expr_typ.template_instance.args.at(1)
             let ret_err_type = ret_type.template_instance.args.at(1)
             if not expr_err_type.eq(ret_err_type) {
-                .error(Error::new_hint(
-                    node.span, f"Cannot propagate error type {expr_err_type.str()}, expected {ret_err_type.str()}",
-                    cur_func.parsed_return_type.span, f"Function returns {ret_type.str()}"
-                ))
+                .error(
+                    Error::new_hint(
+                        node.span,
+                        f"Cannot propagate error type {expr_err_type.str()}, expected {ret_err_type.str()}",
+                        cur_func.parsed_return_type.span,
+                        f"Function returns {ret_type.str()}"
+                    )
+                )
                 return ok_hint
             }
         }
@@ -1779,7 +1842,7 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                 .error(Error::new(node.span, `Unknown unary operator in check_expression: {node.u.unary.op}`))
                 return null
             }
-        }
+        },
 
         ASTType::Member => return .check_member(node, is_being_called: false, is_try: false, hint)
         ASTType::TryMember => return .check_member(node, is_being_called: false, is_try: true, hint)
@@ -1813,7 +1876,9 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                 EnumVariant => {
                     let variant = item.u.enum_var
                     if variant.num_fields() != 0 {
-                        .error(Error::new(node.span, f"{item.display} needs {variant.num_fields()} fields to construct"))
+                        .error(
+                            Error::new(node.span, f"{item.display} needs {variant.num_fields()} fields to construct")
+                        )
                     }
                     return variant.parent.type
                 }
@@ -1840,29 +1905,29 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
             let rhs_node = node.u.binary.rhs
             let op = node.u.binary.op
             match op {
-                Plus |
-                Minus |
-                Multiply |
-                Divide |
-                LessThan |
-                LessThanEquals |
-                GreaterThan |
-                GreaterThanEquals |
-                NotEquals |
-                PlusEquals |
-                MinusEquals |
-                MultiplyEquals |
-                DivideEquals |
-                And |
-                Or |
-                Modulus |
-                BitwiseOr |
-                BitwiseAnd |
-                BitwiseXor |
-                LeftShiftEquals |
-                RightShiftEquals |
-                LeftShift |
-                RightShift => {
+                Plus
+                | Minus
+                | Multiply
+                | Divide
+                | LessThan
+                | LessThanEquals
+                | GreaterThan
+                | GreaterThanEquals
+                | NotEquals
+                | PlusEquals
+                | MinusEquals
+                | MultiplyEquals
+                | DivideEquals
+                | And
+                | Or
+                | Modulus
+                | BitwiseOr
+                | BitwiseAnd
+                | BitwiseXor
+                | LeftShiftEquals
+                | RightShiftEquals
+                | LeftShift
+                | RightShift => {
                     let lhs = .check_expression(lhs_node, hint: hint)
                     let rhs = .check_expression(rhs_node, hint: lhs)
                     if not lhs? or not rhs? return null
@@ -1887,7 +1952,9 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                         Call => {
                             let call = rhs_node.u.call
                             let args_span = call.open_paren_span + call.close_paren_span
-                            .error(Error::new(args_span, f"Can only compare against the variant name here, remove this"))
+                            .error(
+                                Error::new(args_span, f"Can only compare against the variant name here, remove this")
+                            )
                             .check_expression(rhs_node, hint: lhs)
                             return .get_base_type(Bool, node.span)
                         }
@@ -1907,7 +1974,12 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                             return .get_base_type(Bool, node.span)
                         }
                         not rhs_sym.u.enum_var?.parent?.type.eq(lhs) => {
-                            .error(Error::new(rhs_node.span, f"Expected enum variant of type {lhs.str()}, got: {rhs_sym.u.enum_var.parent.type.str()}"))
+                            .error(
+                                Error::new(
+                                    rhs_node.span,
+                                    f"Expected enum variant of type {lhs.str()}, got: {rhs_sym.u.enum_var.parent.type.str()}"
+                                )
+                            )
                             return .get_base_type(Bool, node.span)
                         }
                     }
@@ -1977,8 +2049,7 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                 let ptr = hint.u.ptr
                 if (ptr? and
                     ptr.template_instance? and
-                    ptr.template_instance.parent == std_map
-                ) {
+                    ptr.template_instance.parent == std_map) {
                     assert ptr.template_instance.args.size == 2
                     key_hint_type = ptr.template_instance.args[0]
                     value_hint_type = ptr.template_instance.args[1]
@@ -1996,7 +2067,6 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                 let key = .check_expression(elem.key, hint: key_hint_type)
                 let value = .check_expression(elem.value, hint: value_hint_type)
 
-
                 if not key_type? {
                     key_type = key
                     value_type = value
@@ -2008,16 +2078,24 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
 
                 } else {
                     if key? and not key.eq(key_type) {
-                        .error(Error::new_hint(
-                            elem.key.span, `Expected type {key_type.str()}, but got {key.str()}`,
-                            first_key_span, `First key was of type {key_type.str()}`
-                        ))
+                        .error(
+                            Error::new_hint(
+                                elem.key.span,
+                                `Expected type {key_type.str()}, but got {key.str()}`,
+                                first_key_span,
+                                `First key was of type {key_type.str()}`
+                            )
+                        )
                     }
                     if value? and not value.eq(value_type) {
-                        .error(Error::new_hint(
-                            elem.value.span, `Expected type {value_type.str()}, but got {value.str()}`,
-                            first_value_span, `First value was of type {value_type.str()}`
-                        ))
+                        .error(
+                            Error::new_hint(
+                                elem.value.span,
+                                `Expected type {value_type.str()}, but got {value.str()}`,
+                                first_value_span,
+                                `First value was of type {value_type.str()}`
+                            )
+                        )
                     }
                 }
             }
@@ -2059,8 +2137,7 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                 let ptr = hint.u.ptr
                 if (ptr? and
                     ptr.template_instance? and
-                    ptr.template_instance.parent == std_vector
-                ) {
+                    ptr.template_instance.parent == std_vector) {
                     assert ptr.template_instance.args.size == 1
                     hint_elem_type = ptr.template_instance.args[0]
                 }
@@ -2081,10 +2158,14 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                     first_span = elem.span
 
                 } else if not elem_type.can_assign(typ) {
-                    .error(Error::new_hint(
-                        elem.span, `Expected type {elem_type.str()}, but got {typ.str()}`,
-                        first_span, `First element was of type {elem_type.str()}`
-                    ))
+                    .error(
+                        Error::new_hint(
+                            elem.span,
+                            `Expected type {elem_type.str()}, but got {typ.str()}`,
+                            first_span,
+                            `First element was of type {elem_type.str()}`
+                        )
+                    )
                     return null
                 }
             }
@@ -2134,10 +2215,14 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                     first_span = elem.span
 
                 } else if not elem_type.can_assign(typ) {
-                    .error(Error::new_hint(
-                        elem.span, `Expected type {elem_type.str()}, but got {typ.str()}`,
-                        first_span, `First element was of type {elem_type.str()}`
-                    ))
+                    .error(
+                        Error::new_hint(
+                            elem.span,
+                            `Expected type {elem_type.str()}, but got {typ.str()}`,
+                            first_span,
+                            `First element was of type {elem_type.str()}`
+                        )
+                    )
                     return null
                 }
             }
@@ -2249,7 +2334,9 @@ def TypeChecker::check_expression_helper(&this, node: &AST, hint: &Type): &Type 
                     .error(Error::new(node.span, "Can only use `is` with enum types"))
                 }
                 lhs_type.u.enom.has_values => {
-                    .error(Error::new(node.span, "Can only use `is` with non-trivial enums in an if statement condition"))
+                    .error(
+                        Error::new(node.span, "Can only use `is` with non-trivial enums in an if statement condition")
+                    )
                 }
             }
             mapping.free()
@@ -2294,7 +2381,7 @@ def TypeChecker::check_match_case_enum(
     enom_type: &Type,
     conds: $[&MatchCond],
     mapping: ${str: &MatchCond},
-    current_args: ${str: &Type}  // This is just a cache to avoid excessive allocations
+    current_args: ${str: &Type}, // This is just a cache to avoid excessive allocations
 ) {
     assert enom_type.base == Enum
     let enom = enom_type.u.enom
@@ -2317,18 +2404,22 @@ def TypeChecker::check_match_case_enum(
         let resolved_sym = .resolve_scoped_identifier(expr, error: true, hint: enom_type)
         if not resolved_sym? continue
         if resolved_sym.type != EnumVariant {
-            .error(Error::new(
-                expr.span, f"Expected value enum variant, got {resolved_sym.type} ({resolved_sym.display})",
-            ))
+            .error(
+                Error::new(expr.span, f"Expected value enum variant, got {resolved_sym.type} ({resolved_sym.display})")
+            )
             continue
         }
         let variant = resolved_sym.u.enum_var
 
         if variant.parent != enom {
-            .error(Error::new_hint(
-                expr.span, "Condition does not match expression type",
-                lhs_node.span, `Match expression is of type '{enom.type.str()}'`
-            ))
+            .error(
+                Error::new_hint(
+                    expr.span,
+                    "Condition does not match expression type",
+                    lhs_node.span,
+                    `Match expression is of type '{enom.type.str()}'`
+                )
+            )
         }
         expr.etype = enom_type
 
@@ -2339,7 +2430,6 @@ def TypeChecker::check_match_case_enum(
             if args? {
                 for let j = 0; j < args.size; j += 1 {
                     let arg = args[j]
-
 
                     // TODO: Maybe use a map inside enum to save the linear lookups in get_*_field
 
@@ -2354,12 +2444,8 @@ def TypeChecker::check_match_case_enum(
                         // When the variant has only one field and we've specified only one argument, we're just going to assume that
                         // it's referring to the correct field and treat it as an alias. This is particularly useful for the built-in
                         // Result and Option types
-                        (
-                            args.size == 1
-                            and not arg.alias?
-                            and variant.num_fields() == 1
-                            and enom.shared_fields.size == 0
-                        ) => {
+                        (args.size == 1 and not arg.alias? and variant.num_fields() == 1 and
+                            enom.shared_fields.size == 0) => {
                             let field = variant.specific_fields[0]
                             let var = Variable::new(field.type)
                             var.sym = Symbol::from_local_variable(field.sym.name, var, arg.var.sym.span)
@@ -2368,9 +2454,12 @@ def TypeChecker::check_match_case_enum(
                             yield field
                         }
                         else => {
-                            .error(Error::new(
-                                arg.var.sym.span, f"Field `{arg.var.sym.name}` does not exist in enum variant {variant.sym.display}"
-                            ))
+                            .error(
+                                Error::new(
+                                    arg.var.sym.span,
+                                    f"Field `{arg.var.sym.name}` does not exist in enum variant {variant.sym.display}"
+                                )
+                            )
                             yield null
                         }
                     }
@@ -2383,7 +2472,7 @@ def TypeChecker::check_match_case_enum(
                 }
             }
 
-        // For the rest, check that the fields match the first variant
+            // For the rest, check that the fields match the first variant
         } else {
 
             let found_args = 0
@@ -2402,12 +2491,7 @@ def TypeChecker::check_match_case_enum(
                     // When the variant has only one field and we've specified only one argument, we're just going to assume that
                     // it's referring to the correct field and treat it as an alias. This is particularly useful for the built-in
                     // Result and Option types
-                    (
-                        args.size == 1
-                        and not arg.alias?
-                        and variant.num_fields() == 1
-                        and enom.shared_fields.size == 0
-                    ) => {
+                    (args.size == 1 and not arg.alias? and variant.num_fields() == 1 and enom.shared_fields.size == 0) => {
                         let field = variant.specific_fields[0]
                         let var = Variable::new(field.type)
                         var.sym = Symbol::from_local_variable(field.sym.name, var, arg.var.sym.span)
@@ -2416,9 +2500,7 @@ def TypeChecker::check_match_case_enum(
                         yield field
                     }
                     else => {
-                        .error(Error::new(
-                            arg.var.sym.span, "Field does not exist in enum variant"
-                        ))
+                        .error(Error::new(arg.var.sym.span, "Field does not exist in enum variant"))
                         yield null
                     }
                 }
@@ -2430,34 +2512,34 @@ def TypeChecker::check_match_case_enum(
                 let name = arg.var_or_alias_symbol().name
                 let item = current_args.get_item(name)
                 if not item? {
-                    .error(Error::new(
-                        arg.var.sym.span, "All conditions in this branch must have the same fields"
-                    ))
+                    .error(Error::new(arg.var.sym.span, "All conditions in this branch must have the same fields"))
                     continue
                 }
 
                 found_args += 1
                 if field? and not item.value.eq(field.type) {
-                    .error(Error::new(
-                        arg.var.sym.span, f"Field type does not match previous branch: {item.value.str()}"
-                    ))
+                    .error(
+                        Error::new(arg.var.sym.span, f"Field type does not match previous branch: {item.value.str()}")
+                    )
                     continue
                 }
             }
             if found_args != current_args.size() {
-                .error(Error::new(
-                    expr.span, "All conditions in this branch must have the same fields"
-                ))
+                .error(Error::new(expr.span, "All conditions in this branch must have the same fields"))
             }
         }
 
         name = expr.resolved_symbol.name
         let prev = mapping.get(name, null)
         if prev? {
-            .error(Error::new_hint(
-                expr.span, "Duplicate condition name in match",
-                prev.expr.span, "This condition was previously used here"
-            ))
+            .error(
+                Error::new_hint(
+                    expr.span,
+                    "Duplicate condition name in match",
+                    prev.expr.span,
+                    "This condition was previously used here"
+                )
+            )
         }
         mapping.insert(name, cond)
     }
@@ -2470,18 +2552,11 @@ def TypeChecker::check_match_for_enum(&this, enom: &Enum, node: &AST, is_expr: b
     let cases = node.u.match_stmt.cases
     node.returns = (cases.size > 0)
 
-
     let current_args = Map<str, &Type>::new()
     for _case in cases.iter() {
         let conds = _case.conds
 
-        .check_match_case_enum(
-            lhs_node: node.u.match_stmt.expr,
-            enom_type: enom.type,
-            conds,
-            mapping,
-            current_args
-        )
+        .check_match_case_enum(lhs_node: node.u.match_stmt.expr, enom_type: enom.type, conds, mapping, current_args)
 
         if _case.body? {
             .o.push_scope(Scope::new(.o.scope()))
@@ -2491,7 +2566,7 @@ def TypeChecker::check_match_for_enum(&this, enom: &Enum, node: &AST, is_expr: b
                 .o.insert_into_scope_checked(var.sym)
             }
 
-            .check_expression_statement(node,  _case.body, is_expr, hint)
+            .check_expression_statement(node, _case.body, is_expr, hint)
             .o.pop_scope()
         }
     }
@@ -2509,10 +2584,13 @@ def TypeChecker::check_match_for_enum(&this, enom: &Enum, node: &AST, is_expr: b
             }
         }
         if not defolt? {
-            .error(Error::new_note(
-                node.u.match_stmt.expr.span, f"Match does not cover all cases (Only {mapping.size()} of {enom.variants.size})",
-                buf.str()
-            ))
+            .error(
+                Error::new_note(
+                    node.u.match_stmt.expr.span,
+                    f"Match does not cover all cases (Only {mapping.size()} of {enom.variants.size})",
+                    buf.str()
+                )
+            )
         } else {
             .check_expression_statement(node, defolt, is_expr, hint)
         }
@@ -2536,7 +2614,7 @@ def TypeChecker::check_match_for_bool(&this, node: &AST, is_expr: bool, hint: &T
 
     let seen_true = false
     let seen_false = false
-    node.returns = true  // NOTE: `check_expression_statement` will modify this
+    node.returns = true // NOTE: `check_expression_statement` will modify this
 
     for _case in match_stmt.cases.iter() {
         for cond in _case.conds.iter() {
@@ -2553,7 +2631,7 @@ def TypeChecker::check_match_for_bool(&this, node: &AST, is_expr: bool, hint: &T
             }
         }
         if _case.body? {
-            .check_expression_statement(node,  _case.body, is_expr, hint)
+            .check_expression_statement(node, _case.body, is_expr, hint)
 
         } else {
             .error(Error::new(node.span, "Case must have a body"))
@@ -2584,26 +2662,33 @@ def TypeChecker::check_match_case_and_find_overload(&this, expr: &AST, cond: &Ma
     overload.type2 = rhs
     let func = .o.program.operator_overloads.get(overload, defolt: null)
     if not func? {
-        .error(Error::new_hint(
-            cond.expr.span, f"Cannot match {lhs.str()} with this case: {rhs.str()}",
-            expr.span, f"Match expression is of type {lhs.str()}"
-        ))
+        .error(
+            Error::new_hint(
+                cond.expr.span,
+                f"Cannot match {lhs.str()} with this case: {rhs.str()}",
+                expr.span,
+                f"Match expression is of type {lhs.str()}"
+            )
+        )
         return null
     }
 
     let ret = func.return_type.unaliased()
     if ret.base != Bool {
-        .error(Error::new_hint(
-            cond.expr.span, f"Overload {func.sym.display} must return a boolean",
-            func.sym.span, f"Defined here, return type is {ret.str()}"
-        ))
+        .error(
+            Error::new_hint(
+                cond.expr.span,
+                f"Overload {func.sym.display} must return a boolean",
+                func.sym.span,
+                f"Defined here, return type is {ret.str()}"
+            )
+        )
         return null
     }
 
     cond.cmp_fn = func
     return func
 }
-
 
 def TypeChecker::check_match(&this, node: &AST, is_expr: bool, hint: &Type = null) {
     let match_stmt = &node.u.match_stmt
@@ -2684,13 +2769,7 @@ def TypeChecker::check_is_expr_in_if_condition(&this, cond: &AST) {
     let current_args = Map<str, &Type>::new()
     defer current_args.free()
 
-    .check_match_case_enum(
-        lhs_node: is_expr.lhs,
-        enom_type: lhs,
-        conds: is_expr.conds,
-        mapping,
-        current_args
-    )
+    .check_match_case_enum(lhs_node: is_expr.lhs, enom_type: lhs, conds: is_expr.conds, mapping, current_args)
 
     for arg in current_args.iter() {
         let var = Variable::new(arg.value)
@@ -2711,7 +2790,7 @@ def TypeChecker::check_if(&this, node: &AST, is_expr: bool, hint: &Type = null) 
         match branch.cond.type {
             Is => {
                 let scope = Scope::new(.scope())
-                scope.is_for_match = true  // This will be codegen'd as a match
+                scope.is_for_match = true // This will be codegen'd as a match
                 .o.push_scope(scope)
 
                 // NOTE: The return type of this is always bool
@@ -2723,10 +2802,9 @@ def TypeChecker::check_if(&this, node: &AST, is_expr: bool, hint: &Type = null) 
             else => {
                 let cond_type = .check_expression(branch.cond, hint: .get_base_type(BaseType::Bool, node.span))
                 if cond_type? and cond_type.base != BaseType::Bool {
-                    .error(Error::new_note(
-                        branch.cond.span, "Condition must be a boolean",
-                        `Got type '{cond_type.str()}'`
-                    ))
+                    .error(
+                        Error::new_note(branch.cond.span, "Condition must be a boolean", `Got type '{cond_type.str()}'`)
+                    )
                 }
                 .check_expression_statement(node, branch.body, is_expr, hint)
             }
@@ -2738,10 +2816,7 @@ def TypeChecker::check_if(&this, node: &AST, is_expr: bool, hint: &Type = null) 
         .check_expression_statement(node, else_stmt, is_expr, hint)
 
     } else if is_expr {
-        .error(Error::new(
-            node.u.if_stmt.if_span,
-            "If expressions must have an else branch"
-        ))
+        .error(Error::new(node.u.if_stmt.if_span, "If expressions must have an else branch"))
 
     } else {
         node.returns = false
@@ -2772,23 +2847,24 @@ def TypeChecker::check_expression_statement(&this, node: &AST, body: &AST, is_ex
     // Maybe this should be disallowed?
 
     let ret = body.etype
-    if body.returns {
+    if body.returns {} else if not ret? {
         // Do nothing
-    } else if not ret? {
         let start_span = Span(body.span.start, body.span.start)
         .error(Error::new(start_span, `Must yield a value in this branch, body type is {body.type}`))
     } else if not node.etype? {
         node.etype = ret
-    } else if not  ret.can_assign(node.etype) {
+    } else if not ret.can_assign(node.etype) {
         let yield_stmt = if node.type == Block then node.u.block.final_stmt else body
         if not yield_stmt? yield_stmt = body
-        .error(Error::new_note(
-            yield_stmt.display_span(), "Yield type of branch doesn't match previous branches",
-            `Expected type '{node.etype.str()}', got '{ret.str()}'`
-        ))
+        .error(
+            Error::new_note(
+                yield_stmt.display_span(),
+                "Yield type of branch doesn't match previous branches",
+                `Expected type '{node.etype.str()}', got '{ret.str()}'`
+            )
+        )
     }
 }
-
 
 def TypeChecker::check_while(&this, node: &AST) {
     let scope = Scope::new(.scope())
@@ -2801,10 +2877,7 @@ def TypeChecker::check_while(&this, node: &AST) {
 
     let cond_type = .check_expression(cond, hint: .get_base_type(BaseType::Bool, node.span))
     if cond_type? and cond_type.base != BaseType::Bool {
-        .error(Error::new_note(
-            cond.span, "Condition must be a boolean",
-            `Got type '{cond_type.str()}'`
-        ))
+        .error(Error::new_note(cond.span, "Condition must be a boolean", `Got type '{cond_type.str()}'`))
     }
     .check_statement(body)
     .o.pop_scope()
@@ -2826,10 +2899,7 @@ def TypeChecker::check_for(&this, node: &AST) {
     if cond? {
         let cond_type = .check_expression(cond, hint: .get_base_type(BaseType::Bool, node.span))
         if cond_type? and cond_type.base != BaseType::Bool {
-            .error(Error::new_note(
-                cond.span, "Condition must be a boolean",
-                `Got type '{cond_type.str()}'`
-            ))
+            .error(Error::new_note(cond.span, "Condition must be a boolean", `Got type '{cond_type.str()}'`))
         }
     }
 
@@ -2856,16 +2926,21 @@ def TypeChecker::check_statement(&this, node: &AST) {
             if child? then res = .check_expression(child, hint: expected)
 
             if child? and child.returns {
-                // No need to check anything
 
             } else if expected.base == BaseType::Void {
+                // No need to check anything
                 // We allow using arrow returns in void functions, they just don't return anything.
                 if node.u.child? {
                     .error(Error::new(ret_span, "Cannot return a value from a void function"))
                 }
             } else if child? {
                 if res? and not expected.can_assign(res) {
-                    .error(Error::new(ret_span, `Return type {res.str()} does not match function return type {expected.str()}`))
+                    .error(
+                        Error::new(
+                            ret_span,
+                            `Return type {res.str()} does not match function return type {expected.str()}`
+                        )
+                    )
                 }
             } else {
                 .error(Error::new(ret_span, "Expected a return value for non-void function"))
@@ -2962,7 +3037,12 @@ def TypeChecker::check_statement(&this, node: &AST) {
                 if is_inferred {
                     var.type = res
                 } else if not var.type.can_assign(res) {
-                    .error(Error::new(init.span, `Variable {var.sym.name} has type {var.type.str()} but initializer has type {res.str()}`))
+                    .error(
+                        Error::new(
+                            init.span,
+                            `Variable {var.sym.name} has type {var.type.str()} but initializer has type {res.str()}`
+                        )
+                    )
                 }
             } else if is_inferred {
                 .error(Error::new(node.span, `Variable {var.sym.name} has no type and no initializer`))
@@ -3006,7 +3086,9 @@ def TypeChecker::check_function(&this, func: &Function) {
     let error_count_before = .o.program.errors.size
 
     for param in params.iter() {
-        if not param.type? then continue  // Error should be reported already
+        if not param.type? {
+            continue // Error should be reported already
+        }
         let default_expr = param.default_value
         if default_expr? {
             // NOTE: This `.check_expression()` call uses the scope _outside_ of the function.
@@ -3015,7 +3097,12 @@ def TypeChecker::check_function(&this, func: &Function) {
             let default_type = .check_expression(default_expr, hint: param.type)
 
             if default_type? and not param.type.can_assign(default_type) {
-                .error(Error::new(default_expr.span, `Default argument has type {default_type.str()} but expected {param.type.str()}`))
+                .error(
+                    Error::new(
+                        default_expr.span,
+                        `Default argument has type {default_type.str()} but expected {param.type.str()}`
+                    )
+                )
             }
         }
 
@@ -3032,10 +3119,14 @@ def TypeChecker::check_function(&this, func: &Function) {
         if not stmt_type? {
             .error(Error::new(func.body.span, "Arrow function must yield a value"))
         } else if not stmt_type.eq(ret_type) {
-            .error(Error::new_hint(
-                func.body.span, `Expected return type {ret_type.str()}, but got {stmt_type.str()}`,
-                ret_type.span, `Arrow function has return type {ret_type.str()}`
-            ))
+            .error(
+                Error::new_hint(
+                    func.body.span,
+                    `Expected return type {ret_type.str()}, but got {stmt_type.str()}`,
+                    ret_type.span,
+                    `Arrow function has return type {ret_type.str()}`
+                )
+            )
         } else {
             func.body.returns = true
         }
@@ -3139,13 +3230,13 @@ def TypeChecker::resolve_doc_links(&this, sym: &Symbol) {
     for let i = 0; i < doc_len - 1; i++ {
         if doc[i] == '\\' {
             i++
-        } else if doc[i] == doc[i+1] == '{' {
-            buffer <<= doc.substring(prev, i-prev)
+        } else if doc[i] == doc[i + 1] and doc[i + 1] == '{' {
+            buffer <<= doc.substring(prev, i - prev)
             prev = i + 2
             i++
 
-        } else if doc[i] == doc[i+1] == '}' {
-            let part = doc.substring(prev, i-prev)
+        } else if doc[i] == doc[i + 1] and doc[i + 1] == '}' {
+            let part = doc.substring(prev, i - prev)
 
             // This means we're not generating docs, and don't need to
             // replace the part with a unique ID. So we'll just add it
@@ -3190,10 +3281,13 @@ def TypeChecker::resolve_doc_links(&this, sym: &Symbol) {
                     let typ = sym.u.struc.type
                     // FIXME: Handle the case where the symbol is templated, for instance `Vec2<f32>`
                     if typ.template_instance? {
-                        .error(Error::new_note(
-                            span, `Cannot link directly to specialized type '{part}'`,
-                            "Try doing `{{A}}<{{B}}>` instead of `{{A<B>}}`"
-                        ))
+                        .error(
+                            Error::new_note(
+                                span,
+                                `Cannot link directly to specialized type '{part}'`,
+                                "Try doing `{{A}}<{{B}}>` instead of `{{A<B>}}`"
+                            )
+                        )
                         return
                     }
                     yield `{sym.u.struc.type:x}`
@@ -3220,7 +3314,7 @@ def TypeChecker::resolve_doc_links(&this, sym: &Symbol) {
             i++
         }
     }
-    buffer <<= doc.substring(prev, doc_len-prev)
+    buffer <<= doc.substring(prev, doc_len - prev)
     sym.comment = buffer.str()
 }
 
@@ -3230,16 +3324,20 @@ def TypeChecker::check_const_expression(&this, node: &AST, hint: &Type = null): 
             let sym = .resolve_scoped_identifier(node, error: true, hint)
             if not sym? return null
             if sym.type != SymbolType::Constant {
-                .error(Error::new_hint(
-                    node.span, "Cannot use a non-constant value in a constant expression",
-                    sym.span, "Value was defined here"
-                ))
+                .error(
+                    Error::new_hint(
+                        node.span,
+                        "Cannot use a non-constant value in a constant expression",
+                        sym.span,
+                        "Value was defined here"
+                    )
+                )
                 return hint
             }
             yield sym.u.var.type
         }
         // FIXME: What about inferring integer types based on hint?
-        IntLiteral  => .get_base_type(BaseType::I32, node.span)
+        IntLiteral => .get_base_type(BaseType::I32, node.span)
         FloatLiteral => .get_base_type(BaseType::F32, node.span)
         BoolLiteral => .get_base_type(BaseType::Bool, node.span)
         CharLiteral => .get_base_type(BaseType::Char, node.span)
@@ -3271,7 +3369,7 @@ def TypeChecker::check_const_expression(&this, node: &AST, hint: &Type = null): 
                 .error(Error::new(node.span, f"Unsupported operator in constant expression: {node.u.unary.op}"))
                 return null
             }
-        }
+        },
         else => {
             .error(Error::new(node.span, "Unsupported operator in constant expression"))
             return null
@@ -3283,11 +3381,12 @@ def TypeChecker::check_const_expression(&this, node: &AST, hint: &Type = null): 
 
 def TypeChecker::handle_import_path_base(
     &this,
-    node: &AST, imp: &Import,
+    node: &AST,
+    imp: &Import,
     parts: &Vector<&ImportPart>,
     base: &Symbol,
-    search_in_ns_scope: bool,  // Only important for the first part of the import path
-    alias: str = null
+    search_in_ns_scope: bool, // Only important for the first part of the import path
+    alias: str = null,
 ) {
     for let i = 0; i < parts.size; i += 1 {
         let part = parts.at(i)
@@ -3305,13 +3404,14 @@ def TypeChecker::handle_import_path_base(
                 }
                 return
             }
-            Single => {} // continue below
+            Single => { // continue below
+            }
         }
 
         let name = part.u.single.name
         if not name? return
 
-        if name.eq("this") then {
+        if name.eq("this") {
             if i + 1 != parts.size {
                 .error(Error::new(part.span, "`this` can only be used as the last part of an import path"))
                 return
@@ -3359,7 +3459,7 @@ def TypeChecker::handle_import_statement(&this, node: &AST) {
 
     let search_in_ns_scope = false
     let base_ns = match path.type {
-        GlobalNamespace => .o.program.global,
+        GlobalNamespace => .o.program.global
         ProjectNamespace => .o.ns().get_project_root(node.span, .o.program)
         ParentNamespace => {
             let cur = .o.ns()
@@ -3385,7 +3485,7 @@ def TypeChecker::handle_import_statement(&this, node: &AST) {
     }
 
     node.u.import_path.root_sym = base_ns.sym
-    .handle_import_path_base(node, &path, path.parts, base_ns.sym, search_in_ns_scope, alias:null)
+    .handle_import_path_base(node, &path, path.parts, base_ns.sym, search_in_ns_scope, alias: null)
 }
 
 def TypeChecker::pre_check_function(&this, ns: &Namespace, func: &Function) {
@@ -3407,27 +3507,39 @@ def TypeChecker::pre_check_function(&this, ns: &Namespace, func: &Function) {
                 let struc = parent_type.u.struc
                 let name = struc.get_field(func.sym.name)
                 if name? {
-                    .o.error(Error::new_hint(
-                        func.sym.span, f"Field with name `{func.sym.name}` already exists",
-                        name.sym.span, "Previous definition here"
-                    ))
+                    .o.error(
+                        Error::new_hint(
+                            func.sym.span,
+                            f"Field with name `{func.sym.name}` already exists",
+                            name.sym.span,
+                            "Previous definition here"
+                        )
+                    )
                 }
             }
             Enum => {
                 let enom = parent_type.u.enom
                 let var = enom.get_variant(func.sym.name)
                 if var? {
-                    .o.error(Error::new_hint(
-                        func.sym.span, f"Enum variant with name `{func.sym.name}` already exists",
-                        var.sym.span, "Previous definition here"
-                    ))
+                    .o.error(
+                        Error::new_hint(
+                            func.sym.span,
+                            f"Enum variant with name `{func.sym.name}` already exists",
+                            var.sym.span,
+                            "Previous definition here"
+                        )
+                    )
                 }
                 let field = enom.get_shared_field(func.sym.name)
                 if field? {
-                    .o.error(Error::new_hint(
-                        func.sym.span, f"Field with name `{func.sym.name}` already exists",
-                        field.sym.span, "Previous definition here"
-                    ))
+                    .o.error(
+                        Error::new_hint(
+                            func.sym.span,
+                            f"Field with name `{func.sym.name}` already exists",
+                            field.sym.span,
+                            "Previous definition here"
+                        )
+                    )
                 }
             }
             // Builtin type
@@ -3436,10 +3548,14 @@ def TypeChecker::pre_check_function(&this, ns: &Namespace, func: &Function) {
 
         let res = parent_type.methods.get(func.sym.name, null)
         if res? {
-            .o.error(Error::new_hint(
-                func.sym.span, "Method with this name already exists",
-                res.sym.span, "Previous definition here"
-            ))
+            .o.error(
+                Error::new_hint(
+                    func.sym.span,
+                    "Method with this name already exists",
+                    res.sym.span,
+                    "Previous definition here"
+                )
+            )
             return
         }
 
@@ -3484,13 +3600,13 @@ def TypeChecker::loosely_resolve_templated_enum(&this, enom: &Enum) {
     }
 }
 
-
 def TypeChecker::resolve_struct(&this, struc: &Structure) {
 
     if struc.parsed_parent? {
         let type = .resolve_type(struc.parsed_parent)
         if {
-            not type? => {} // Already shown error
+            not type? => { // Already shown error
+            }
             type.base != Structure => .o.error(Error::new(struc.parsed_parent.span, "Parent type must be a struct"))
             else => {
                 struc.parent = type.u.struc
@@ -3538,10 +3654,14 @@ def TypeChecker::resolve_enum(&this, enom: &Enum) {
         }
         let item = seen_fields.get_item(field.sym.name)
         if item? {
-            .error(Error::new_hint(
-                field.sym.span, f"Field with name `{field.sym.name}` already exists",
-                item.value, "Previous definition here"
-            ))
+            .error(
+                Error::new_hint(
+                    field.sym.span,
+                    f"Field with name `{field.sym.name}` already exists",
+                    item.value,
+                    "Previous definition here"
+                )
+            )
         }
         seen_fields[field.sym.name] = field.sym.span
         if field.default_value? {
@@ -3595,10 +3715,14 @@ def TypeChecker::check_operator_overload_function(&this, func: &Function, op: Op
     let it = .o.program.operator_overloads.get_item(overload)
     if it? {
         if it.value != func {
-            .error(Error::new_hint(
-                func.sym.span, `Operator overload for {op} already exists ({func.sym.display})`,
-                it.value.sym.span, `Previous definition here ({it.value.sym.display})`
-            ))
+            .error(
+                Error::new_hint(
+                    func.sym.span,
+                    `Operator overload for {op} already exists ({func.sym.display})`,
+                    it.value.sym.span,
+                    `Previous definition here ({it.value.sym.display})`
+                )
+            )
         }
         return
     }
@@ -3674,11 +3798,7 @@ def TypeChecker::try_resolve_typedefs_in_namespace(&this, ns: &Namespace, pre_im
         assert sym.type == TypeDef
 
         // We only want to error out if we can't resolve this typedef _after_ importing
-        let res = .resolve_type(
-            it.value,
-            allow_incomplete: false,
-            error: not pre_import
-        )
+        let res = .resolve_type(it.value, allow_incomplete: false, error: not pre_import)
         if not res? continue
         sym.u.type_def.u.ptr = res
         sym.u.type_def = res

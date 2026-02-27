@@ -1,5 +1,4 @@
 /// format
-
 def main() {
     if true then println("yes") else println("no")
 }

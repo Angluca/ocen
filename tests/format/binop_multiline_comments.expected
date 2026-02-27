@@ -7,9 +7,9 @@ def quux(): bool => true
 
 def foo() {
     while not (bar() or // first check
-    baz() or            // second check
-    qux() or            // third check
-    quux()) // last check
+        baz() or        // second check
+        qux() or        // third check
+        quux()) // last check
     {
         break
     }

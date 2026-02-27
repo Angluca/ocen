@@ -1,5 +1,4 @@
 /// format
-
 def main() {
     let x = 5
     let s = if {

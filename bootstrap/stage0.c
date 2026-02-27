@@ -1214,6 +1214,7 @@ struct compiler_ast_nodes_ImportPart {
 struct compiler_ast_nodes_IfBranch {
   compiler_ast_nodes_AST *cond;
   compiler_ast_nodes_AST *body;
+  bool has_then;
 };
 
 struct compiler_ast_nodes_MatchCondArg {
@@ -1337,6 +1338,7 @@ struct compiler_formatter_Formatter {
   std_vector_Vector__35 *stmt_mappings;
   bool track_stmts;
   bool in_format_str;
+  bool in_binary_continuation;
   std_vector_Vector__32 *ic_lines;
   u32 last_comment_request_line;
   bool debug_cursor;
@@ -3131,6 +3133,10 @@ void compiler_formatter_Formatter_newline(compiler_formatter_Formatter *this);
 void compiler_formatter_Formatter_push_indent(compiler_formatter_Formatter *this);
 void compiler_formatter_Formatter_pop_indent(compiler_formatter_Formatter *this);
 void compiler_formatter_Formatter_write_indent(compiler_formatter_Formatter *this);
+void compiler_formatter_Formatter_begin_continuation(compiler_formatter_Formatter *this);
+void compiler_formatter_Formatter_end_continuation(compiler_formatter_Formatter *this);
+bool compiler_formatter_Formatter_begin_binary_continuation(compiler_formatter_Formatter *this);
+void compiler_formatter_Formatter_end_binary_continuation(compiler_formatter_Formatter *this, bool saved);
 u32 compiler_formatter_Formatter_measure_expr(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 u32 compiler_formatter_Formatter_measure_statement(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 u32 compiler_formatter_Formatter_measure_import_parts(compiler_formatter_Formatter *this, std_vector_Vector__8 *parts);
@@ -3144,7 +3150,7 @@ bool compiler_formatter_Formatter_is_implicit_void_function_type(compiler_format
 u32 compiler_formatter_Formatter_emit_comments_before(compiler_formatter_Formatter *this, u32 line, bool preserve_blanks, u32 prev_end_line);
 void compiler_formatter_Formatter_emit_inline_comment(compiler_formatter_Formatter *this, u32 line);
 void compiler_formatter_Formatter_emit_inline_comment_backward(compiler_formatter_Formatter *this, u32 line);
-void compiler_formatter_Formatter_emit_remaining_comments(compiler_formatter_Formatter *this, u32 max_line);
+void compiler_formatter_Formatter_emit_remaining_comments(compiler_formatter_Formatter *this, u32 max_line, u32 prev_end_line);
 bool compiler_formatter_Formatter_has_inline_comments_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line);
 bool compiler_formatter_Formatter_has_unemitted_inline_comment_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line);
 void compiler_formatter_Formatter_emit_all_unemitted_inline_comments_in_range(compiler_formatter_Formatter *this, u32 start_line, u32 end_line);
@@ -3171,7 +3177,7 @@ void compiler_formatter_Formatter_emit_params(compiler_formatter_Formatter *this
 u32 compiler_formatter_binary_op_width(compiler_ast_operators_Operator op);
 void compiler_formatter_Formatter_format_expr(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_match_cond(compiler_formatter_Formatter *this, compiler_ast_nodes_MatchCond *cond);
-void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
+void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, bool is_expr);
 void compiler_formatter_Formatter_format_multi_if(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_block(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
 void compiler_formatter_Formatter_format_statement(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node);
@@ -6158,7 +6164,7 @@ switch ((node->type)) {
         } break;
       default:
         {
-          if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:69:20: Assertion failed: `false`", std_format("Unhandled node type in set_resolved_symbol: %s", compiler_ast_nodes_ASTType_dbg(node->type))); exit(1); }
+          if(!(false)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:76:20: Assertion failed: `false`", std_format("Unhandled node type in set_resolved_symbol: %s", compiler_ast_nodes_ASTType_dbg(node->type))); exit(1); }
         } break;
     }
 _l___yv_379:
@@ -6282,7 +6288,7 @@ switch ((res->type)) {
                 }
                 resolved=res->u.struc->type;
                 if (node->type==compiler_ast_nodes_ASTType_Specialization && compiler_ast_scopes_Symbol_is_templated(res)) {
-                  if(!(!(resolve_templates))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:183:36: Assertion failed: `not resolve_templates`", "Should have been errored in resolve_scoped_identifier"); }
+                  if(!(!(resolve_templates))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:193:36: Assertion failed: `not resolve_templates`", "Should have been errored in resolve_scoped_identifier"); }
                   compiler_types_Type *type = compiler_types_Type_new_resolved(compiler_types_BaseType_UnresolvedTemplate, node->span);
                   type->u.unresolved_spec=(compiler_types_UnresolvedTemplate){.base=resolved, .args=node->u.spec.template_args};
                   resolved=type;
@@ -6300,7 +6306,7 @@ switch ((res->type)) {
                 }
                 resolved=res->u.func->type;
                 if (node->type==compiler_ast_nodes_ASTType_Specialization && compiler_ast_scopes_Symbol_is_templated(res)) {
-                  if(!(!(resolve_templates))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:199:36: Assertion failed: `not resolve_templates`", "Should have been errored in resolve_scoped_identifier"); }
+                  if(!(!(resolve_templates))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:209:36: Assertion failed: `not resolve_templates`", "Should have been errored in resolve_scoped_identifier"); }
                   compiler_types_Type *type = compiler_types_Type_new_resolved(compiler_types_BaseType_UnresolvedTemplate, node->span);
                   type->u.unresolved_spec=(compiler_types_UnresolvedTemplate){.base=resolved, .args=node->u.spec.template_args};
                   resolved=type;
@@ -6318,7 +6324,7 @@ switch ((res->type)) {
                 }
                 resolved=res->u.enom->type;
                 if (node->type==compiler_ast_nodes_ASTType_Specialization && compiler_ast_scopes_Symbol_is_templated(res)) {
-                  if(!(!(resolve_templates))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:215:36: Assertion failed: `not resolve_templates`", "Should have been errored in resolve_scoped_identifier"); }
+                  if(!(!(resolve_templates))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:225:36: Assertion failed: `not resolve_templates`", "Should have been errored in resolve_scoped_identifier"); }
                   compiler_types_Type *type = compiler_types_Type_new_resolved(compiler_types_BaseType_UnresolvedTemplate, node->span);
                   type->u.unresolved_spec=(compiler_types_UnresolvedTemplate){.base=resolved, .args=node->u.spec.template_args};
                   resolved=type;
@@ -6363,7 +6369,7 @@ switch ((res->type)) {
             std_vector_Vector__0 *_vc384 = std_vector_Vector__0_new(1);
             std_vector_Vector__0_push(_vc384, elem_type);
             _vc384;}), old->span);
-          if(!(res->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:253:24: Assertion failed: `res.type == Structure`", NULL); }
+          if(!(res->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:263:24: Assertion failed: `res.type == Structure`", NULL); }
           old->sym=res;
           resolved=compiler_types_Type_new_resolved(compiler_types_BaseType_Pointer, old->span);
           resolved->u.ptr=res->u.struc->type;
@@ -6387,7 +6393,7 @@ switch ((res->type)) {
             std_vector_Vector__0_push(_vc385, key_type);
             std_vector_Vector__0_push(_vc385, value_type);
             _vc385;}), old->span);
-          if(!(res->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:271:24: Assertion failed: `res.type == Structure`", NULL); }
+          if(!(res->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:280:24: Assertion failed: `res.type == Structure`", NULL); }
           old->sym=res;
           resolved=compiler_types_Type_new_resolved(compiler_types_BaseType_Pointer, old->span);
           resolved->u.ptr=res->u.struc->type;
@@ -6810,7 +6816,7 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_constructor(c
   node->u.call.call_type=compiler_ast_nodes_CallType_StructConstructor;
   compiler_ast_nodes_AST *callee = node->u.call.callee;
   compiler_ast_scopes_Symbol *type_sym = compiler_ast_scopes_Symbol_remove_alias(callee->resolved_symbol);
-  if(!(type_sym->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:704:12: Assertion failed: `type_sym.type == Structure`", std_format("Got non-struct type in check_constructor: %s", compiler_ast_scopes_SymbolType_dbg(type_sym->type))); }
+  if(!(type_sym->type==compiler_ast_scopes_SymbolType_Structure)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:723:12: Assertion failed: `type_sym.type == Structure`", std_format("Got non-struct type in check_constructor: %s", compiler_ast_scopes_SymbolType_dbg(type_sym->type))); }
   compiler_ast_nodes_Structure *struc = type_sym->u.struc;
   std_vector_Vector__3 *params = struc->fields;
   if (struc->is_union) {
@@ -6825,7 +6831,7 @@ compiler_types_Type *compiler_passes_typechecker_TypeChecker_check_enum_construc
   node->u.call.call_type=compiler_ast_nodes_CallType_EnumConstructor;
   compiler_ast_nodes_AST *callee = node->u.call.callee;
   compiler_ast_scopes_Symbol *type_sym = compiler_ast_scopes_Symbol_remove_alias(callee->resolved_symbol);
-  if(!(type_sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:723:12: Assertion failed: `type_sym.type == EnumVariant`", std_format("Got non-struct type in check_constructor: %s", compiler_ast_scopes_SymbolType_dbg(type_sym->type))); }
+  if(!(type_sym->type==compiler_ast_scopes_SymbolType_EnumVariant)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:741:12: Assertion failed: `type_sym.type == EnumVariant`", std_format("Got non-struct type in check_constructor: %s", compiler_ast_scopes_SymbolType_dbg(type_sym->type))); }
   compiler_ast_nodes_EnumVariant *variant = type_sym->u.enum_var;
   compiler_ast_nodes_Enum *enom = variant->parent;
   u32 num_expected_fields = compiler_ast_nodes_EnumVariant_num_fields(variant);
@@ -6888,7 +6894,7 @@ void compiler_passes_typechecker_TypeChecker_check_call_args_labelled(compiler_p
   }
   for (u32 i = start; i < params->size; i++) {
     compiler_ast_nodes_Variable *param = std_vector_Vector__3_at(params, i);
-    if(!(((bool)param->sym))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:803:16: Assertion failed: `param.sym?`", std_format("Expected a symbol for parameter %u", i)); }
+    if(!(((bool)param->sym))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:827:16: Assertion failed: `param.sym?`", std_format("Expected a symbol for parameter %u", i)); }
     std_compact_map_Item__6 *item = std_compact_map_Map__6_get_item(kwargs, param->sym->name);
     if (((bool)item)) {
       std_vector_Vector__10_push(new_args, item->value);
@@ -8300,7 +8306,7 @@ switch ((rhs_node->type)) {
         if (((bool)hint) && hint->base==compiler_types_BaseType_Pointer) {
           compiler_types_Type *ptr = hint->u.ptr;
           if ((((bool)ptr) && ((bool)ptr->template_instance)) && ptr->template_instance->parent==std_map) {
-            if(!(ptr->template_instance->args->size==2)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:1982:28: Assertion failed: `ptr.template_instance.args.size == 2`", NULL); }
+            if(!(ptr->template_instance->args->size==2)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2053:28: Assertion failed: `ptr.template_instance.args.size == 2`", NULL); }
             key_hint_type=std_vector_Vector__0_at(ptr->template_instance->args, 0);
             value_hint_type=std_vector_Vector__0_at(ptr->template_instance->args, 1);
           }
@@ -8369,7 +8375,7 @@ switch ((rhs_node->type)) {
         if (((bool)hint) && hint->base==compiler_types_BaseType_Pointer) {
           compiler_types_Type *ptr = hint->u.ptr;
           if ((((bool)ptr) && ((bool)ptr->template_instance)) && ptr->template_instance->parent==std_vector) {
-            if(!(ptr->template_instance->args->size==1)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2064:28: Assertion failed: `ptr.template_instance.args.size == 1`", NULL); }
+            if(!(ptr->template_instance->args->size==1)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2141:28: Assertion failed: `ptr.template_instance.args.size == 1`", NULL); }
             hint_elem_type=std_vector_Vector__0_at(ptr->template_instance->args, 0);
           }
         }
@@ -8585,7 +8591,7 @@ switch ((node->etype->base)) {
 }
 
 void compiler_passes_typechecker_TypeChecker_check_match_case_enum(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *lhs_node, compiler_types_Type *enom_type, std_vector_Vector__5 *conds, std_compact_map_Map__0 *mapping, std_compact_map_Map__1 *current_args) {
-  if(!(enom_type->base==compiler_types_BaseType_Enum)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2299:12: Assertion failed: `enom_type.base == Enum`", NULL); }
+  if(!(enom_type->base==compiler_types_BaseType_Enum)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2386:12: Assertion failed: `enom_type.base == Enum`", NULL); }
   compiler_ast_nodes_Enum *enom = enom_type->u.enom;
   std_compact_map_Map__1_clear(current_args);
   for (u32 i = 0; i < conds->size; i++) {
@@ -8921,7 +8927,7 @@ switch ((expr_type->base)) {
 }
 
 void compiler_passes_typechecker_TypeChecker_check_is_expr_in_if_condition(compiler_passes_typechecker_TypeChecker *this, compiler_ast_nodes_AST *cond) {
-  if(!(cond->type==compiler_ast_nodes_ASTType_Is)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2676:12: Assertion failed: `cond.type == Is`", std_format("Expected 'Is' node, got '%s'", compiler_ast_nodes_ASTType_dbg(cond->type))); }
+  if(!(cond->type==compiler_ast_nodes_ASTType_Is)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:2761:12: Assertion failed: `cond.type == Is`", std_format("Expected 'Is' node, got '%s'", compiler_ast_nodes_ASTType_dbg(cond->type))); }
   compiler_ast_nodes_IsExpression *is_expr = &cond->u.is_expr;
   compiler_types_Type *lhs = compiler_passes_typechecker_TypeChecker_check_expression(this, is_expr->lhs, NULL);
   std_compact_map_Map__0 *mapping = std_compact_map_Map__0_new(16);
@@ -10007,8 +10013,8 @@ void compiler_passes_typechecker_TypeChecker_try_resolve_typedefs_in_namespace(c
         continue;
       }
       compiler_ast_scopes_Symbol *sym = compiler_ast_scopes_Scope_lookup_recursive(compiler_passes_generic_pass_GenericPass_scope(this->o), it->key);
-      if(!(((bool)sym))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:3670:16: Assertion failed: `sym?`", "Should have added the symbol into scope already"); }
-      if(!(sym->type==compiler_ast_scopes_SymbolType_TypeDef)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:3674:16: Assertion failed: `sym.type == TypeDef`", NULL); }
+      if(!(((bool)sym))) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:3794:16: Assertion failed: `sym?`", "Should have added the symbol into scope already"); }
+      if(!(sym->type==compiler_ast_scopes_SymbolType_TypeDef)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/passes/typechecker.oc:3798:16: Assertion failed: `sym.type == TypeDef`", NULL); }
       compiler_types_Type *res = compiler_passes_typechecker_TypeChecker_resolve_type(this, it->value, false, !(pre_import), true);
       if (!(((bool)res))) {
         continue;
@@ -14404,7 +14410,7 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_multi_if(compiler_parser_Pa
         compiler_parser_Parser_error(this, compiler_errors_Error_new(compiler_parser_Parser_token(this)->span, "Expected `=>` after condition"));
       }
       compiler_ast_nodes_AST *body = compiler_parser_Parser_parse_statement(this);
-      std_vector_Vector__28_push(branches, (compiler_ast_nodes_IfBranch){.cond=cond, .body=body});
+      std_vector_Vector__28_push(branches, (compiler_ast_nodes_IfBranch){.cond=cond, .body=body, .has_then=false});
     }
     compiler_parser_Parser_consume_if(this, compiler_tokens_TokenType_Comma);
   }
@@ -14423,9 +14429,9 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_if(compiler_parser_Parser *
   std_span_Span end_span = start_span;
   while (true) {
     compiler_ast_nodes_AST *cond = compiler_parser_Parser_parse_expression(this, compiler_tokens_TokenType_Newline);
-    compiler_parser_Parser_consume_if(this, compiler_tokens_TokenType_Then);
+    bool has_then = compiler_parser_Parser_consume_if(this, compiler_tokens_TokenType_Then);
     compiler_ast_nodes_AST *body = compiler_parser_Parser_parse_statement(this);
-    std_vector_Vector__28_push(cases, (compiler_ast_nodes_IfBranch){.cond=cond, .body=body});
+    std_vector_Vector__28_push(cases, (compiler_ast_nodes_IfBranch){.cond=cond, .body=body, .has_then=has_then});
     end_span=body->span;
     if (compiler_parser_Parser_token_is(this, compiler_tokens_TokenType_Else) && compiler_parser_Parser_peek_token_is(this, 1, compiler_tokens_TokenType_If)) {
       compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Else);
@@ -14441,6 +14447,7 @@ compiler_ast_nodes_AST *compiler_parser_Parser_parse_if(compiler_parser_Parser *
     compiler_tokens_Token *els_tok = compiler_parser_Parser_consume(this, compiler_tokens_TokenType_Else);
     node->u.if_stmt.els=compiler_parser_Parser_parse_statement(this);
     node->u.if_stmt.els_span=els_tok->span;
+    end_span=node->u.if_stmt.els->span;
   }
   node->span=std_span_Span_join(start_span, end_span);
   return node;
@@ -15001,7 +15008,7 @@ void compiler_parser_Parser_parse_extern_into_symbol(compiler_parser_Parser *thi
 }
 
 void compiler_parser_Parser_get_extern_from_attr(compiler_parser_Parser *this, compiler_ast_scopes_Symbol *sym, compiler_attributes_Attribute *attr) {
-  if(!(attr->type==compiler_attributes_AttributeType_Extern)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:1967:12: Assertion failed: `attr.type == Extern`", NULL); }
+  if(!(attr->type==compiler_attributes_AttributeType_Extern)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:1968:12: Assertion failed: `attr.type == Extern`", NULL); }
   sym->is_extern=true;
   if (attr->args->size > 0) {
     sym->extern_name=std_vector_Vector__11_at(attr->args, 0);
@@ -15769,8 +15776,8 @@ switch ((path->type)) {
       m_551_0:
         {
           std_vector_Vector__8 *parts = path->parts;
-          if(!(parts->size > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:2730:20: Assertion failed: `parts.size > 0`", "Expected at least one part in import path"); }
-          if(!(std_vector_Vector__8_at(parts, 0)->type==compiler_ast_nodes_ImportPartType_Single)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:2731:20: Assertion failed: `parts.at(0).type == Single`", "Expected first part to be a single import"); }
+          if(!(parts->size > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:2731:20: Assertion failed: `parts.size > 0`", "Expected at least one part in import path"); }
+          if(!(std_vector_Vector__8_at(parts, 0)->type==compiler_ast_nodes_ImportPartType_Single)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/parser.oc:2732:20: Assertion failed: `parts.at(0).type == Single`", "Expected first part to be a single import"); }
           compiler_ast_nodes_ImportPartSingle first_part = std_vector_Vector__8_at(parts, 0)->u.single;
           char *lib_name = first_part.name;
           if (!(std_map_Map__3_contains(this->program->global->namespaces, lib_name))) {
@@ -17909,7 +17916,7 @@ compiler_formatter_Formatter compiler_formatter_Formatter_make(compiler_ast_prog
   std_vector_Vector__32 *line_offsets = compiler_formatter_build_line_offsets(source);
   u32 num_lines = ((u32)line_offsets->size);
   compiler_formatter_CommentIndex comment_line_index = compiler_formatter_CommentIndex_build(filtered, num_lines);
-  return (compiler_formatter_Formatter){.output=std_buffer_Buffer_make(16), .indent=0, .options=compiler_formatter_FormatOptions_default(), .source=source, .line_offsets=line_offsets, .filename=filename, .comments=filtered, .comment_index=0, .program=program, .ns=ns, .range_start=0, .range_end=0, .output_line=1, .decl_mappings=std_vector_Vector__35_new(16), .stmt_mappings=std_vector_Vector__35_new(16), .track_stmts=false, .in_format_str=false, .ic_lines=std_vector_Vector__32_new(16), .last_comment_request_line=0, .debug_cursor=debug_cursor, .cursor_regressions=0, .comment_emitted=emitted, .comment_line_index=comment_line_index, .output_col=0};
+  return (compiler_formatter_Formatter){.output=std_buffer_Buffer_make(16), .indent=0, .options=compiler_formatter_FormatOptions_default(), .source=source, .line_offsets=line_offsets, .filename=filename, .comments=filtered, .comment_index=0, .program=program, .ns=ns, .range_start=0, .range_end=0, .output_line=1, .decl_mappings=std_vector_Vector__35_new(16), .stmt_mappings=std_vector_Vector__35_new(16), .track_stmts=false, .in_format_str=false, .in_binary_continuation=false, .ic_lines=std_vector_Vector__32_new(16), .last_comment_request_line=0, .debug_cursor=debug_cursor, .cursor_regressions=0, .comment_emitted=emitted, .comment_line_index=comment_line_index, .output_col=0};
 }
 
 void compiler_formatter_Formatter_note_cursor_regression(compiler_formatter_Formatter *this, char *kind, u32 requested) {
@@ -17942,7 +17949,7 @@ void compiler_formatter_Formatter_push_indent(compiler_formatter_Formatter *this
 }
 
 void compiler_formatter_Formatter_pop_indent(compiler_formatter_Formatter *this) {
-  if(!(this->indent > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:558:12: Assertion failed: `.indent > 0`", "Formatter indent underflow"); }
+  if(!(this->indent > 0)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:559:12: Assertion failed: `.indent > 0`", "Formatter indent underflow"); }
   this->indent--;
 }
 
@@ -17952,6 +17959,34 @@ void compiler_formatter_Formatter_write_indent(compiler_formatter_Formatter *thi
     std_buffer_Buffer_write_char(&this->output, ' ');
   }
   this->output_col=spaces;
+}
+
+void compiler_formatter_Formatter_begin_continuation(compiler_formatter_Formatter *this) {
+  compiler_formatter_Formatter_newline(this);
+  compiler_formatter_Formatter_push_indent(this);
+  compiler_formatter_Formatter_write_indent(this);
+}
+
+void compiler_formatter_Formatter_end_continuation(compiler_formatter_Formatter *this) {
+  compiler_formatter_Formatter_pop_indent(this);
+}
+
+bool compiler_formatter_Formatter_begin_binary_continuation(compiler_formatter_Formatter *this) {
+  compiler_formatter_Formatter_newline(this);
+  bool saved = this->in_binary_continuation;
+  if (!(this->in_binary_continuation)) {
+    compiler_formatter_Formatter_push_indent(this);
+    this->in_binary_continuation=true;
+  }
+  compiler_formatter_Formatter_write_indent(this);
+  return saved;
+}
+
+void compiler_formatter_Formatter_end_binary_continuation(compiler_formatter_Formatter *this, bool saved) {
+  if (!(saved)) {
+    compiler_formatter_Formatter_pop_indent(this);
+  }
+  this->in_binary_continuation=saved;
 }
 
 u32 compiler_formatter_Formatter_measure_expr(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
@@ -18257,7 +18292,8 @@ void compiler_formatter_Formatter_emit_inline_comment_backward(compiler_formatte
   }
 }
 
-void compiler_formatter_Formatter_emit_remaining_comments(compiler_formatter_Formatter *this, u32 max_line) {
+void compiler_formatter_Formatter_emit_remaining_comments(compiler_formatter_Formatter *this, u32 max_line, u32 prev_end_line) {
+  u32 prev_end = prev_end_line;
   while (this->comment_index < this->comments->size) {
     compiler_tokens_Comment comment = std_vector_Vector__16_at(this->comments, this->comment_index);
     if ((max_line > 0) && (comment.span.start.line >= max_line)) {
@@ -18267,10 +18303,14 @@ void compiler_formatter_Formatter_emit_remaining_comments(compiler_formatter_For
       this->comment_index++;
       continue;
     }
+    if ((prev_end > 0) && (comment.span.start.line > (prev_end + 1))) {
+      compiler_formatter_Formatter_newline(this);
+    }
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, comment.text);
     compiler_formatter_Formatter_newline(this);
     this->comment_emitted->data[this->comment_index]=true;
+    prev_end=comment.span.end.line;
     this->comment_index++;
   }
 }
@@ -18413,8 +18453,10 @@ u32 compiler_formatter_Formatter_first_item_or_comment_line(compiler_formatter_F
 
 u32 compiler_formatter_Formatter_emit_item_preamble(compiler_formatter_Formatter *this, u32 item_start_line, u32 item_index, u32 prev_end_line) {
   u32 next_line = compiler_formatter_Formatter_first_item_or_comment_line(this, prev_end_line, item_start_line);
-  if ((item_index > 0) && (next_line > (prev_end_line + 1))) {
-    compiler_formatter_Formatter_newline(this);
+  if (next_line > (prev_end_line + 1)) {
+    if ((item_index > 0) || compiler_formatter_Formatter_has_blank_source_line_between(this, prev_end_line, next_line)) {
+      compiler_formatter_Formatter_newline(this);
+    }
   }
   u32 comment_end = compiler_formatter_Formatter_emit_comments_before(this, item_start_line, true, prev_end_line);
   if ((comment_end > prev_end_line) && (item_start_line > (comment_end + 1))) {
@@ -18470,11 +18512,10 @@ void compiler_formatter_Formatter_write_var_decl(compiler_formatter_Formatter *t
         }
         if (!(is_breakable)) {
           compiler_formatter_Formatter_write(this, " =");
-          compiler_formatter_Formatter_newline(this);
-          compiler_formatter_Formatter_push_indent(this);
-          compiler_formatter_Formatter_write_indent(this);
+          compiler_formatter_Formatter_begin_continuation(this);
           compiler_formatter_Formatter_format_expr(this, var->default_value);
-          compiler_formatter_Formatter_pop_indent(this);
+          compiler_formatter_Formatter_end_continuation(this);
+          compiler_formatter_Formatter_emit_inline_comment(this, var->default_value->span.start.line);
           return;
         }
       }
@@ -18754,6 +18795,22 @@ switch ((node->type)) {
     }
 _l___yv_587:
   __yv_587;});
+  if ((!(multiline) && (size > 1)) && (node->span.start.line != node->span.end.line)) {
+    for (u32 i = 1; i < size; i++) {
+      u32 prev_end = compiler_formatter_Formatter_collection_item_end_line(this, node, (i - 1));
+      u32 next_start = compiler_formatter_Formatter_collection_item_start_line(this, node, i);
+      if (compiler_formatter_Formatter_has_blank_source_line_between(this, prev_end, next_start)) {
+        multiline=true;
+        break;
+      }
+    }
+  }
+  if ((!(multiline) && (size > 0)) && (node->span.start.line != node->span.end.line)) {
+    u32 last_end = compiler_formatter_Formatter_collection_item_end_line(this, node, (size - 1));
+    if (compiler_formatter_Formatter_has_blank_source_line_between(this, last_end, node->span.end.line)) {
+      multiline=true;
+    }
+  }
   if (((!(multiline) && compiler_formatter_FormatOptions_width_enabled(&this->options)) && (size > 0)) && !(this->in_format_str)) {
     u32 col_width = compiler_formatter_Formatter_measure_collection(this, node, open, close);
     if (compiler_formatter_Formatter_would_exceed_width(this, col_width)) {
@@ -18764,12 +18821,19 @@ _l___yv_587:
 }
 
 void compiler_formatter_Formatter_emit_collection(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, compiler_formatter_CollectionPlan *plan) {
+  bool saved_continuation = this->in_binary_continuation;
+  this->in_binary_continuation=false;
   if (plan->multiline && (plan->size > 0)) {
     compiler_formatter_Formatter_write(this, plan->open);
     compiler_formatter_Formatter_newline(this);
     compiler_formatter_Formatter_push_indent(this);
+    u32 prev_item_end = node->span.start.line;
     for (u32 i = 0; i < plan->size; i++) {
-      compiler_formatter_Formatter_emit_comments_before(this, compiler_formatter_Formatter_collection_item_start_line(this, node, i), false, 0);
+      u32 item_start = compiler_formatter_Formatter_collection_item_start_line(this, node, i);
+      if ((i > 0) && compiler_formatter_Formatter_has_blank_source_line_between(this, prev_item_end, item_start)) {
+        compiler_formatter_Formatter_newline(this);
+      }
+      compiler_formatter_Formatter_emit_comments_before(this, item_start, false, 0);
       compiler_formatter_Formatter_write_indent(this);
       compiler_formatter_Formatter_format_collection_item(this, node, i);
       if ((i + 1) < plan->size) {
@@ -18777,10 +18841,15 @@ void compiler_formatter_Formatter_emit_collection(compiler_formatter_Formatter *
       }
       compiler_formatter_Formatter_emit_inline_comment(this, compiler_formatter_Formatter_collection_item_end_line(this, node, i));
       compiler_formatter_Formatter_newline(this);
+      prev_item_end=compiler_formatter_Formatter_collection_item_end_line(this, node, i);
+    }
+    if ((prev_item_end > 0) && compiler_formatter_Formatter_has_blank_source_line_between(this, prev_item_end, node->span.end.line)) {
+      compiler_formatter_Formatter_newline(this);
     }
     compiler_formatter_Formatter_pop_indent(this);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, plan->close);
+    this->in_binary_continuation=saved_continuation;
     return;
   }
   compiler_formatter_Formatter_write(this, plan->open);
@@ -18791,6 +18860,7 @@ void compiler_formatter_Formatter_emit_collection(compiler_formatter_Formatter *
     compiler_formatter_Formatter_format_collection_item(this, node, i);
   }
   compiler_formatter_Formatter_write(this, plan->close);
+  this->in_binary_continuation=saved_continuation;
 }
 
 compiler_formatter_ParamPlan compiler_formatter_Formatter_plan_params(compiler_formatter_Formatter *this, compiler_ast_nodes_Function *func) {
@@ -18936,6 +19006,8 @@ void compiler_formatter_Formatter_format_expr(compiler_formatter_Formatter *this
   if (node->paren) {
     compiler_formatter_Formatter_write(this, "(");
     node->paren=false;
+    bool saved_continuation = this->in_binary_continuation;
+    this->in_binary_continuation=false;
     std_span_Span old_span = node->span;
     std_span_Location inner_start = old_span.start;
     std_span_Location inner_end = old_span.end;
@@ -18946,6 +19018,7 @@ void compiler_formatter_Formatter_format_expr(compiler_formatter_Formatter *this
     node->span=(std_span_Span){.start=inner_start, .end=inner_end};
     compiler_formatter_Formatter_format_expr(this, node);
     node->span=old_span;
+    this->in_binary_continuation=saved_continuation;
     node->paren=true;
     compiler_formatter_Formatter_write(this, ")");
     return;
@@ -19236,9 +19309,9 @@ switch ((op)) {
                 compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_source_text(this, node->u.binary.op_span));
               } break;
           }          compiler_formatter_Formatter_emit_inline_comment(this, op_line);
-          compiler_formatter_Formatter_newline(this);
-          compiler_formatter_Formatter_write_indent(this);
+          bool saved_continuation = compiler_formatter_Formatter_begin_binary_continuation(this);
           compiler_formatter_Formatter_format_expr(this, node->u.binary.rhs);
+          compiler_formatter_Formatter_end_binary_continuation(this, saved_continuation);
         } else {
 switch ((op)) {
             case compiler_ast_operators_Operator_Assignment:
@@ -19518,7 +19591,7 @@ switch ((op)) {
     case compiler_ast_nodes_ASTType_If:
     m_591_19:
       {
-        compiler_formatter_Formatter_format_if(this, node);
+        compiler_formatter_Formatter_format_if(this, node, true);
       } break;
     case compiler_ast_nodes_ASTType_Match:
     m_591_20:
@@ -19584,7 +19657,7 @@ void compiler_formatter_Formatter_format_match_cond(compiler_formatter_Formatter
   }
 }
 
-void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node) {
+void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, compiler_ast_nodes_AST *node, bool is_expr) {
   compiler_ast_nodes_IfStatement if_stmt = node->u.if_stmt;
   if (if_stmt.is_multi_if) {
     compiler_formatter_Formatter_format_multi_if(this, node);
@@ -19605,15 +19678,28 @@ void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, 
       compiler_formatter_Formatter_format_inline_if_body(this, branch.body);
     } else if (((compiler_formatter_FormatOptions_width_enabled(&this->options) && !(((bool)if_stmt.els))) && if_stmt.branches->size==1) && compiler_formatter_Formatter_would_exceed_width(this, (6 + compiler_formatter_Formatter_measure_statement(this, branch.body)))) {
       compiler_formatter_Formatter_format_inline_if_body(this, branch.body);
-    } else {
+    } else if ((((bool)if_stmt.els) && compiler_formatter_FormatOptions_width_enabled(&this->options)) && compiler_formatter_Formatter_would_exceed_width(this, (6 + compiler_formatter_Formatter_measure_statement(this, branch.body)))) {
+      if (branch.has_then) {
+        compiler_formatter_Formatter_begin_continuation(this);
+        compiler_formatter_Formatter_write(this, "then ");
+        compiler_formatter_Formatter_format_statement(this, branch.body);
+        compiler_formatter_Formatter_end_continuation(this);
+      } else {
+        compiler_formatter_Formatter_write(this, " ");
+        compiler_formatter_Formatter_format_statement(this, branch.body);
+      }
+    } else if (branch.has_then) {
       compiler_formatter_Formatter_write(this, " then ");
+      compiler_formatter_Formatter_format_statement(this, branch.body);
+    } else {
+      compiler_formatter_Formatter_write(this, " ");
       compiler_formatter_Formatter_format_statement(this, branch.body);
     }
   }
   if (((bool)if_stmt.els)) {
     if (if_stmt.els->type==compiler_ast_nodes_ASTType_If) {
       compiler_formatter_Formatter_write(this, " else ");
-      compiler_formatter_Formatter_format_if(this, if_stmt.els);
+      compiler_formatter_Formatter_format_if(this, if_stmt.els, is_expr);
     } else if (if_stmt.els->type==compiler_ast_nodes_ASTType_Block) {
       compiler_formatter_Formatter_write(this, " else ");
       compiler_formatter_Formatter_format_block(this, if_stmt.els);
@@ -19621,8 +19707,16 @@ void compiler_formatter_Formatter_format_if(compiler_formatter_Formatter *this, 
       compiler_formatter_Formatter_write(this, " else");
       compiler_formatter_Formatter_format_inline_if_body(this, if_stmt.els);
     } else if (compiler_formatter_FormatOptions_width_enabled(&this->options) && compiler_formatter_Formatter_would_exceed_width(this, (6 + compiler_formatter_Formatter_measure_statement(this, if_stmt.els)))) {
-      compiler_formatter_Formatter_write(this, " else");
-      compiler_formatter_Formatter_format_inline_if_body(this, if_stmt.els);
+      compiler_ast_nodes_IfBranch last_branch = std_vector_Vector__28_at(if_stmt.branches, (if_stmt.branches->size - 1));
+      if (last_branch.body->type==compiler_ast_nodes_ASTType_Block) {
+        compiler_formatter_Formatter_write(this, " else");
+        compiler_formatter_Formatter_format_inline_if_body(this, if_stmt.els);
+      } else {
+        compiler_formatter_Formatter_begin_continuation(this);
+        compiler_formatter_Formatter_write(this, "else ");
+        compiler_formatter_Formatter_format_statement(this, if_stmt.els);
+        compiler_formatter_Formatter_end_continuation(this);
+      }
     } else {
       compiler_formatter_Formatter_write(this, " else ");
       compiler_formatter_Formatter_format_statement(this, if_stmt.els);
@@ -19635,18 +19729,31 @@ void compiler_formatter_Formatter_format_multi_if(compiler_formatter_Formatter *
   compiler_formatter_Formatter_write(this, "if {");
   compiler_formatter_Formatter_newline(this);
   compiler_formatter_Formatter_push_indent(this);
+  u32 prev_end_line = node->span.start.line;
   for (u32 i = 0; i < if_stmt.branches->size; i++) {
     compiler_ast_nodes_IfBranch branch = std_vector_Vector__28_at(if_stmt.branches, i);
-    compiler_formatter_Formatter_emit_comments_before(this, branch.cond->span.start.line, true, 0);
+    compiler_formatter_Formatter_emit_item_preamble(this, branch.cond->span.start.line, i, prev_end_line);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_format_expr(this, branch.cond);
     compiler_formatter_Formatter_write(this, " => ");
     compiler_formatter_Formatter_format_arrow_body(this, branch.body, false);
     compiler_formatter_Formatter_emit_inline_comment(this, branch.body->span.start.line);
     compiler_formatter_Formatter_newline(this);
+    prev_end_line=branch.body->span.end.line;
+    if ((i + 1) < if_stmt.branches->size) {
+      u32 next_start = std_vector_Vector__28_at(if_stmt.branches, (i + 1)).cond->span.start.line;
+      if (prev_end_line >= next_start) {
+        prev_end_line=(next_start - 1);
+      }
+    } else if (((bool)if_stmt.els)) {
+      u32 next_start = if_stmt.els_span.start.line;
+      if (prev_end_line >= next_start) {
+        prev_end_line=(next_start - 1);
+      }
+    }
   }
   if (((bool)if_stmt.els)) {
-    compiler_formatter_Formatter_emit_comments_before(this, if_stmt.els_span.start.line, true, 0);
+    compiler_formatter_Formatter_emit_item_preamble(this, if_stmt.els_span.start.line, if_stmt.branches->size, prev_end_line);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, "else => ");
     compiler_formatter_Formatter_format_arrow_body(this, if_stmt.els, false);
@@ -19664,6 +19771,10 @@ void compiler_formatter_Formatter_format_block(compiler_formatter_Formatter *thi
   if (stmts->size==0) {
     if (compiler_formatter_Formatter_has_inline_comments_in_range(this, node->span.start.line, node->span.start.line)) {
       compiler_formatter_Formatter_emit_inline_comment(this, node->span.start.line);
+      compiler_formatter_Formatter_newline(this);
+      compiler_formatter_Formatter_write_indent(this);
+    } else if ((node->span.end.line > node->span.start.line) && compiler_formatter_Formatter_has_blank_source_line_between(this, node->span.start.line, node->span.end.line)) {
+      compiler_formatter_Formatter_newline(this);
       compiler_formatter_Formatter_newline(this);
       compiler_formatter_Formatter_write_indent(this);
     }
@@ -19702,7 +19813,19 @@ void compiler_formatter_Formatter_format_block(compiler_formatter_Formatter *thi
     }
     prev_end_line=stmt->span.end.line;
     u32 output_based_end = (stmt->span.start.line + ((this->output_line - 1) - stmt_output_start));
-    if (output_based_end > prev_end_line) {
+    if (((i + 1) < stmts->size) && (prev_end_line >= std_vector_Vector__19_at(stmts, (i + 1))->span.start.line)) {
+      if (!(compiler_formatter_Formatter_has_blank_source_line_between(this, stmt->span.start.line, (output_based_end + 1)))) {
+        prev_end_line=output_based_end;
+      } else {
+        prev_end_line=stmt->span.start.line;
+      }
+    } else if (i==(stmts->size - 1) && (prev_end_line >= node->span.end.line)) {
+      if (!(compiler_formatter_Formatter_has_blank_source_line_between(this, stmt->span.start.line, (output_based_end + 1)))) {
+        prev_end_line=output_based_end;
+      } else {
+        prev_end_line=stmt->span.start.line;
+      }
+    } else if ((output_based_end > prev_end_line) && !(compiler_formatter_Formatter_has_blank_source_line_between(this, prev_end_line, (output_based_end + 1)))) {
       prev_end_line=output_based_end;
     }
   }
@@ -19725,6 +19848,9 @@ void compiler_formatter_Formatter_format_block(compiler_formatter_Formatter *thi
     this->comment_emitted->data[this->comment_index]=true;
     prev_end_line=comment.span.end.line;
     this->comment_index++;
+  }
+  if ((close_line > (prev_end_line + 1)) && compiler_formatter_Formatter_has_blank_source_line_between(this, prev_end_line, close_line)) {
+    compiler_formatter_Formatter_newline(this);
   }
   compiler_formatter_Formatter_pop_indent(this);
   compiler_formatter_Formatter_write_indent(this);
@@ -19760,7 +19886,7 @@ switch ((node->type)) {
     case compiler_ast_nodes_ASTType_If:
     m_596_3:
       {
-        compiler_formatter_Formatter_format_if(this, node);
+        compiler_formatter_Formatter_format_if(this, node, false);
       } break;
     case compiler_ast_nodes_ASTType_While:
     m_596_4:
@@ -19817,11 +19943,10 @@ switch ((node->type)) {
         if (((bool)node->u.assertion.msg)) {
           if (compiler_formatter_FormatOptions_width_enabled(&this->options) && compiler_formatter_Formatter_would_exceed_width(this, (2 + compiler_formatter_Formatter_measure_expr(this, node->u.assertion.msg)))) {
             compiler_formatter_Formatter_write(this, ",");
-            compiler_formatter_Formatter_newline(this);
-            compiler_formatter_Formatter_push_indent(this);
-            compiler_formatter_Formatter_write_indent(this);
+            compiler_formatter_Formatter_begin_continuation(this);
             compiler_formatter_Formatter_format_expr(this, node->u.assertion.msg);
-            compiler_formatter_Formatter_pop_indent(this);
+            compiler_formatter_Formatter_end_continuation(this);
+            compiler_formatter_Formatter_emit_inline_comment(this, node->u.assertion.msg->span.start.line);
           } else {
             compiler_formatter_Formatter_write(this, ", ");
             compiler_formatter_Formatter_format_expr(this, node->u.assertion.msg);
@@ -19889,9 +20014,12 @@ void compiler_formatter_Formatter_format_match(compiler_formatter_Formatter *thi
   compiler_formatter_Formatter_write(this, " {");
   compiler_formatter_Formatter_newline(this);
   compiler_formatter_Formatter_push_indent(this);
+  u32 prev_end_line = node->span.start.line;
   for (u32 i = 0; i < match_node.cases->size; i++) {
     compiler_ast_nodes_MatchCase case_node = std_vector_Vector__29_at(match_node.cases, i);
-    compiler_formatter_Formatter_emit_comments_before(this, std_vector_Vector__5_at(case_node.conds, 0)->expr->span.start.line, true, 0);
+    u32 case_cond_start = std_vector_Vector__5_at(case_node.conds, 0)->expr->span.start.line;
+    compiler_formatter_Formatter_emit_item_preamble(this, case_cond_start, i, prev_end_line);
+    u32 case_output_start = this->output_line;
     compiler_formatter_Formatter_write_indent(this);
     bool break_conds = false;
     if (compiler_formatter_FormatOptions_width_enabled(&this->options) && (case_node.conds->size > 1)) {
@@ -19927,16 +20055,35 @@ void compiler_formatter_Formatter_format_match(compiler_formatter_Formatter *thi
       u32 body_width = compiler_formatter_Formatter_measure_statement(this, case_node.body);
       if (compiler_formatter_Formatter_would_exceed_width(this, (4 + body_width))) {
         compiler_formatter_Formatter_write(this, " =>");
-        compiler_formatter_Formatter_newline(this);
-        compiler_formatter_Formatter_push_indent(this);
-        compiler_formatter_Formatter_write_indent(this);
+        compiler_formatter_Formatter_begin_continuation(this);
         compiler_formatter_Formatter_format_statement(this, case_node.body);
         if (compiler_formatter_Formatter_match_body_needs_trailing_comma(this, case_node.body)) {
           compiler_formatter_Formatter_write(this, ",");
         }
-        compiler_formatter_Formatter_pop_indent(this);
+        compiler_formatter_Formatter_end_continuation(this);
         compiler_formatter_Formatter_emit_inline_comment(this, case_node.body->span.start.line);
         compiler_formatter_Formatter_newline(this);
+        prev_end_line=case_node.body->span.end.line;
+        u32 output_based_end = (case_cond_start + ((this->output_line - 1) - case_output_start));
+        if ((i + 1) < match_node.cases->size) {
+          u32 next_start = std_vector_Vector__5_at(std_vector_Vector__29_at(match_node.cases, (i + 1)).conds, 0)->expr->span.start.line;
+          if (prev_end_line >= next_start) {
+            if (!(compiler_formatter_Formatter_has_blank_source_line_between(this, case_cond_start, (output_based_end + 1)))) {
+              prev_end_line=output_based_end;
+            } else {
+              prev_end_line=case_cond_start;
+            }
+          }
+        } else if (((bool)match_node.defolt)) {
+          u32 next_start = match_node.defolt_span.start.line;
+          if (prev_end_line >= next_start) {
+            if (!(compiler_formatter_Formatter_has_blank_source_line_between(this, case_cond_start, (output_based_end + 1)))) {
+              prev_end_line=output_based_end;
+            } else {
+              prev_end_line=case_cond_start;
+            }
+          }
+        }
         continue;
       }
     }
@@ -19944,9 +20091,30 @@ void compiler_formatter_Formatter_format_match(compiler_formatter_Formatter *thi
     compiler_formatter_Formatter_format_arrow_body(this, case_node.body, true);
     compiler_formatter_Formatter_emit_inline_comment(this, case_node.body->span.start.line);
     compiler_formatter_Formatter_newline(this);
+    prev_end_line=case_node.body->span.end.line;
+    u32 output_based_end = (case_cond_start + ((this->output_line - 1) - case_output_start));
+    if ((i + 1) < match_node.cases->size) {
+      u32 next_start = std_vector_Vector__5_at(std_vector_Vector__29_at(match_node.cases, (i + 1)).conds, 0)->expr->span.start.line;
+      if (prev_end_line >= next_start) {
+        if (!(compiler_formatter_Formatter_has_blank_source_line_between(this, case_cond_start, (output_based_end + 1)))) {
+          prev_end_line=output_based_end;
+        } else {
+          prev_end_line=case_cond_start;
+        }
+      }
+    } else if (((bool)match_node.defolt)) {
+      u32 next_start = match_node.defolt_span.start.line;
+      if (prev_end_line >= next_start) {
+        if (!(compiler_formatter_Formatter_has_blank_source_line_between(this, case_cond_start, (output_based_end + 1)))) {
+          prev_end_line=output_based_end;
+        } else {
+          prev_end_line=case_cond_start;
+        }
+      }
+    }
   }
   if (((bool)match_node.defolt)) {
-    compiler_formatter_Formatter_emit_comments_before(this, match_node.defolt_span.start.line, true, 0);
+    compiler_formatter_Formatter_emit_item_preamble(this, match_node.defolt_span.start.line, match_node.cases->size, prev_end_line);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, "else => ");
     compiler_formatter_Formatter_format_arrow_body(this, match_node.defolt, false);
@@ -20166,11 +20334,9 @@ void compiler_formatter_Formatter_format_function(compiler_formatter_Formatter *
     }
     if (break_arrow) {
       compiler_formatter_Formatter_write(this, " =>");
-      compiler_formatter_Formatter_newline(this);
-      compiler_formatter_Formatter_push_indent(this);
-      compiler_formatter_Formatter_write_indent(this);
+      compiler_formatter_Formatter_begin_continuation(this);
       compiler_formatter_Formatter_format_expr(this, func->body);
-      compiler_formatter_Formatter_pop_indent(this);
+      compiler_formatter_Formatter_end_continuation(this);
       compiler_formatter_Formatter_emit_inline_comment(this, func->body->span.start.line);
       compiler_formatter_Formatter_newline(this);
     } else {
@@ -20209,12 +20375,28 @@ void compiler_formatter_Formatter_format_struct(compiler_formatter_Formatter *th
     compiler_formatter_Formatter_write(this, compiler_formatter_Formatter_format_type(this, struc->parsed_parent));
   }
   if (struc->sym->is_extern && struc->fields->size==0) {
-    compiler_formatter_Formatter_write(this, " {}");
+    if ((struc->span.end.line > struc->span.start.line) && compiler_formatter_Formatter_has_blank_source_line_between(this, struc->span.start.line, struc->span.end.line)) {
+      compiler_formatter_Formatter_write(this, " {");
+      compiler_formatter_Formatter_newline(this);
+      compiler_formatter_Formatter_newline(this);
+      compiler_formatter_Formatter_write_indent(this);
+      compiler_formatter_Formatter_write(this, "}");
+    } else {
+      compiler_formatter_Formatter_write(this, " {}");
+    }
     compiler_formatter_Formatter_newline(this);
     return;
   }
   if (struc->fields->size==0) {
-    compiler_formatter_Formatter_write(this, " {}");
+    if ((struc->span.end.line > struc->span.start.line) && compiler_formatter_Formatter_has_blank_source_line_between(this, struc->span.start.line, struc->span.end.line)) {
+      compiler_formatter_Formatter_write(this, " {");
+      compiler_formatter_Formatter_newline(this);
+      compiler_formatter_Formatter_newline(this);
+      compiler_formatter_Formatter_write_indent(this);
+      compiler_formatter_Formatter_write(this, "}");
+    } else {
+      compiler_formatter_Formatter_write(this, " {}");
+    }
     compiler_formatter_Formatter_newline(this);
     return;
   }
@@ -20298,9 +20480,10 @@ void compiler_formatter_Formatter_format_enum(compiler_formatter_Formatter *this
   compiler_formatter_Formatter_emit_inline_comment(this, enom->span.start.line);
   compiler_formatter_Formatter_newline(this);
   compiler_formatter_Formatter_push_indent(this);
+  u32 prev_end_line = enom->span.start.line;
   for (u32 i = 0; i < enom->shared_fields->size; i++) {
     compiler_ast_nodes_Variable *field = std_vector_Vector__3_at(enom->shared_fields, i);
-    compiler_formatter_Formatter_emit_comments_before(this, field->sym->span.start.line, true, 0);
+    compiler_formatter_Formatter_emit_item_preamble(this, field->sym->span.start.line, i, prev_end_line);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, field->sym->name);
     compiler_formatter_Formatter_write(this, ": ");
@@ -20311,10 +20494,12 @@ void compiler_formatter_Formatter_format_enum(compiler_formatter_Formatter *this
     }
     compiler_formatter_Formatter_emit_inline_comment(this, field->sym->span.start.line);
     compiler_formatter_Formatter_newline(this);
+    prev_end_line=field->sym->span.end.line;
   }
+  u32 variant_offset = enom->shared_fields->size;
   for (u32 i = 0; i < enom->variants->size; i++) {
     compiler_ast_nodes_EnumVariant *variant = std_vector_Vector__24_at(enom->variants, i);
-    compiler_formatter_Formatter_emit_comments_before(this, variant->span.start.line, true, 0);
+    compiler_formatter_Formatter_emit_item_preamble(this, variant->span.start.line, (i + variant_offset), prev_end_line);
     compiler_formatter_Formatter_write_indent(this);
     compiler_formatter_Formatter_write(this, variant->sym->name);
     if (variant->specific_fields->size > 0) {
@@ -20343,6 +20528,7 @@ void compiler_formatter_Formatter_format_enum(compiler_formatter_Formatter *this
     }
     compiler_formatter_Formatter_emit_inline_comment(this, variant->span.start.line);
     compiler_formatter_Formatter_newline(this);
+    prev_end_line=variant->span.end.line;
   }
   compiler_formatter_Formatter_pop_indent(this);
   compiler_formatter_Formatter_write_indent(this);
@@ -20493,11 +20679,11 @@ void compiler_formatter_Formatter_format_ns(compiler_formatter_Formatter *this, 
       bool prev_var_or_const = (prev_type==compiler_formatter_DeclType_Variable || prev_type==compiler_formatter_DeclType_Constant);
       bool cur_is_arrow = (d.type==compiler_formatter_DeclType_Function && d.u.func->is_arrow);
       if (d.type==compiler_formatter_DeclType_Import && prev_type==compiler_formatter_DeclType_Import) {
-        need_blank=false;
+        need_blank=compiler_formatter_Formatter_has_blank_source_line_between(this, prev_source_end, d.line);
       } else if (d.type==compiler_formatter_DeclType_CompilerOpt && prev_type==compiler_formatter_DeclType_CompilerOpt) {
-        need_blank=false;
+        need_blank=compiler_formatter_Formatter_has_blank_source_line_between(this, prev_source_end, d.line);
       } else if (is_var_or_const && prev_var_or_const) {
-        need_blank=false;
+        need_blank=compiler_formatter_Formatter_has_blank_source_line_between(this, prev_source_end, d.line);
       } else if (cur_is_arrow && prev_is_arrow) {
         need_blank=compiler_formatter_Formatter_has_blank_source_line_between(this, prev_source_end, d.line);
       }
@@ -20506,10 +20692,13 @@ void compiler_formatter_Formatter_format_ns(compiler_formatter_Formatter *this, 
       }
     }
     u32 old_ci = this->comment_index;
-    compiler_formatter_Formatter_emit_comments_before(this, d.line, false, 0);
+    compiler_formatter_Formatter_emit_comments_before(this, d.line, true, prev_source_end);
     bool emitted_comments = (this->comment_index > old_ci);
-    if (first && emitted_comments) {
-      compiler_formatter_Formatter_newline(this);
+    if (emitted_comments) {
+      u32 last_comment_end = std_vector_Vector__16_at(this->comments, (this->comment_index - 1)).span.end.line;
+      if (compiler_formatter_Formatter_has_blank_source_line_between(this, last_comment_end, d.line)) {
+        compiler_formatter_Formatter_newline(this);
+      }
     }
 switch ((d.type)) {
       case compiler_formatter_DeclType_Function:
@@ -20575,12 +20764,18 @@ switch ((d.type)) {
     } else {
       prev_source_end=compiler_formatter_decl_end_line(&d);
     }
+    if ((i + 1) < decls->size) {
+      u32 next_start = std_vector_Vector__33_at(decls, (i + 1)).line;
+      if (prev_source_end >= next_start) {
+        prev_source_end=(next_start - 1);
+      }
+    }
     prev_type=d.type;
     prev_is_arrow=(d.type==compiler_formatter_DeclType_Function && d.u.func->is_arrow);
     first=false;
   }
   u32 map_output_start = this->output_line;
-  compiler_formatter_Formatter_emit_remaining_comments(this, ns->span.end.line);
+  compiler_formatter_Formatter_emit_remaining_comments(this, ns->span.end.line, prev_source_end);
   if (track_mappings && (this->output_line > map_output_start)) {
     u32 total_lines = this->line_offsets->size;
     if (total_lines > prev_source_end) {
@@ -20853,11 +21048,11 @@ char *compiler_formatter_Formatter_reconstruct_range(compiler_formatter_Formatte
 char *compiler_formatter_Formatter_run(compiler_formatter_Formatter *this) {
   bool track = (this->range_start > 0);
   compiler_formatter_Formatter_format_ns(this, this->ns, track);
-  compiler_formatter_Formatter_emit_remaining_comments(this, 0);
+  compiler_formatter_Formatter_emit_remaining_comments(this, 0, 0);
   if (this->debug_cursor && (this->cursor_regressions > 0)) {
     fprintf(stderr, "[formatter] detected %u comment cursor regressions while formatting %s""\n", this->cursor_regressions, this->filename);
   }
-  if(!(this->comment_index==this->comments->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:3190:12: Assertion failed: `.comment_index == .comments.size`", "Formatter ended with un-emitted comments"); }
+  if(!(this->comment_index==this->comments->size)) { ae_assert_fail("/Users/mustafa/ocen-lang/ocen/compiler/formatter.oc:3445:12: Assertion failed: `.comment_index == .comments.size`", "Formatter ended with un-emitted comments"); }
   for (u32 i = 0; i < this->comment_emitted->size; i++) {
     if (!(std_vector_Vector__37_at(this->comment_emitted, i))) {
       compiler_tokens_Comment c = std_vector_Vector__16_at(this->comments, i);

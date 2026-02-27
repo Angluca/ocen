@@ -1,0 +1,7 @@
+/// format: --line-width 40
+
+// Arrow function body reflow: when the body doesn't fit on the same line
+// as '=>', it should break to the next line with continuation indent
+def short(x: u32): u32 => x + 1
+def get_name(): str => "some_very_long_constant_name_here"
+def compute(x: u32, y: u32): u32 => x + y

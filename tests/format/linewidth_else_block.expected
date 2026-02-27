@@ -4,9 +4,9 @@ def foo(x: u32): u32 {
     let a = if x > 0 then 1 else 2
 
     let b =
-        if x > 10 then some_long_value else {
-            another_long_value
-        }
+        if x > 10 then some_long_value
+            else another_long_value
+
     if x > 5 {
         println("big")
     } else println("small")

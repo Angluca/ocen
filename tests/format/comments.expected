@@ -1,6 +1,6 @@
 /// format
-// This is a regular comment
 
+// This is a regular comment
 def foo(): u32 {
     // Inside a function
     let x = 5 // inline comment
@@ -14,6 +14,7 @@ def bar() {
 }
 
 // Comment between functions
+
 def baz() {
     // Multiple
     // comment

@@ -1,5 +1,4 @@
 /// format
-
 def foo(a: str, b: str) {}
 
 def bar() {

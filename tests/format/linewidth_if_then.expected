@@ -1,16 +1,17 @@
 /// format: --line-width 40
-// If-then reflow: when if-then exceeds line width, convert to block form
 
+// If-then reflow: when if-then exceeds line width, convert to block form
 def foo(x: u32) {
     if x > 10 then println("short")
 
     if some_long_variable > another_long {
         println("this is too long")
     }
+
     // With else - should NOT reflow (conservative)
-    if x > 10 then println("a") else {
-        println("b")
-    }
+    if x > 10 then println("a")
+        else println("b")
+
     // Multiple branches - should NOT reflow
     if x > 10 {
         println("a")

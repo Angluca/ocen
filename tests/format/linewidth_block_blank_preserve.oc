@@ -1,0 +1,14 @@
+/// format: --line-width 30
+
+// Blank line preservation when if-then expands to block form:
+// blank lines between statements must survive when the formatter
+// rewrites "if cond then body" into "if cond { body }"
+def foo(x: u32) {
+    if x > 10 then do_something()
+
+    println("after")
+
+    if x > 5 then another_long_fn()
+
+    return
+}

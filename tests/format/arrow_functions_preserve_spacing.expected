@@ -1,4 +1,5 @@
 /// format
+
 // Arrow functions are OK to not have extra empty lines between them, unless
 // The user has specifically added some. In this case, the gap between the first and second
 // should be preserved

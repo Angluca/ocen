@@ -1,0 +1,16 @@
+/// format: --line-width 30
+
+// Blank lines between match cases must be preserved even when the
+// formatter reflowing case bodies expands them to multiple lines
+def foo(x: u32): str {
+    let result = match x {
+        1 =>
+            "very long string value"
+
+        2 =>
+            "another long string value"
+
+        else => "default"
+    }
+    return result
+}

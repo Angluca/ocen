@@ -1,5 +1,4 @@
 /// format
-
 [extern]
 def variadic_fn(
     fmt: str, // Format string

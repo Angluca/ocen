@@ -1376,7 +1376,7 @@ def Parser::parse_multi_if(&this, start_tok: &Token): &AST {
                 .error(Error::new(.token().span, "Expected `=>` after condition"))
             }
             let body = .parse_statement()
-            branches.push(IfBranch(cond, body))
+            branches.push(IfBranch(cond, body, has_then: false))
         }
         .consume_if(TokenType::Comma)
     }
@@ -1395,9 +1395,9 @@ def Parser::parse_if(&this): &AST {
     let end_span = start_span
     while true {
         let cond = .parse_expression(end_type: TokenType::Newline)
-        .consume_if(TokenType::Then)
+        let has_then = .consume_if(TokenType::Then)
         let body = .parse_statement()
-        cases.push(IfBranch(cond, body))
+        cases.push(IfBranch(cond, body, has_then))
         end_span = body.span
 
         if .token_is(Else) and .peek_token_is(1, If) {
@@ -1416,6 +1416,7 @@ def Parser::parse_if(&this): &AST {
         let els_tok = .consume(TokenType::Else)
         node.u.if_stmt.els = .parse_statement()
         node.u.if_stmt.els_span = els_tok.span
+        end_span = node.u.if_stmt.els.span
     }
 
     node.span = start_span.join(end_span)

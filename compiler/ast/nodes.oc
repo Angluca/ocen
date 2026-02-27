@@ -448,6 +448,8 @@ struct Assertion {
 struct IfBranch {
     cond: &AST
     body: &AST
+    //! Whether `then` keyword was present in the source between cond and body
+    has_then: bool
 }
 
 struct IfStatement {

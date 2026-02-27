@@ -1,0 +1,20 @@
+/// format: --line-width 40
+
+// Binary op reflow: continuation lines should be indented by 1 level
+def foo() {
+    let v = 1.0 -
+        something_long /
+        another_long_thing
+    if very_long_condition_a and
+        very_long_condition_b {
+        return true
+    }
+    let x = a + b + c + d + e + f + g +
+        hh
+    let y = first_value and second_value and
+        third_value_here
+    let z = alpha or beta or gamma or
+        delta_long
+    return some_long_value +
+        another_long_value + final_val
+}

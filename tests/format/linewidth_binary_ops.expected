@@ -2,13 +2,13 @@
 
 def foo() {
     let x = a + b + c + d + e + f + g +
-    h
+        h
     let y = first_value and second_value and
-    third_value
+        third_value
     let z = alpha or beta or gamma or
-    delta
+        delta
     if very_long_condition_a and
-    very_long_condition_b {
+        very_long_condition_b {
         return true
     }
 }
